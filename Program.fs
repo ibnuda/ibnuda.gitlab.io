@@ -1,6 +1,10 @@
 ﻿open System
 
+open Util
+open Generate
+
 [<EntryPoint>]
 let main argv =
-    printfn "A"
-    0 // return an integer exit code
+  parsePost "Something.md"
+  |> write "public" "something.html"
+  0
