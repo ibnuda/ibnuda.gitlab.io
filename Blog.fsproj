@@ -4,9 +4,14 @@
     <TargetFramework>netcoreapp1.1</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Model.fs" />
+    <Compile Include="FsHtml.fs" />
+    <Compile Include="View.fs" />
+    <Compile Include="Generate.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CoreCompat.System.Security" Version="4.2.3-r4" />
     <PackageReference Include="FSharp.Core" Version="4.1.*" />
     <PackageReference Include="FSharp.NET.Sdk" Version="1.0.*" PrivateAssets="All" />
     <PackageReference Include="Markdig" Version="0.12.3" />
