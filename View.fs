@@ -3,17 +3,6 @@ module View
 open Conf
 open FsHtml
 
-let css =
-  """html { -webkit-text-size-adjust: 100%; padding-bottom: 4em; padding-top: 3em }
-  body { font-family: sans-serif; line-height: 1.5em; max-width: 40em; padding: 0 2%; margin: auto }
-  fieldset { margin-bottom: 1.5em }
-  textarea { height: 10em }
-  dt { font-weight: bold }
-  .text-input { width: 96%; display: block; padding: .5em 1%; margin-bottom: 1.5em; font-size: 1em }
-  .important { color: red }
-  .footer { text-align: right }
-  .centered { text-align: center }"""
-
 let meta name value =
   meta [
     "name" %= (safeText name)
@@ -22,43 +11,63 @@ let meta name value =
 
 let metaView = meta "viewport" "width=device-width, initial-scale=1.0"
 let metaDesc = meta "description" "page content."
-let metaAuth = meta "author" Conf.Default.Author
+let metaAuth = meta "author" conf.Author
 
 let sitecss =
-  style [
-    "type" %= "text/css"
-    text css
+  link [
+    "rel" %= "stylesheet"
+    "href" %= "static/site.css"
   ]
 
-let viewIndex titleAndLinks =
+let siteheader =
+  div [
+    "class" %= "header"
+    a <| href conf.Site (text "Home")
+  ]
+
+let sitefooter =
+  div [
+    "class" %= "footer"
+    text "Back to"
+    a <| href conf.Site (text "index")
+  ]
+
+let mainView content =
   html [
     head [
-      title [ text Conf.Default.Site ]
+      title [ text conf.SiteTitle ]
       metaView
       metaDesc
       metaAuth
       sitecss
     ]
     body [
-      h1 [ text "Index" ]
-      ul [
-        for (link, title) in titleAndLinks -> li <| [ a <| href link (text title) ]
+      div [
+        "class" %= "page"
+        siteheader
+        content
+        sitefooter
       ]
     ]
   ]
 
-let viewPage content =
-  html [
-    head [
-      title [ text "Title" ]
-      metaView
-      metaDesc
-      metaAuth
-      sitecss
+let viewIndex titleAndLinks =
+  let content =
+    div [
+      "class" %= "body"
+      h3 [ text "Index" ]
+      ul [
+        for (link, title) in titleAndLinks -> li <| [ a <| href link (text title) ]
+      ]
     ]
-    body [
+  mainView content
+
+let viewPage content =
+  let content =
+    div [
+      "class" %= "body"
       text content
     ]
-  ]
+  mainView content
 
 let htmlToString = FsHtml.Html.ToString

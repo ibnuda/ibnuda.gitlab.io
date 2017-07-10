@@ -22,3 +22,6 @@ type Conf =
   /// Default: mine.
   static member Default =
     Conf.Create ("https://ibnuda.gitlab.io", "Nothing Unusual", "IbnuDA", "public", "pages")
+
+/// Create your own.
+let conf = Conf.Default

@@ -1,0 +1,34 @@
+body {
+  font-family: sans-serif;
+  line-height: 1.5em;
+  max-width: 40em;
+  margin: auto
+}
+
+dt {
+  font-weight: bold
+}
+
+.important {
+  color: red
+}
+
+.centered {
+  text-align: center
+}
+
+.header {
+  height: 30px;
+  background-color: aliceblue;
+}
+
+.footer {
+  height: 30px;
+  background-color: aliceblue;
+}
+
+.body {
+  flex-direction: row;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}

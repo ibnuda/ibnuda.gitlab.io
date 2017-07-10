@@ -40,10 +40,11 @@ type Html =
     "<!DOCTYPE html>\r\n" + toString 0 elem
   override this.ToString() = Html.ToString this
 
-let elem tag content = Elem(tag,content)
+let elem tag content = Elem (tag,content)
 let html = elem "html"
 let head = elem "head"
 let title = elem "title"
+let link = elem "link"
 let style = elem "style"
 let meta = elem "meta"
 let body = elem "body"
@@ -66,9 +67,11 @@ let th = elem "th"
 let ul = elem "ul"
 let li = elem "li"
 let h1 = elem "h1"
-let h2 = elem "h1"
-let h3 = elem "h1"
-let h4 = elem "h1"
+let h2 = elem "h2"
+let h3 = elem "h3"
+let h4 = elem "h4"
+let header = elem "header"
+let footer = elem "footer"
 let strong = elem "strong"
 let text = Text // SecurityElement.Escape >> Text
 let safeText = SecurityElement.Escape

@@ -1,23 +1,21 @@
 <!DOCTYPE html>
 <html>
  <head>
-  <title>Title</title>
+  <title>Nothing Unusual</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="page content."/>
   <meta name="author" content="IbnuDA"/>
-  <style type="text/css">
-   html { -webkit-text-size-adjust: 100%; padding-bottom: 4em; padding-top: 3em }
-  body { font-family: sans-serif; line-height: 1.5em; max-width: 40em; padding: 0 2%; margin: auto }
-  fieldset { margin-bottom: 1.5em }
-  textarea { height: 10em }
-  dt { font-weight: bold }
-  .text-input { width: 96%; display: block; padding: .5em 1%; margin-bottom: 1.5em; font-size: 1em }
-  .important { color: red }
-  .footer { text-align: right }
-  .centered { text-align: center }
-  </style>
+  <link rel="stylesheet" href="static/site.css"/>
  </head>
- <body><h1>An h1 header</h1>
+ <body>
+  <div class="page">
+   <div class="header">
+    <a href="https://ibnuda.gitlab.io">
+     Home
+    </a>
+   </div>
+   <div class="body">
+    <h1>An h1 header</h1>
 <p>Paragraphs are separated by a blank line.</p>
 <p>2nd paragraph. <em>Italic</em>, <strong>bold</strong>, and <code>monospace</code>. Itemized lists
 look like:</p>
@@ -130,11 +128,20 @@ term/definition pair to spread things out more.)</p>
 |   Line too
 | Line tree</p>
 <p>and images can be specified like so:</p>
-<p><img src="example-image.jpg" alt="example image" title="An exemplary image" /></p>
+<p><img src="images/example-image.png" alt="example image" title="An exemplary image" /></p>
 <p>Inline math equations go in like so: $\omega = d\phi / dt$. Display
 math should get its own line and be put in in double-dollarsigns:</p>
 <p>$$I = \int \rho R^{2} dV$$</p>
 <p>And note that you can backslash-escape any punctuation characters
 which you wish to be displayed literally, ex.: `foo`, *bar*, etc.</p>
-</body>
+
+   </div>
+   <div class="footer">
+    Back to
+    <a href="https://ibnuda.gitlab.io">
+     index
+    </a>
+   </div>
+  </div>
+ </body>
 </html>

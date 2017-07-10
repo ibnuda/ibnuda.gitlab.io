@@ -33,6 +33,11 @@ let delete dir path =
   let path = filePath dir path
   File.Delete path
 
+let deletePreviousPost () =
+  conf.PublicPath
+  |> Directory.GetFiles
+  |> Seq.iter File.Delete
+
 let writeToPublic path content =
-  let path = filePath Conf.Default.PublicPath path
+  let path = filePath conf.PublicPath path
   File.WriteAllText (path, content)

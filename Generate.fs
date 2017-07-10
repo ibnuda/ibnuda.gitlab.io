@@ -10,7 +10,7 @@ open Util
 open View
 
 let parsePost path =
-  let content = readWithDir Conf.Default.PagesPath path
+  let content = readWithDir conf.PagesPath path
   Markdown.ToHtml content
 
 let parse path =
@@ -26,5 +26,6 @@ let writeHtml path url =
   url
 
 let generateSite () =
+  deletePreviousPost ()
   files Conf.Default.PagesPath
   |> Seq.map (fun x -> (writeHtml x <| namesHtml x), names x)
