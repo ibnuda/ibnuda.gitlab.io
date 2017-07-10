@@ -3,6 +3,8 @@ module View
 open Conf
 open FsHtml
 
+let htmlToString = FsHtml.Html.ToString
+
 let meta name value =
   meta [
     "name" %= (safeText name)
@@ -49,17 +51,16 @@ let viewIndex titleAndLinks =
       "class" %= "body"
       h3 [ text "Index" ]
       ul [
-        for (link, title) in titleAndLinks -> li <| [ a <| href link (text title) ]
+        for (title, link) in titleAndLinks -> li <| [ a <| href link (text title) ]
       ]
     ]
   mainView content
 
-let viewPage content =
+let viewPage (info : BlogInfo) content =
   let content =
     div [
       "class" %= "body"
       text content
     ]
-  mainView content
+  info, htmlToString <| mainView content
 
-let htmlToString = FsHtml.Html.ToString
