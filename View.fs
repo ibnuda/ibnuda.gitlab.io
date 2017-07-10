@@ -25,13 +25,6 @@ let siteheader =
     a <| href conf.Site (text "Home")
   ]
 
-let sitefooter =
-  div [
-    "class" %= "footer"
-    text "Back to"
-    a <| href conf.Site (text "index")
-  ]
-
 let mainView content =
   html [
     head [
@@ -46,7 +39,6 @@ let mainView content =
         "class" %= "page"
         siteheader
         content
-        sitefooter
       ]
     ]
   ]

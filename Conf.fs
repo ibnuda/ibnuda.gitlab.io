@@ -25,3 +25,16 @@ type Conf =
 
 /// Create your own.
 let conf = Conf.Default
+
+/// Title: Well, title of the post.
+/// Date: Date in ticks. Because I'm cool.
+type BlogInfo =
+  { Title : string
+    Date  : int64 }
+  static member Create (title, date) =
+    { Title = title
+      Date = date }
+  static member Default =
+    BlogInfo.Create ("Empty", 0L)
+  static member FromTitle (title) =
+    BlogInfo.Create (title, DateTime.Now.ToUniversalTime().Ticks)

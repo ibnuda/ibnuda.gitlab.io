@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Conf.fs" />
-    <Compile Include="Util.fs" />
+    <Compile Include="ReadWrite.fs" />
     <Compile Include="FsHtml.fs" />
     <Compile Include="View.fs" />
     <Compile Include="Generate.fs" />
