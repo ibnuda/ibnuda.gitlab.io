@@ -1,10 +1,16 @@
 ﻿open System
 
+open Conf
 open Util
+open FsHtml
+open View
 open Generate
 
 [<EntryPoint>]
 let main argv =
-  parsePost "Something.md"
-  |> write "public" "something.html"
+  generateSite ()
+  |> viewIndex
+  |> htmlToString
+  // |> printfn "%A"
+  |> writeToPublic "index.html"
   0

@@ -45,6 +45,7 @@ let html = elem "html"
 let head = elem "head"
 let title = elem "title"
 let style = elem "style"
+let meta = elem "meta"
 let body = elem "body"
 let div = elem "div"
 let br = elem "br"
@@ -80,5 +81,3 @@ let areaTeks = [elem "textarea" []]
 let href url content =
   [ "href" %= url
     content ]
-
-
