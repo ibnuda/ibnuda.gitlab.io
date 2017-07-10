@@ -38,3 +38,5 @@ type BlogInfo =
     BlogInfo.Create ("Empty", 0L)
   static member FromTitle (title) =
     BlogInfo.Create (title, DateTime.Now.ToUniversalTime().Ticks)
+  member __.ToMd () =
+    sprintf "%s\n%A" __.Title __.Date

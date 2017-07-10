@@ -2,13 +2,12 @@
 
 open Conf
 open ReadWrite
-open Generate
+open Command
 
 [<EntryPoint>]
 let main argv =
-  // let (bloginfo, content) = readMarkdown "waterboard.md"
-  // let (a, b) = writeHtml bloginfo (parse content)
-  // printfn "%s" <| dateAndTitle a
-  generateAllPost ()
-  |> printfn "%A"
+  printfn "Pick one of the following commands:"
+  printfn "newpost"
+  printfn "compile"
+  readline () |> read |> exec
   0

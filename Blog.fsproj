@@ -9,6 +9,7 @@
     <Compile Include="FsHtml.fs" />
     <Compile Include="View.fs" />
     <Compile Include="Generate.fs" />
+    <Compile Include="Command.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

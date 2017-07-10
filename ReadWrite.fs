@@ -12,6 +12,8 @@ let untuple f (x, y) =
 let dateAndTitle info =
   DateTime(info.Date).ToString("yyyyMMdd") + " - " + info.Title
 
+let regexTitle title = Regex.Replace (title, "[^a-zA-Z0-9_.]+","")
+
 let pages = conf.PagesPath
 let publi = conf.PublicPath
 let pathAndPages path =
@@ -32,10 +34,15 @@ let readMarkdown path =
 let writeHtml (info, content) =
   let title = info.Title.ToLower()
   let date = info.Date
-  let reptitle = Regex.Replace (title, "[^a-zA-Z0-9_.]+","")
+  let reptitle = regexTitle title
   let filename = date.ToString () + "_" + reptitle + ".html"
   File.WriteAllText (pathAndPublic filename, content)
   dateAndTitle info, filename
 
 let writeIndex content =
   File.WriteAllText (pathAndPublic "index.html", content)
+
+let writeMarkdown (info : BlogInfo) =
+  let filename = (regexTitle info.Title) + ".md"
+  printfn "Please open %A" (pathAndPages filename)
+  File.WriteAllText (pathAndPages filename, info.ToMd ())
