@@ -53,7 +53,6 @@ let exec =
     |> writeMarkdown
   | Compile ->
     generateAllPost ()
-    |> printfn "%A"
   | CleanPo ->
     deleteFiles ()
   | TheDuck ->

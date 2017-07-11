@@ -15,9 +15,9 @@
     </a>
    </div>
    <div class="body">
-    <h1>Chiron 7 Tutorial (WIP)</h1>
-<p>Well, Chiron is an F# library for (de)serialization of Json. It's really well written.
-If you ever use Elm's json serialization, you will feel at home at no time.</p>
+    <h1>Chiron 7 Tutorial</h1>
+<p>Well, <a href="https://github.com/xyncro/chiron">Chiron</a> is an F# library for (de)serialization of Json. It's really well written.
+If you ever used Elm's json serialization, you will feel at home at no time.</p>
 <p>Though I admit, there are a few ceremonious parts of its usage, especially in enc/dec part.
 But that's fine, there are prices that should be paid for flexibility.</p>
 <h2>Example (WIP)</h2>
@@ -26,11 +26,6 @@ But that's fine, there are prices that should be paid for flexibility.</p>
 open Chiron.Operators
 
 module AuthModels =
-
-  module D = Json.Decode
-  module E = Json.Encode
-  module ID = Inference.Json.Decode
-  module IE = Inference.Json.Encode
 
   type Token =
     { Quali : string
@@ -45,24 +40,51 @@ module AuthModels =
     let private create qualif uid ein = Token.Create (qualif, uid, ein)
     let encode token jsonObj =
       jsonObj
-      |&gt; E.required E.string &quot;qualification&quot; token.Quali
-      |&gt; E.required E.guid &quot;userid&quot; token.UserId
-      |&gt; E.required E.int64 &quot;expiresin&quot; token.ExpiresIn
+      |&gt; Json.Encode.required Json.Encode.string &quot;qualification&quot; token.Quali
+      |&gt; Json.Encode.required Json.Encode.guid &quot;userid&quot; token.UserId
+      |&gt; Json.Encode.required Json.Encode.int64 &quot;expiresin&quot; token.ExpiresIn
     let decode =
       create
-      &lt;!&gt; D.required D.string &quot;qualification&quot;
-      &lt;*&gt; D.required D.guid &quot;userid&quot;
-      &lt;*&gt; D.required D.int64 &quot;expiresin&quot;
+      &lt;!&gt; Json.Decode.required Json.Decode.string &quot;qualification&quot;
+      &lt;*&gt; Json.Decode.required Json.Decode.guid &quot;userid&quot;
+      &lt;*&gt; Json.Decode.required Json.Decode.int64 &quot;expiresin&quot;
 
 </code></pre>
 <p>And to serialize a <code>Token</code> object to a json string:</p>
-<pre><code>  let inline modelToJson (encoder : 'T -&gt; JsonObject -&gt; JsonObject) model =
+<pre><code>  let inline jsonToModel (decoder : JsonObject -&gt; JsonResult&lt;'T&gt;) jsonstr : 'T option =
+    let parsingRes =
+      jsonStr
+      |&gt; Json.parse
+      |&gt; JsonResult.bind (Json.Decode.jsonObjectWith decoder)
+    match parsingRes with
+    | JPass result -&gt; Some result
+    | JFail _      -&gt; None
+
+  let inline modelToJson (encoder : 'T -&gt; JsonObject -&gt; JsonObject) model =
     model
     |&gt; Json.Encode.jsonObjectWith encoder
     |&gt; Json.format
 
   let tokenToJson = modelToJson TokenEncDec.encode
+  let jsonToToken = jsonToModel TokenEncDec.decode
 </code></pre>
+<p>The usage is something like this:</p>
+<pre><code>  let tokenA = Token.Create (&quot;qualif&quot;, Guid.Empty, 0L)
+
+  let jsonOfToken = tokenToJson tokenA
+  // should result {&quot;qualification&quot;:&quot;qualif&quot;,&quot;userid&quot;:&quot;00000000-0000-0000-0000-000000000000&quot;,&quot;expiresin&quot;:0}
+
+  let tokenFromJsonOfToken = jsonToToken jsonOfToken
+  // should have result `tokenFromJsonOfToken = Some tokenA`
+
+  // and the following json
+  // {&quot;qualification&quot;:&quot;qualif&quot;,&quot;userid&quot;:&quot;00000000-0000-0000-0000-000000000000&quot;,&quot;expiresin&quot;:0
+  // should have result None
+</code></pre>
+<h2>TODO</h2>
+<ul>
+<li>Step by step explanation, e.g. why use <code>Json.Decode.required</code> and <code>Json.Decode.string</code>.</li>
+</ul>
 
    </div>
   </div>
