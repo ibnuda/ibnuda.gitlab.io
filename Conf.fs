@@ -1,6 +1,7 @@
 module Conf
 
 open System
+open System.Text
 
 /// Site: Blog's url.
 /// SiteTitle: The title of the blog.
@@ -39,4 +40,6 @@ type BlogInfo =
   static member FromTitle (title) =
     BlogInfo.Create (title, DateTime.Now.ToUniversalTime().Ticks)
   member __.ToMd () =
-    sprintf "%s\n%A" __.Title __.Date
+    let date = __.Date |> string
+    let dateWithoutL = date.Replace("L", "").Replace("\"", "")
+    sprintf "%s\n%s" __.Title dateWithoutL

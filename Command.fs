@@ -34,12 +34,14 @@ let askDate () = // No. I'm taken.
 type Com =
   | NewPost
   | Compile
+  | CleanPo
   | TheDuck
 
 let read =
   function
   | "newpost" -> NewPost
   | "compile" -> Compile
+  | "cleanpo" -> CleanPo
   | _         -> TheDuck
 
 let exec =
@@ -52,5 +54,7 @@ let exec =
   | Compile ->
     generateAllPost ()
     |> printfn "%A"
+  | CleanPo ->
+    deleteFiles ()
   | TheDuck ->
     printfn "We are not connected by destiny. Bye~"

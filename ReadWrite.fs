@@ -46,3 +46,7 @@ let writeMarkdown (info : BlogInfo) =
   let filename = (regexTitle info.Title) + ".md"
   printfn "Please open %A" (pathAndPages filename)
   File.WriteAllText (pathAndPages filename, info.ToMd ())
+
+let deleteFiles () =
+  Directory.GetFiles (conf.PublicPath)
+  |> Seq.iter File.Delete

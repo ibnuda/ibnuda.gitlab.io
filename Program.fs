@@ -7,7 +7,8 @@ open Command
 [<EntryPoint>]
 let main argv =
   printfn "Pick one of the following commands:"
-  printfn "newpost"
-  printfn "compile"
+  printfn "For new post : newpost"
+  printfn "For compile  : compile"
+  printfn "For cleaning : cleanpo"
   readline () |> read |> exec
   0

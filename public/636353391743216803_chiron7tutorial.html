@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Nothing Unusual</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="page content."/>
+  <meta name="author" content="IbnuDA"/>
+  <link rel="stylesheet" href="static/site.css"/>
+ </head>
+ <body>
+  <div class="page">
+   <div class="header">
+    <a href="https://ibnuda.gitlab.io">
+     Home
+    </a>
+   </div>
+   <div class="body">
+    <h1>Chiron 7 Tutorial (WIP)</h1>
+<p>Well, Chiron is an F# library for (de)serialization of Json. It's really well written.
+If you ever use Elm's json serialization, you will feel at home at no time.</p>
+<p>Though I admit, there are a few ceremonious parts of its usage, especially in enc/dec part.
+But that's fine, there are prices that should be paid for flexibility.</p>
+<h2>Example (WIP)</h2>
+<p>Define an object, as an example (I took it from my other project <a href="https://gitlab.com/ibnuda/Forum/blob/master/src/Auth/AuthModels.fs">Forum.Auth</a>):</p>
+<pre><code>open Chiron
+open Chiron.Operators
+
+module AuthModels =
+
+  module D = Json.Decode
+  module E = Json.Encode
+  module ID = Inference.Json.Decode
+  module IE = Inference.Json.Encode
+
+  type Token =
+    { Quali : string
+      UserId : Guid
+      ExpiresIn : int64 }
+    static member Create (quali, uid, eIn) =
+      { Quali = quali
+        UserId = uid
+        ExpiresIn = eIn }
+
+  module TokenEncDec =
+    let private create qualif uid ein = Token.Create (qualif, uid, ein)
+    let encode token jsonObj =
+      jsonObj
+      |&gt; E.required E.string &quot;qualification&quot; token.Quali
+      |&gt; E.required E.guid &quot;userid&quot; token.UserId
+      |&gt; E.required E.int64 &quot;expiresin&quot; token.ExpiresIn
+    let decode =
+      create
+      &lt;!&gt; D.required D.string &quot;qualification&quot;
+      &lt;*&gt; D.required D.guid &quot;userid&quot;
+      &lt;*&gt; D.required D.int64 &quot;expiresin&quot;
+
+</code></pre>
+<p>And to serialize a <code>Token</code> object to a json string:</p>
+<pre><code>  let inline modelToJson (encoder : 'T -&gt; JsonObject -&gt; JsonObject) model =
+    model
+    |&gt; Json.Encode.jsonObjectWith encoder
+    |&gt; Json.format
+
+  let tokenToJson = modelToJson TokenEncDec.encode
+</code></pre>
+
+   </div>
+  </div>
+ </body>
+</html>

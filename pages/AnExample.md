@@ -1,6 +1,7 @@
-Something
-0
-An h1 header
+An Example Post
+636353391503683102
+
+An Example Post
 ============
 
 Paragraphs are separated by a blank line.

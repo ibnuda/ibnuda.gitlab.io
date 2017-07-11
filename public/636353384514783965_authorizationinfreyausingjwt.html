@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Nothing Unusual</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="page content."/>
+  <meta name="author" content="IbnuDA"/>
+  <link rel="stylesheet" href="static/site.css"/>
+ </head>
+ <body>
+  <div class="page">
+   <div class="header">
+    <a href="https://ibnuda.gitlab.io">
+     Home
+    </a>
+   </div>
+   <div class="body">
+    <h1>Authorization in Freya (WIP)</h1>
+<p>This blog post should be written after a few other guides completed. Or if you want can stand really bad code, you can read at <a href="https://gitlab.com/ibnuda/Forum/blob/master/src/Serv/Api.fs">Forum.Lock</a></p>
+<p>But here's the codes:</p>
+<pre><code>  let routeContent =
+    freyaHttpMachine {
+      authorized Util.authorized
+      methods [ GET ]
+      handleOk (Represent.text &lt;!&gt; protReqHandler)
+      handleUnauthorized (Represent.text &lt;!&gt; Freya.init &quot;Unauthorized.&quot;)
+    }
+</code></pre>
+<p>The important part is the <code>authorized Util.authorized</code> part. And <code>Util.authorized</code> itself is something like the following:</p>
+<pre><code>  module Util =
+    open Forum.Lock
+    let authorized =
+      Request.header_ &quot;authorization&quot;
+      |&gt;  Freya.Optic.get
+      &gt;&gt;= (Lock.authorize &gt;&gt; Freya.init)
+
+</code></pre>
+<p>and <code>Forum.Lock.authorize</code> is a function that compare the header (which is a JWT token) with the data on the database.
+And I admit, that code is a spaghetti code and really smell bad.</p>
+
+   </div>
+  </div>
+ </body>
+</html>
