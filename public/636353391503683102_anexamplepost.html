@@ -5,16 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="page content."/>
   <meta name="author" content="IbnuDA"/>
-  <link rel="stylesheet" href="static/site.css"/>
+  <link rel="stylesheet" href="static/milligram.min.css"/>
+  <link rel="stylesheet" href="static/normalize.min.css"/>
+  <link rel="stylesheet" href="static/main.css"/>
  </head>
  <body>
-  <div class="page">
-   <div class="header">
-    <a href="https://ibnuda.gitlab.io">
-     Home
-    </a>
-   </div>
-   <div class="body">
+  <main class="wrapper">
+   <nav class="navigation">
+    <section class="container">
+     <a class="navigation-title" href="/">
+      Home
+     </a>
+    </section>
+   </nav>
+   <section class="container">
     <h1>An Example Post</h1>
 <p>Paragraphs are separated by a blank line.</p>
 <p>2nd paragraph. <em>Italic</em>, <strong>bold</strong>, and <code>monospace</code>. Itemized lists
@@ -135,7 +139,7 @@ math should get its own line and be put in in double-dollarsigns:</p>
 <p>And note that you can backslash-escape any punctuation characters
 which you wish to be displayed literally, ex.: `foo`, *bar*, etc.</p>
 
-   </div>
-  </div>
+   </section>
+  </main>
  </body>
 </html>

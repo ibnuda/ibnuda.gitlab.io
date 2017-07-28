@@ -15,16 +15,33 @@ let metaView = meta "viewport" "width=device-width, initial-scale=1.0"
 let metaDesc = meta "description" "page content."
 let metaAuth = meta "author" conf.Author
 
-let sitecss =
+let maincss =
   link [
     "rel" %= "stylesheet"
-    "href" %= "static/site.css"
+    "href" %= "static/main.css"
+  ]
+let milligramcss =
+  link [
+    "rel" %= "stylesheet"
+    "href" %= "static/milligram.min.css"
+  ]
+let normalizecss =
+  link [
+    "rel" %= "stylesheet"
+    "href" %= "static/normalize.min.css"
   ]
 
-let siteheader =
-  div [
-    "class" %= "header"
-    a <| href conf.Site (text "Home")
+let sitenav =
+  nav [
+    "class" %= "navigation"
+    section [
+      "class" %= "container"
+      a [
+        "class" %= "navigation-title"
+        "href" %= "/"
+        text "Home"
+      ]
+    ]
   ]
 
 let mainView content =
@@ -34,12 +51,14 @@ let mainView content =
       metaView
       metaDesc
       metaAuth
-      sitecss
+      milligramcss
+      normalizecss
+      maincss
     ]
     body [
-      div [
-        "class" %= "page"
-        siteheader
+      main [
+        "class" %= "wrapper"
+        sitenav
         content
       ]
     ]
@@ -47,8 +66,8 @@ let mainView content =
 
 let viewIndex titleAndLinks =
   let content =
-    div [
-      "class" %= "body"
+    section [
+      "class" %= "container"
       h3 [ text "Index" ]
       ul [
         for (title, link) in titleAndLinks -> li <| [ a <| href link (text title) ]
@@ -58,9 +77,8 @@ let viewIndex titleAndLinks =
 
 let viewPage (info : BlogInfo) content =
   let content =
-    div [
-      "class" %= "body"
+    section [
+      "class" %= "container"
       text content
     ]
   info, htmlToString <| mainView content
-

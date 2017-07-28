@@ -5,16 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="page content."/>
   <meta name="author" content="IbnuDA"/>
-  <link rel="stylesheet" href="static/site.css"/>
+  <link rel="stylesheet" href="static/milligram.min.css"/>
+  <link rel="stylesheet" href="static/normalize.min.css"/>
+  <link rel="stylesheet" href="static/main.css"/>
  </head>
  <body>
-  <div class="page">
-   <div class="header">
-    <a href="https://ibnuda.gitlab.io">
-     Home
-    </a>
-   </div>
-   <div class="body">
+  <main class="wrapper">
+   <nav class="navigation">
+    <section class="container">
+     <a class="navigation-title" href="/">
+      Home
+     </a>
+    </section>
+   </nav>
+   <section class="container">
     <h1>Chiron 7 Tutorial</h1>
 <p>Well, <a href="https://github.com/xyncro/chiron">Chiron</a> is an F# library for (de)serialization of Json. It's really well written.
 If you ever used Elm's json serialization, you will feel at home at no time.</p>
@@ -86,7 +90,7 @@ module AuthModels =
 <li>Step by step explanation, e.g. why use <code>Json.Decode.required</code> and <code>Json.Decode.string</code>.</li>
 </ul>
 
-   </div>
-  </div>
+   </section>
+  </main>
  </body>
 </html>
