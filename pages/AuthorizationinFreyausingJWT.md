@@ -4,9 +4,9 @@ Authorization in Freya using JWT
 Authorization in Freya (WIP)
 ============================
 
-This blog post should be written after a few other guides completed. Or if you want can stand really bad code, you can read at [Forum.Lock](https://gitlab.com/ibnuda/Forum/blob/master/src/Serv/Api.fs)
+This blog post should be written after a few other guides completed. Or if you want and can stand really bad code, you can read at [Forum.Lock](https://gitlab.com/ibnuda/Forum/blob/master/src/Serv/Api.fs)
 
-But here's the codes:
+So, here's the codes:
 
 ```
   let routeContent =
