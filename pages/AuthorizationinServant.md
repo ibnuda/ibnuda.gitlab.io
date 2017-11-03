@@ -11,6 +11,9 @@ And yes, I know about `servant-auth`.
 One of my friend once complained about the lacks of Servant's documentation on authorization, connecting to db, and many more.
 So, I want to help him.
 
+## Minimum Requirements
+- Understands haskell functions.
+
 ## Final Result
 - A working REST interface.
 - With authentication using JWT.
@@ -335,3 +338,108 @@ Explanation for the second function:
 - then we `insert` `something` from field `UsersSecret` into column `something`, `now` into `at` column, and `UserKey username` into foreign key `by` of `SuperSecrets` table.
 
 > What we've done so far, has been committed to git. Check it [here](https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/2ecf7bb1438c5d1c2c7ef32745f639f96d3d3634).
+
+### Auth (JWT)
+
+Our auth process is:
+- A http request comes from.
+- Server parse its payload.
+- If its payload is valid, then the server authenticate the payload with the existing data (could be from DB or whatever) and then return an auth json object with token.
+- If the payload doesn't match, then return an empty auth json object without token.
+
+We will use JWT for our authentication and/or authorization framework. So, we will create a new source file named `Auth.hs`.
+But firstly, we have to define what kind of payload we will send and receive. So, let's say something like this:
+```
+{
+  "exp": int64, --seconds since unix epoch.
+  "iat": int64, --seconds since unix epoch.
+  "jti": guid,
+  "iss": string,
+  "sub": string
+  "name": string, -- an unregistered claim.
+}
+```
+Because we have decided that we will use unix' epoch and guid, we will add `guid` and `jwt` packages into our dependencies. Don't forget to add `Auth` into `other-modules`.
+
+```
+-- cabal file.
+  other-modules:      Models
+                    , DB
+                    , Auth --new
+  build-depends:      base >= 4.7 && < 5
+                    , aeson
+                    , jwt --new
+                    , guid --new
+```
+Because stack is unable to resolve `guid`, we have to input `stack solver --update-config` at our shell in our root directory and then we input `stack build` in shell.
+
+So, we will edit `src/Auth.hs` in our editor.
+```
+-- src/Auth.hs
+module Auth where
+import Data.Time
+import Data.Time.Clock.POSIX -- for our jwt's exp and iat.
+
+nowPosix :: IO POSIXTime
+nowPosix = do
+  now <- getCurrentTime
+  return $ utcTimeToPOSIXSeconds now
+```
+the explanation's standard, `nowPosix` is a wrapper for the amount of seconds that have passed since unix' epoch.
+
+And then we will write our token creation function.
+
+```
+--src/Auth.hs
+{-# LANGUAGE OverloadedStrings #-}
+import Data.Aeson
+import Data.GUID
+import Data.Map as Map -- insert package `containers` into your dependecies in your cabal file.
+import Prelude hiding (exp)
+import Web.JWT
+-- snip
+createToken :: Users -> IO AuthUser
+createToken user = do
+  now <- nowPosix -- the previous function.
+  guid <- genText -- from Data.GUID
+  let creation = numericDate $ now
+      expiration = numericDate $ now + 60
+      claims =
+        def
+        { exp = expiration
+        , iat = creation
+        , iss = stringOrURI "issuer"
+        , jti = stringOrURI guid
+        , sub = stringOrURI "localhost"
+        , unregisteredClaims =
+            Map.fromList [ ("name", String $ usersName user)]
+        }
+      key = secret "Indonesia Raya"
+      token = encodeSigned HS256 key claims
+  return $ AuthUser (usersName user) token
+```
+Explanation
+- We use `OverloadedStrings` extension to tell GHC to regards `[Char]` or `String` as `Text`.
+- We import `Data.GUID` and `Web.JWT` while hiding function `exp` from `Prelude`. 
+We do that because the two former is required by our function.
+And hiding `exp` because conflicting function from `JWT`.
+- `now` and `guid` are the results of the respective computational wrapper.
+- `creation` and `expiration` are for our `iat` and `exp` JWT payload's claims.
+- `stringOrURI` is a function from `Web.JWT` which takes a `Text` and returns `JWTClaimsSet`.
+- `claims` is an instance of `JWTClaimsSet` from `Web.JWT` package.
+- `unregisteredClaims` is used for our `claims`.
+It is has signature as `[(Text, Value)]`, while `Value` itself is a representation of Haskell value as JSON object by `aeson` library.
+- `key` is our secret keys for jwt encription.
+- `token` is the result of signed JWT encoding by HS256 encription.
+- this function returns an `AuthUser` object.
+
+Then we will use the function above to match the query result from DB.
+```
+-- src/Auth.hs
+-- snip
+createTokenForUser :: Maybe Users -> IO AuthUser
+createTokenForUser Nothing = return $ AuthUser "" ""
+createTokenForUser (Just user) = createToken user
+```
+
+> What we've done so far, has been committed to git. Check it [here](https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/a9e60e057b1dc00fc3a4793d0058d1525710a8fb).

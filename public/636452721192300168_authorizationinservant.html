@@ -25,6 +25,10 @@ Deployment in production is not couraged.
 And yes, I know about <code>servant-auth</code>.</p>
 <p>One of my friend once complained about the lacks of Servant's documentation on authorization, connecting to db, and many more.
 So, I want to help him.</p>
+<h2>Minimum Requirements</h2>
+<ul>
+<li>Understands haskell functions.</li>
+</ul>
 <h2>Final Result</h2>
 <ul>
 <li>A working REST interface.</li>
@@ -323,7 +327,104 @@ Explanation for the second function:</li>
 <li>then we <code>insert</code> <code>something</code> from field <code>UsersSecret</code> into column <code>something</code>, <code>now</code> into <code>at</code> column, and <code>UserKey username</code> into foreign key <code>by</code> of <code>SuperSecrets</code> table.</li>
 </ul>
 <blockquote>
-<p>Committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/2ecf7bb1438c5d1c2c7ef32745f639f96d3d3634">here</a>.</p>
+<p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/2ecf7bb1438c5d1c2c7ef32745f639f96d3d3634">here</a>.</p>
+</blockquote>
+<h3>Auth (JWT)</h3>
+<p>Our auth process is:</p>
+<ul>
+<li>A http request comes from.</li>
+<li>Server parse its payload.</li>
+<li>If its payload is valid, then the server authenticate the payload with the existing data (could be from DB or whatever) and then return an auth json object with token.</li>
+<li>If the payload doesn't match, then return an empty auth json object without token.</li>
+</ul>
+<p>We will use JWT for our authentication and/or authorization framework. So, we will create a new source file named <code>Auth.hs</code>.
+But firstly, we have to define what kind of payload we will send and receive. So, let's say something like this:</p>
+<pre><code>{
+  &quot;exp&quot;: int64, --seconds since unix epoch.
+  &quot;iat&quot;: int64, --seconds since unix epoch.
+  &quot;jti&quot;: guid,
+  &quot;iss&quot;: string,
+  &quot;sub&quot;: string
+  &quot;name&quot;: string, -- an unregistered claim.
+}
+</code></pre>
+<p>Because we have decided that we will use unix' epoch and guid, we will add <code>guid</code> and <code>jwt</code> packages into our dependencies. Don't forget to add <code>Auth</code> into <code>other-modules</code>.</p>
+<pre><code>-- cabal file.
+  other-modules:      Models
+                    , DB
+                    , Auth --new
+  build-depends:      base &gt;= 4.7 &amp;&amp; &lt; 5
+                    , aeson
+                    , jwt --new
+                    , guid --new
+</code></pre>
+<p>Because stack is unable to resolve <code>guid</code>, we have to input <code>stack solver --update-config</code> at our shell in our root directory and then we input <code>stack build</code> in shell.</p>
+<p>So, we will edit <code>src/Auth.hs</code> in our editor.</p>
+<pre><code>-- src/Auth.hs
+module Auth where
+import Data.Time
+import Data.Time.Clock.POSIX -- for our jwt's exp and iat.
+
+nowPosix :: IO POSIXTime
+nowPosix = do
+  now &lt;- getCurrentTime
+  return $ utcTimeToPOSIXSeconds now
+</code></pre>
+<p>the explanation's standard, <code>nowPosix</code> is a wrapper for the amount of seconds that have passed since unix' epoch.</p>
+<p>And then we will write our token creation function.</p>
+<pre><code>--src/Auth.hs
+{-# LANGUAGE OverloadedStrings #-}
+import Data.Aeson
+import Data.GUID
+import Data.Map as Map -- insert package `containers` into your dependecies in your cabal file.
+import Prelude hiding (exp)
+import Web.JWT
+-- snip
+createToken :: Users -&gt; IO AuthUser
+createToken user = do
+  now &lt;- nowPosix -- the previous function.
+  guid &lt;- genText -- from Data.GUID
+  let creation = numericDate $ now
+      expiration = numericDate $ now + 60
+      claims =
+        def
+        { exp = expiration
+        , iat = creation
+        , iss = stringOrURI &quot;issuer&quot;
+        , jti = stringOrURI guid
+        , sub = stringOrURI &quot;localhost&quot;
+        , unregisteredClaims =
+            Map.fromList [ (&quot;name&quot;, String $ usersName user)]
+        }
+      key = secret &quot;Indonesia Raya&quot;
+      token = encodeSigned HS256 key claims
+  return $ AuthUser (usersName user) token
+</code></pre>
+<p>Explanation</p>
+<ul>
+<li>We use <code>OverloadedStrings</code> extension to tell GHC to regards <code>[Char]</code> or <code>String</code> as <code>Text</code>.</li>
+<li>We import <code>Data.GUID</code> and <code>Web.JWT</code> while hiding function <code>exp</code> from <code>Prelude</code>.
+We do that because the two former is required by our function.
+And hiding <code>exp</code> because conflicting function from <code>JWT</code>.</li>
+<li><code>now</code> and <code>guid</code> are the results of the respective computational wrapper.</li>
+<li><code>creation</code> and <code>expiration</code> are for our <code>iat</code> and <code>exp</code> JWT payload's claims.</li>
+<li><code>stringOrURI</code> is a function from <code>Web.JWT</code> which takes a <code>Text</code> and returns <code>JWTClaimsSet</code>.</li>
+<li><code>claims</code> is an instance of <code>JWTClaimsSet</code> from <code>Web.JWT</code> package.</li>
+<li><code>unregisteredClaims</code> is used for our <code>claims</code>.
+It is has signature as <code>[(Text, Value)]</code>, while <code>Value</code> itself is a representation of Haskell value as JSON object by <code>aeson</code> library.</li>
+<li><code>key</code> is our secret keys for jwt encription.</li>
+<li><code>token</code> is the result of signed JWT encoding by HS256 encription.</li>
+<li>this function returns an <code>AuthUser</code> object.</li>
+</ul>
+<p>Then we will use the function above to match the query result from DB.</p>
+<pre><code>-- src/Auth.hs
+-- snip
+createTokenForUser :: Maybe Users -&gt; IO AuthUser
+createTokenForUser Nothing = return $ AuthUser &quot;&quot; &quot;&quot;
+createTokenForUser (Just user) = createToken user
+</code></pre>
+<blockquote>
+<p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/a9e60e057b1dc00fc3a4793d0058d1525710a8fb">here</a>.</p>
 </blockquote>
 
    </section>
