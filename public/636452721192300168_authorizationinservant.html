@@ -522,6 +522,131 @@ It means that we will have a context which only contains an <code>AuthHandler</c
 <p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/5001961eda92637a845357d79ec14a6a6ce69e2b">here</a>.</p>
 </blockquote>
 <p>So, let's open <code>src/Auth.hs</code></p>
+<pre><code>-- src/Auth.hs
+import Data.ByteString -- insert bytestring to your cabal dependencies.
+import Data.Text
+import Data.Text.Encoding
+-- snip
+decodeTokenHeader :: ByteString -&gt; Maybe (JWT VerifiedJWT)
+decodeTokenHeader rawToken = do
+  jwt &lt;- decodedJWT
+  verify (secret &quot;Indonesia Raya&quot;) jwt
+  where
+    (bearer, jwtBase64) = breakOnEnd &quot; &quot; $ decodeUtf8 rawToken
+    decodedJWT = Web.JWT.decode jwtBase64
+</code></pre>
+<p>The snippet above means that</p>
+<ul>
+<li>We import <code>Data.ByteString</code> from <code>bytestring</code> package which was inserted into our <code>dependencies</code> part in our cabal file.</li>
+<li>We also import <code>Data.Text</code> and <code>Data.Text.Encoding</code>.</li>
+<li><code>decodeTokenHeader :: ByteString -&gt; Maybe (JWT VerifiedJWT)</code> means that this function takes a <code>ByteString</code> (because request headers are <code>ByteStrings</code>) and returns <code>Nothing</code> or <code>Just $ JWT VerifiedJWT</code>.</li>
+<li>Now, we will wrap our computation in the following block.
+<ul>
+<li><code>jwt</code> is the result of <code>decodedJWT</code> computation.</li>
+<li>And then we will <code>verify</code> <code>jwt</code> with our <code>secret Text</code>.</li>
+<li>where did we get <code>jwt</code>, though?
+<ul>
+<li>First, we break the value of <code>Authorization</code> header, which is <code>Bearer thisis.apayloadjwt.secretinbase64</code> on the last space in the header value.</li>
+<li>Then we decode <code>jwtBase64</code> using <code>JWT</code> library. The result, could be nothing, or just a jwt.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>After that, we will create two functions, the first one will be used check the expiration of the token. And the second one will be used to get the <code>name</code> claim from the token.</p>
+<pre><code>-- src/Auth.hs
+-- snip!
+isTokenExpired :: JWT r -&gt; IO Bool
+isTokenExpired token = do
+  now &lt;- nowPosix
+  case ((exp $ claims token), (numericDate now)) of
+    (Just idate, Just now) -&gt; return $ idate &gt; now
+    _ -&gt; return True
+</code></pre>
+<p>This above function has the following explanation:</p>
+<ul>
+<li><code>isTokenExpired :: JWT r -&gt; IO Bool</code> means that this function will be wrapped in <code>JWT</code> wrapper and will return an <code>IO</code> wrapped <code>Bool</code>.</li>
+<li><code>isTokenExpired token = do</code> this function will be executed in a wrapped computation.</li>
+<li><code>now</code> is an unwrapped value of <code>nowPosix</code> computation.</li>
+<li>Then we will match the value of <code>(exp $ claims token)</code> and <code>(numericDate now)</code>.
+<ul>
+<li>If the results of the two computations are <code>Just value</code>, we will return the value of comparison.</li>
+<li>Otherwise, we consider the token is already expired.</li>
+</ul>
+</li>
+</ul>
+<pre><code>-- src/Auth.hs
+import Data.String
+-- snip!
+getNameClaimsFromToken :: (FromJSON t, IsString t) =&gt; JWT r -&gt; t
+getNameClaimsFromToken token =
+  case lookup &quot;name&quot; $ Map.toList $ unregisteredClaims $ claims token of
+    Nothing -&gt; &quot;&quot;
+    Just a  -&gt;
+      case fromJSON a of
+        Success s -&gt; s
+        Error _   -&gt; &quot;&quot;
+</code></pre>
+<p>Compared to the previous function, this function is a bit longer.</p>
+<ul>
+<li>We will import <code>Data.String</code> to ensure that our function's return value has <code>IsString</code> instance.</li>
+<li><code>getNameClaimsFromToken :: (FromJSON t, IsString t) =&gt; JWT r -&gt; t</code> is this function's signature.
+Meaning, this function will take a <code>JWT</code> named <code>r</code> and will return <code>t</code> which has <code>IsString</code> and <code>FromJSON</code> instance.</li>
+<li>Because <code>token</code> is a <code>JWT</code> object, then we can extract <code>claims</code> from it, and then extract <code>unregisteredClaims</code> from the previous result.
+Furthermore, the previous result (which has type: <code>Map Text Value</code>) will be transformed by <code>Map.toList</code> then we will search the value from key <code>name</code>.</li>
+<li>If the result of the previous step was <code>Nothing</code> we will return an empty string.</li>
+<li>Else, we will transform the value into its json value.</li>
+<li>If the result of the previous result success, we will return it.
+Now you know why we should import <code>Data.String</code>.</li>
+<li>Else, we will return an empty string.</li>
+</ul>
+<p>The next step is creating a query into database to look for a user by its name.
+So, let's open <code>src/DB.hs</code>.</p>
+<pre><code>-- src/DB.hs
+lookUserByUsername :: Text -&gt; IO (Maybe Users)
+lookUserByUsername username = do
+  mUser &lt;- runQuery $ selectFirst [UsersName ==. username] []
+  return $ fmap entityVal mUser
+</code></pre>
+<p>Basically, the same explanation with <code>lookByUsernameAndPassword</code> function. But simpler because we only use one criterion.</p>
+<p>After we've written that function, let's back to <code>src/Lib.hs</code> and continue from <code>undefined</code> node of <code>authHandler</code>.</p>
+<pre><code>-- src/Lib.hs
+import Control.Monad.Class.IO
+-- snip!
+    authHandler :: Request -&gt; Handler Users
+    authHandler req =
+      case lookup &quot;Authorization&quot; (requestHeaders req) of
+        Nothing -&gt; throwError err401
+        Just token -&gt; -- continue from here.
+          case decodeTokenHeader token of
+            Nothing -&gt; throwError err401
+            Just token -&gt; getUserFromToken token
+    getUserFromToken token = do
+      expired &lt;- liftIO $ isTokenExpired token
+      if expired
+        then throwError err401
+        else do
+          maybeUser &lt;- liftIO $ lookUserByUsername . getNameClaimsFromToken $ token
+          case maybeUser of
+            Nothing -&gt; throwError err401
+            Just user -&gt; return $ user
+</code></pre>
+<p>The continuation of the previous explanation is:</p>
+<ul>
+<li>We have to import <code>Control.Monad.Class.IO</code> to be able to use <code>liftIO</code>.
+We can consider <code>liftIO</code> as a function to tranform an <code>IO</code> wrapper to another wrapper.</li>
+<li>When there's <code>Authorization</code> header in a request, which in turn will be decoded by <code>decodeTokenHeader</code>.</li>
+<li>If the result of decoding is <code>Nothing</code>, meaning not a verified JWT, server will throw a 401 error.</li>
+<li>Else, we will try to get <code>Users</code> object from the decoded JWT using <code>getUserFromToken</code>.</li>
+<li>In <code>getUserFromToken</code>, firstly, we check the expiration status of the token in a wrapped computation.</li>
+<li>if the token is expired, server will throw a 401 error.</li>
+<li>Else, we will create look a user by getting its name first from <code>token</code>.</li>
+<li>Again, if there's no user like that, server will throw a 401 error.</li>
+<li>Else, server will return the handled <code>user</code>.</li>
+</ul>
+<blockquote>
+<p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/534d158c86d91823c7139f626e63f40b6db497be">here</a>.</p>
+</blockquote>
 
    </section>
   </main>

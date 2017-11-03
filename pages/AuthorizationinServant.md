@@ -542,3 +542,121 @@ Explanation:
 > What we've done so far, has been committed to git. Check it [here](https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/5001961eda92637a845357d79ec14a6a6ce69e2b).
 
 So, let's open `src/Auth.hs`
+```
+-- src/Auth.hs
+import Data.ByteString -- insert bytestring to your cabal dependencies.
+import Data.Text
+import Data.Text.Encoding
+-- snip
+decodeTokenHeader :: ByteString -> Maybe (JWT VerifiedJWT)
+decodeTokenHeader rawToken = do
+  jwt <- decodedJWT
+  verify (secret "Indonesia Raya") jwt
+  where
+    (bearer, jwtBase64) = breakOnEnd " " $ decodeUtf8 rawToken
+    decodedJWT = Web.JWT.decode jwtBase64
+```
+The snippet above means that
+- We import `Data.ByteString` from `bytestring` package which was inserted into our `dependencies` part in our cabal file.
+- We also import `Data.Text` and `Data.Text.Encoding`.
+- `decodeTokenHeader :: ByteString -> Maybe (JWT VerifiedJWT)` means that this function takes a `ByteString` (because request headers are `ByteStrings`) and returns `Nothing` or `Just $ JWT VerifiedJWT`.
+- Now, we will wrap our computation in the following block.
+  - `jwt` is the result of `decodedJWT` computation.
+  - And then we will `verify` `jwt` with our `secret Text`.
+  - where did we get `jwt`, though?
+    - First, we break the value of `Authorization` header, which is `Bearer thisis.apayloadjwt.secretinbase64` on the last space in the header value.
+    - Then we decode `jwtBase64` using `JWT` library. The result, could be nothing, or just a jwt.
+
+After that, we will create two functions, the first one will be used check the expiration of the token. And the second one will be used to get the `name` claim from the token.
+
+```
+-- src/Auth.hs
+-- snip!
+isTokenExpired :: JWT r -> IO Bool
+isTokenExpired token = do
+  now <- nowPosix
+  case ((exp $ claims token), (numericDate now)) of
+    (Just idate, Just now) -> return $ idate > now
+    _ -> return True
+```
+This above function has the following explanation:
+- `isTokenExpired :: JWT r -> IO Bool` means that this function will be wrapped in `JWT` wrapper and will return an `IO` wrapped `Bool`.
+- `isTokenExpired token = do` this function will be executed in a wrapped computation.
+- `now` is an unwrapped value of `nowPosix` computation.
+- Then we will match the value of `(exp $ claims token)` and `(numericDate now)`.
+  - If the results of the two computations are `Just value`, we will return the value of comparison.
+  - Otherwise, we consider the token is already expired.
+
+```
+-- src/Auth.hs
+import Data.String
+-- snip!
+getNameClaimsFromToken :: (FromJSON t, IsString t) => JWT r -> t
+getNameClaimsFromToken token =
+  case lookup "name" $ Map.toList $ unregisteredClaims $ claims token of
+    Nothing -> ""
+    Just a  ->
+      case fromJSON a of
+        Success s -> s
+        Error _   -> ""
+```
+Compared to the previous function, this function is a bit longer.
+- We will import `Data.String` to ensure that our function's return value has `IsString` instance.
+- `getNameClaimsFromToken :: (FromJSON t, IsString t) => JWT r -> t` is this function's signature.
+  Meaning, this function will take a `JWT` named `r` and will return `t` which has `IsString` and `FromJSON` instance.
+- Because `token` is a `JWT` object, then we can extract `claims` from it, and then extract `unregisteredClaims` from the previous result.
+  Furthermore, the previous result (which has type: `Map Text Value`) will be transformed by `Map.toList` then we will search the value from key `name`.
+- If the result of the previous step was `Nothing` we will return an empty string.
+- Else, we will transform the value into its json value.
+- If the result of the previous result success, we will return it.
+  Now you know why we should import `Data.String`.
+- Else, we will return an empty string.
+
+The next step is creating a query into database to look for a user by its name.
+So, let's open `src/DB.hs`.
+
+```
+-- src/DB.hs
+lookUserByUsername :: Text -> IO (Maybe Users)
+lookUserByUsername username = do
+  mUser <- runQuery $ selectFirst [UsersName ==. username] []
+  return $ fmap entityVal mUser
+```
+Basically, the same explanation with `lookByUsernameAndPassword` function. But simpler because we only use one criterion.
+
+After we've written that function, let's back to `src/Lib.hs` and continue from `undefined` node of `authHandler`.
+```
+-- src/Lib.hs
+import Control.Monad.Class.IO
+-- snip!
+    authHandler :: Request -> Handler Users
+    authHandler req =
+      case lookup "Authorization" (requestHeaders req) of
+        Nothing -> throwError err401
+        Just token -> -- continue from here.
+          case decodeTokenHeader token of
+            Nothing -> throwError err401
+            Just token -> getUserFromToken token
+    getUserFromToken token = do
+      expired <- liftIO $ isTokenExpired token
+      if expired
+        then throwError err401
+        else do
+          maybeUser <- liftIO $ lookUserByUsername . getNameClaimsFromToken $ token
+          case maybeUser of
+            Nothing -> throwError err401
+            Just user -> return $ user
+```
+The continuation of the previous explanation is:
+- We have to import `Control.Monad.Class.IO` to be able to use `liftIO`.
+  We can consider `liftIO` as a function to tranform an `IO` wrapper to another wrapper.
+- When there's `Authorization` header in a request, which in turn will be decoded by `decodeTokenHeader`.
+- If the result of decoding is `Nothing`, meaning not a verified JWT, server will throw a 401 error.
+- Else, we will try to get `Users` object from the decoded JWT using `getUserFromToken`.
+- In `getUserFromToken`, firstly, we check the expiration status of the token in a wrapped computation.
+- if the token is expired, server will throw a 401 error.
+- Else, we will create look a user by getting its name first from `token`.
+- Again, if there's no user like that, server will throw a 401 error.
+- Else, server will return the handled `user`.
+
+> What we've done so far, has been committed to git. Check it [here](https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/534d158c86d91823c7139f626e63f40b6db497be).
