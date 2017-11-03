@@ -517,11 +517,11 @@ So, we will create our `authContextCreator`:
 import Control.Error.Class
 import Network.Wai
 
-authContext :: Context '[AuthHandler Request Users]
-authContext = mkAuthHandler authHandler :. EmptyContext
+secretContext :: Context '[AuthHandler Request Users]
+secretContext = mkAuthHandler secretHandler :. EmptyContext
   where
-    authHandler :: (MonadError ServantErr m) => Request -> m Users
-    authHandler req =
+    secretHandler :: (MonadError ServantErr m) => Request -> m Users
+    secretHandler req =
       case lookup "Authorization" (requestHeaders req) of
         Nothing -> throwError err401
         Just token -> undefined -- reserved for token validation.
@@ -531,11 +531,11 @@ Explanation:
   So, to simplify a bit, we force `throwError` to have signature `ServantErr m Users` by using `FlexibleContexts` extension.
 - we import `Control.Error.Class`, not really important, but it will give us a clearer signature for our functions.
 - we import `Network.Wai` to intercept incoming requests to check its headers. Which will be explained in the next section.
-- `authContext :: Context '[AuthHandler Request Users]` is the signature for the next point.
+- `secretContext :: Context '[AuthHandler Request Users]` is the signature for the next point.
   It means that we will have a context which only contains an `AuthHandler` that accepts a `Request` and returns a `Users`.
-- `authContext = mkAuthhandler authHandler :. EmptyContext` we will create a custom handler, which is a request interceptor and should return `Users` (as defined in function signature), and then add it to an `EmptyContext`.
-- `authHandler :: (MonadError ServantErr m) => Request -> m Users`, as defined at `authContext`'s signature, this function has to return a wrapped `Users` object after it receives a `Request` and wrapper `m` has to be an instance of `ServantErr`.
-- `authHandler req = case lookup "Authorization" (requestHeaders req) of` means that when it receives a `Request`, it will look at the `Request`'s headers. `Authorization` header, to be exact.
+- `secretContext = mkAuthhandler secretHandler :. EmptyContext` we will create a custom handler, which is a request interceptor and should return `Users` (as defined in function signature), and then add it to an `EmptyContext`.
+- `secretHandler :: (MonadError ServantErr m) => Request -> m Users`, as defined at `authContext`'s signature, this function has to return a wrapped `Users` object after it receives a `Request` and wrapper `m` has to be an instance of `ServantErr`.
+- `secretHandler req = case lookup "Authorization" (requestHeaders req) of` means that when it receives a `Request`, it will look at the `Request`'s headers. `Authorization` header, to be exact.
 - If there's no `Authorization` header, it will throw an 401 error.
 - When there's `Authorization` header, it will process the `Request`'s header value to.... `undefined` at the moment.
 
@@ -624,13 +624,13 @@ lookUserByUsername username = do
 ```
 Basically, the same explanation with `lookByUsernameAndPassword` function. But simpler because we only use one criterion.
 
-After we've written that function, let's back to `src/Lib.hs` and continue from `undefined` node of `authHandler`.
+After we've written that function, let's back to `src/Lib.hs` and continue from `undefined` node of `secretHandler`.
 ```
 -- src/Lib.hs
 import Control.Monad.Class.IO
 -- snip!
-    authHandler :: Request -> Handler Users
-    authHandler req =
+    secretHandler :: Request -> Handler Users
+    secretHandler req =
       case lookup "Authorization" (requestHeaders req) of
         Nothing -> throwError err401
         Just token -> -- continue from here.
@@ -660,3 +660,57 @@ The continuation of the previous explanation is:
 - Else, server will return the handled `user`.
 
 > What we've done so far, has been committed to git. Check it [here](https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/534d158c86d91823c7139f626e63f40b6db497be).
+
+## Writing Server Application.
+
+After finishing the previous sections, we already have the requirements to create the server application.
+So, the next step is *really* building it!
+
+Let's navigate to `src/Lib.hs`
+```
+-- src/Lib.hs
+secretServer :: Server TopSekrit
+secretServer = pAuthH :<|> pSecretH :<|> gSecretUserH
+  where
+    pAuthH requestFromUser = do
+      mUser <-
+        liftIO $
+        lookUserByUsernameAndPassword (usersName requestFromUser) (usersPass requestFromUser)
+      liftIO $ createTokenForUser mUser
+    pSecretH users userSecret = do
+      key <- liftIO $ insertSecret (usersName users) userSecret
+      return key
+    gSecretUserH users username = do
+      if (usersName users /= username)
+        then throwError401 err401
+        else liftIO $ lookSecretByUsername username
+```
+-- WRITE ME!
+```
+-- src/Lib.hs
+import Database.Persist.Sql
+import Network.Wai.Handler.Warp as Warp
+secretProxy :: Proxy TopSecret
+secretProxy = Proxy
+
+secretApp :: IO ()
+secretApp = do
+  pool <- createPool
+  Warp.run 8000 $ serveWithContext secretProxy authContext secretServer
+```
+-- WRITE ME!
+```
+-- app/Main.hs
+module Main where
+import Lib
+
+main :: IO ()
+main = secretApp
+```
+-- WRITE ME!
+
+-- PUT A FEW SCREENSHOTS!
+
+FINISH!
+
+Final result of the walkthrough is [here](https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/0084007c8a218f30d3c436c9bd4787ec7160febf)!
