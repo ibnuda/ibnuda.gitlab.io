@@ -19,30 +19,43 @@
     </section>
    </nav>
    <section class="container">
-    <h1>Authorization in Servant (WIP)</h1>
-<p>Words of caution: This article is about servant-server 0.11 which is still in experimental stage. Deployment in production is not couraged. And yes, I know about <code>servant-auth</code>.</p>
-<p>One of my friend once complained about the lacks of Servant's documentation on authorization, connecting to db, and many more. So, I want to help him.</p>
+    <h1>Authorization in Servant: Walkthrough (WIP)</h1>
+<p>Words of caution: This article is about servant-server 0.11 which is still in experimental stage.
+Deployment in production is not couraged.
+And yes, I know about <code>servant-auth</code>.</p>
+<p>One of my friend once complained about the lacks of Servant's documentation on authorization, connecting to db, and many more.
+So, I want to help him.</p>
 <h2>Final Result</h2>
 <ul>
 <li>A working REST interface.</li>
 <li>With authentication using JWT.</li>
 <li>And the program can talk with a database.</li>
+<li>You can look at this <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough">repo</a> for the final result (still in WIP tho.)</li>
 </ul>
 <h2>Prerequisites.</h2>
-<p>There are a few things that we will use in this article. Namely:</p>
+<p>There are a few things that we will use in this article.
+Namely:</p>
 <ul>
-<li>A running instance of MariaDB or MySQL. This choice was based on observation that in Indonesia, MySQL is more preferable than Postgres, though I personally choose Postgres any over db.</li>
-<li><code>stack</code>. We will use stack because it prevents cabal hell or something, that's what the internet says about it. So we will heed internet's call this time.</li>
+<li>A running instance of MariaDB or MySQL.
+This choice was based on observation that in Indonesia, MySQL is more preferable than Postgres, though I personally choose Postgres any over db.</li>
+<li><code>stack</code>.
+We will use stack because it prevents cabal hell or something, that's what the internet says about it.
+So we will heed internet's call this time.</li>
 </ul>
 <p>A nice to have setup:</p>
 <ul>
 <li>Emacs with haskell mode. It eases our life a bit.</li>
 </ul>
 <h2>Installation.</h2>
-<p>We will create a servant project using <code>stack</code>. A pretty simple command line input will suffice. Something like this:</p>
+<p>We will create a servant project using <code>stack</code>.
+A pretty simple command line input will suffice.
+Something like this:</p>
 <pre><code>stack new OurServant servant
 </code></pre>
-<p>The previous line means that we ask <code>stack</code> to create a new project in folder named <code>OurServant</code> using <code>servant</code> template. There are many other templates, though. You can check it out. It's nice.</p>
+<p>The previous line means that we ask <code>stack</code> to create a new project in folder named <code>OurServant</code> using <code>servant</code> template.
+There are many other templates, though.
+You can check it out.
+It's nice.</p>
 <p>Then we will change our directory to our project's directory and open an emacs instance there.</p>
 <pre><code>cd OurServant; emacs . -nw
 </code></pre>
@@ -82,7 +95,7 @@
   default-language:   Haskell2010
 </code></pre>
 <h2>Writing Code</h2>
-<h3>Database</h3>
+<h3>Database and Models</h3>
 <p>Then we will create a new haskell source file named <code>Models.hs</code> in <code>src</code> directory.</p>
 <pre><code>-- src/Models.hs
 module Models where
@@ -94,7 +107,8 @@ import Database.Persist.Sql
 import Database.Persist.TH
 
 </code></pre>
-<p>For each <code>import</code> lines above, we tell that we will use their functionality in our sources. And then, we will put the following lines below the previous part.</p>
+<p>For each <code>import</code> lines above, we tell that we will use their functionality in our sources.
+And then, we will put the following lines below the previous part.</p>
 <pre><code>-- src/Models.hs
 share
   [mkPersist sqlSettings, mkMigrate &quot;migrateAll&quot;]
@@ -109,28 +123,34 @@ share
 |]
 </code></pre>
 <p>The part of source code above means that we will create a migration plan named <code>migrateAll</code> by creating tables <code>users</code> which has <code>name</code> and <code>pass</code> columns and column <code>name</code> will be unique and will be used as the primary key.</p>
-<p>If we try to compile our project by inputting <code>stack build</code> in our root project directory, it will produce error something like <code>parse error on input '=' perhaps you need a 'let' in a 'do' block?</code>
-It means that GHC doesn't understand that we use <code>QuasiQuotes</code> syntax extension in our code. So we will add it at the topmost of our source code.</p>
+<p>If we try to compile our project by inputting <code>stack build</code> at our root project directory, it will produce error something like <code>parse error on input '=' perhaps you need a 'let' in a 'do' block?</code>
+It means that GHC doesn't understand that we use <code>QuasiQuotes</code> syntax extension in our code.
+So we will add it at the topmost of our source code.</p>
 <pre><code>{-# LANGUAGE QuasiQuotes #-}
 module Models where
 
 import Data.Aeson
 import Data.Text
 </code></pre>
-<p>Again, we will receive an error stated that we have a naked expression and perhaps we intended to use TemplateHaskell. So, we'll add that syntax extension!</p>
+<p>Again, we will receive an error stated that we have a naked expression and perhaps we intended to use TemplateHaskell.
+So, we'll add that syntax extension!</p>
 <pre><code>{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Models where
 
 import Data.Aeson
 </code></pre>
-<p>And again, it looks like the GHC refused to compile our source again. GHC suggested that we use <code>TypeFamilies</code> extension. So we will give it what it wants!</p>
+<p>And again, it looks like the GHC refused to compile our source again.
+GHC suggested that we use <code>TypeFamilies</code> extension.
+So we will give it what it wants!</p>
 <pre><code>{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 module Models where
 </code></pre>
-<p>But wait, there's more! Because <code>UsersId</code> in our data has a specialised result, we have to use <code>ExistensialQualification</code> or <code>GADTs</code> to allow this. And because we added a <code>Users json</code>, which is an instance declaration for <code>ToJSON</code>, we have to use <code>FlexibleInstance</code>. GHC's suggestion is our command~</p>
+<p>But wait, there's more! Because <code>UsersId</code> in our data has a specialised result, we have to use <code>ExistensialQualification</code> or <code>GADTs</code> to allow this.
+And because we added a <code>Users json</code>, which is an instance declaration for <code>ToJSON</code>, we have to use <code>FlexibleInstance</code>.
+GHC's suggestions are our commands~</p>
 <pre><code>{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -145,11 +165,13 @@ module Models where
     deriving Show Eq
   SuperSecrets json
     something Text
+    at UTCTime
     by UsersId maxlen=52
     deriving Show Eq
 </code></pre>
-<p>It means that we declare that we will create a new table named <code>super_secrets</code> which has <code>something</code> column and a foreign key <code>by</code> which refers to table <code>users</code>' primary key.
-Alas, when we compile our project, there will be an error stating that it is an illegal instance for <code>ToBackendKey SqlBackend SuperSecrets</code> but GHC suggests that we can use <code>MultiParamTypeClasses</code> to allow more. So we will reply GHC's call by applying the suggestion.</p>
+<p>It means that we declare that we will create a new table named <code>super_secrets</code> which has <code>something</code> column, a column with <code>datetime</code> type, and a foreign key <code>by</code> which refers to table <code>users</code>' primary key.
+Alas, when we compile our project, there will be an error stating that it is an illegal instance for <code>ToBackendKey SqlBackend SuperSecrets</code> but GHC suggests that we can use <code>MultiParamTypeClasses</code> to allow more.
+So we will reply GHC's call by applying the suggestion.</p>
 <pre><code>{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -159,16 +181,150 @@ Alas, when we compile our project, there will be an error stating that it is an 
 {-# LANGUAGE TypeFamilies #-}
 module Models where
 </code></pre>
-<p>Okay, it's cool and dandy when we compile it. Then, we will create a migration plan (I don't know how does it should be called or its real name).</p>
+<p>Okay, it's cool and dandy when we compile it.
+Then, we will create a migration plan (I don't know how should it be called or its real name).</p>
 <pre><code>-- src/Models.hs
 doMigration = runMigration migrateAll
 </code></pre>
-<p>When we compile again, GHC will fail to compile because of ambiguous type variable <code>m0</code>. GHC inferred that <code>doMigration</code> has <code>ReaderT SqlBackend m0 ()</code> as its type and has potential instance of <code>IO</code> monad as its fixes. So we'll add that as <code>doMigration</code>'s type signature.</p>
+<p>When we compile again, GHC will fail to compile because of ambiguous type variable <code>m0</code>.
+GHC inferred that <code>doMigration</code> has <code>ReaderT SqlBackend m0 ()</code> as its type and has potential instance of <code>IO</code> monad as its fixes.
+So we'll add that as <code>doMigration</code>'s type signature.</p>
 <pre><code>-- src/Models.hs
 doMigration :: ReaderT SqlBackend IO ()
 doMigration = runMigration migrateAll
 </code></pre>
-<h3>Auth part.</h3>
+<p>The next step is we will create a model for our reply token and <code>POST</code> data for our REST interface.
+In order to be able to encode our data to Json, <code>AuthUser</code> have to derive <code>Generic</code>.
+Which in turn, we have to import <code>GHC.Generics</code>.
+And then GHC will suggest that we have to use <code>DeriveGeneric</code> extension.
+So we will do that!</p>
+<pre><code>-- src/Models.hs
+{-# LANGUAGE DeriveGeneric #-}
+import GHC.Generics
+-- snip!
+data AuthUser = AuthUser
+  { authName :: Text
+  , token    :: Maybe Text
+  } deriving (Show, Generic, Eq)
+data UsersSecret = UsersSecret
+  { something :: Text
+  } deriving (Show, Generic)
+
+instance FromJSON AuthUser
+instance ToJSON AuthUser
+instance FromJSON UsersSecret
+instance ToJSON UsersSecret
+</code></pre>
+<p>We don't have to create instances of <code>FromJSON</code> and <code>ToJSON</code> for our <code>Users</code> and <code>SuperSecrets</code> because in our template above, we have already declared that!</p>
+<h3>Communicating to Database.</h3>
+<p>We will take a shortcut without reading outside config whatsoever.
+That means, we will hardcode our database connection string etc to our code.</p>
+<p>Next, we create a file named <code>DB.hs</code> in our <code>src</code> directory and then open it in our editor.</p>
+<p>According to <code>persistent-mysql</code> <a href="https://hackage.haskell.org/package/persistent-mysql-1.2.1/docs/Database-Persist-MySQL.html#t:ConnectInfo">documentation</a>, we can create a connection pool to mysql using <code>createMySQLPool</code> which takes a <code>ConnectInfo</code> and an integer that represents number of pool connections.</p>
+<pre><code>-- src/DB.hs
+module DB where
+
+import Database.Persist.MySQL
+
+createPool = createMySQLPool connection 5
+  where
+    connection =
+      defaultConnectInfo
+      { connectHost = &quot;localhost&quot;
+      , connectPort = fromIntegral 3306
+      , connectUser = &quot;ibnu&quot;
+      , connectPassword = &quot;jaran&quot;
+      , connectDatabase = &quot;owo&quot;
+      }
+</code></pre>
+<p>When we compile that, we will receive an error that states that we have an error of ambiguous type.
+We can easily supress that error by defining our <code>createPool</code>'s signature.
+But when we give our function a signature (<code>IO ConnectionPool</code>), we will receive an error that no instance of <code>MonadLogger IO</code> in our function.
+Again, that is an easy problem.
+We can import <code>Control.Monad.Logger</code> and put <code>runStdoutLoggingT</code> (a stdout logger transformer) in front of <code>createMySQLPool</code>.
+So, the final shape of the function is like the following snippet.</p>
+<pre><code>-- src/DB.hs
+import Control.Monad.Logger
+
+createPool :: IO ConnectionPool
+createPool = runStdoutLoggingT $ createMySQLPool connection 5
+</code></pre>
+<p>After we have a wrapper for our connection pool, then we will create a query runner.
+That is, a function that takes a query and then execute it.</p>
+<pre><code>-- src/DB.hs
+runQuery query = do
+  pool &lt;- createPool
+  runSqlPool query pool
+</code></pre>
+<p>In order to be able to query, we have to import <code>Database.Persist</code>.
+And we will also create a normal sql query for looking a user in our db by username and password.</p>
+<pre><code>-- src/DB.hs
+import Data.Text -- for our functions' signatures.
+import Database.Persist
+-- snip
+lookUserByUsernameAndPassword :: Text -&gt; Text -&gt; IO (Maybe Users)
+lookUserByUsernameAndPassword username password = do
+  mUser &lt;- runQuery $ selectFirst [UsersName ==. username, UsersPass ==. password] []
+  case mUser of 
+    Nothing -&gt; return Nothing
+    Just user -&gt; return $ Just $ entityVal user
+</code></pre>
+<p>A little explanation:</p>
+<ul>
+<li><code>lookUserByUsernameAndPassword</code> is a function that takes two <code>Text</code> parameters which return an IO wrapper of a thing that is an instance of <code>Users</code> if there's a row in db that matches the parameters.
+Or nothing if there is no matches.</li>
+<li><code>mUser</code> is a result of wrapped computation of the database querying.</li>
+<li><code>runQuery</code>: our query runner, which takes the next query.</li>
+<li><code>selectFirst [UsersName ==. username, UsersPass ==. password][]</code> is our query.
+<ul>
+<li><code>selectFirst</code> means we only take at most 1 result.</li>
+<li>Symbol <code>==.</code> denotes equality in our query.</li>
+<li><code>UsersName</code> and <code>UsersPass</code> denotes the parts in our &quot;template&quot; above. <code>Users</code> part refers to table <code>users</code> and <code>Name</code> and <code>Pass</code> refers to column <code>name</code> and <code>pass</code>.</li>
+<li>Empty square brackets can be used as ordering the data or limit or your normal query options.</li>
+</ul>
+</li>
+<li>Because there's a probability that there's no information in our table that satisfies our requirement, we can query have to check our result.</li>
+<li>If there result is <code>Nothing</code> or there's no user like that, we will return <code>Nothing</code>.</li>
+<li>Else, we will return the entity value of our result query.</li>
+</ul>
+<p>Then we will create an insert and a get function to <code>super_secrets</code> table.</p>
+<pre><code>-- src/DB.hs
+import Data.Text hiding (map)
+import Data.Time
+-- snip
+lookSecretByUsername :: Text -&gt; IO [SuperSecrets]
+lookSecretByUsername username = do
+  somes &lt;- runQuery $ selectList [SuperSecretsBy ==. (UsersKey username)]
+  return $ map entityVal somes
+insertSecret :: Text -&gt; UsersSecret -&gt; IO (Key SuperSecrets)
+insertSecret username usersSecret = do
+  now &lt;- getCurrentTime
+  runQuery $
+    insert $ SuperSecrets (something UsersSecret) now (UsersKey username)
+</code></pre>
+<p>A little explanation for first function:</p>
+<ul>
+<li>We hide <code>map</code> from text because it makes function <code>map</code> ambiguous (the other is from <code>Prelude</code>).</li>
+<li>We import <code>Data.Time</code> for getting current time.</li>
+<li><code>lookSecretByUsername :: Text -&gt; IO [SuperSecrets]</code> is the signature of that function. It takes <code>Text</code> as a parameter and returns an <code>SuperSecrets</code> list wrapped in <code>IO</code> wrapper.</li>
+<li><code>somes</code> is the result of the wrapped computation of query execution by <code>runQuery</code></li>
+<li><code>selectList [SuperSecretsBy ==. (UsersKey username)] []</code>:
+<ul>
+<li><code>selectList</code> gets all records in DB which satisfy the query.</li>
+<li><code>SuperSecretsBy</code> represents column <code>by</code> in table <code>super_secrets</code> which is a foreing key to <code>users</code>.<code>name</code>.</li>
+<li>Symbol <code>==.</code> denotes equality.</li>
+<li><code>(UsersKey username)</code> means a primary key with value <code>username</code>.</li>
+</ul>
+</li>
+<li>And then we return a <code>map</code>ed of <code>entitiyVal</code>ues of the computation result.
+Explanation for the second function:</li>
+<li><code>insertSecret :: Text -&gt; UsersSecret -&gt; IO (Key SuperSecrets)</code> is the signature of the function. Which is a function that takes a <code>Text</code> and a <code>UsersSecret</code> as parameters then return a wrapped primary key of the inserted row.</li>
+<li><code>now</code> is the result of computation of <code>getCurrentTime</code>. <code>now</code> itself is an <code>UTCTime</code>.</li>
+<li>then we <code>insert</code> <code>something</code> from field <code>UsersSecret</code> into column <code>something</code>, <code>now</code> into <code>at</code> column, and <code>UserKey username</code> into foreign key <code>by</code> of <code>SuperSecrets</code> table.</li>
+</ul>
+<blockquote>
+<p>Committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/2ecf7bb1438c5d1c2c7ef32745f639f96d3d3634">here</a>.</p>
+</blockquote>
 
    </section>
   </main>
