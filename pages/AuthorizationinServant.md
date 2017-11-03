@@ -4,21 +4,27 @@ Authorization in Servant
 Authorization in Servant: Walkthrough (WIP)
 ===========================================
 
-Words of caution: This article is about servant-server 0.11 which is still in experimental stage.
+Words of caution: This article is about servant-server 0.11's `experimental-auth` which is still in experimental stage.
 Deployment in production is not couraged.
-And yes, I know about `servant-auth`.
+And yes, I know about `servant-auth` but I haven't read it thoroughfully, yet.
 
 One of my friend once complained about the lacks of Servant's documentation on authorization, connecting to db, and many more.
 So, I want to help him.
 
 ## Minimum Requirements
-- Understands haskell functions.
+- Understands basic haskell.
 
 ## Final Result
 - A working REST interface.
+  ```
+  /auth          POST -> requesting for jwt token.
+  /secrets       POST -> creating new secret. (JWT Auth.)
+  /secrets/:user GET  -> get secrets by username. (JWT Auth.)
+  ```
 - With authentication using JWT.
 - And the program can talk with a database.
 - You can look at this [repo](https://gitlab.com/ibnuda/Servant-Auth-Walkthrough) for the final result (still in WIP tho.)
+
 ## Prerequisites.
 
 There are a few things that we will use in this article.
@@ -154,7 +160,7 @@ module Models where
 ```
 
 But wait, there's more! Because `UsersId` in our data has a specialised result, we have to use `ExistensialQualification` or `GADTs` to allow this.
-And because we added a `Users json`, which is an instance declaration for `ToJSON`, we have to use `FlexibleInstance`.
+And because we have added a `Users json`, which is an instance declaration for `ToJSON`, we have to use `FlexibleInstance`.
 GHC's suggestions are our commands~
 ```
 {-# LANGUAGE ExistentialQuantification #-}
@@ -443,3 +449,96 @@ createTokenForUser (Just user) = createToken user
 ```
 
 > What we've done so far, has been committed to git. Check it [here](https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/a9e60e057b1dc00fc3a4793d0058d1525710a8fb).
+
+### REST interface using Servant.
+
+So, here we are, we will design our REST interface. So, navigate to `src/Lib.hs` and delete the content.
+```language=haskell
+-- src/Lib.hs
+module Lib where
+
+import Data.Text -- To be able to use Text
+import Servant  -- Servant's functions. Like, :>, :<|>, etc.
+import Servant.Server.Experimental.Auth -- Auth
+
+import Auth
+import Models
+import DB
+
+type instance AuthServerData (AuthProtect "jwt-auth") = Users
+
+type TopSekrit =
+       "auth"
+       :> ReqBody '[ JSON] Users
+       :> Post '[ JSON] AuthUser
+  :<|> "secrets"
+       :> AuthProtect "jwt-auth"
+       :> ReqBody '[ JSON] UsersSecret
+       :> Post '[ JSON] ()
+  :<|> "secrets"
+       :> Capture "username" Text
+       :> AuthProtect "jwt-auth"
+       :> ReqBody '[ JSON] UsersSecret
+       :> Get '[ JSON] [SuperSecrets]
+```
+If you compile the snippet above, you will get a lot of errors.
+For example, GHC suggests that we have to use `DataKinds`.
+And when have added that, we will get another error about `illegal operators` and how to fix it by adding `TypeOperators` extension.
+Which in turn, another error appeared, `illegal family instance` and how to fix it by adding `TypeFamilies` extension.
+After we've added those three extensions at the topmost source file, the source will be looked like this, and compiled just fine.
+
+```language=haskell
+-- src/Lib.hs
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+module Lib where
+```
+And the explanation of the snippet above is:
+- `type instance AuthServerData (AuthProtect "jwt-auth") = Users`
+  Sorry, without restorting to Stack Overflow [answer](https://stackoverflow.com/questions/20870432/type-family-vs-data-family-in-brief#comment31322081_20871880)
+  and `AuthServerData` [documentation](https://hackage.haskell.org/package/servant-server-0.11.0.1/docs/Servant-Server-Experimental-Auth.html#t:AuthServerData)
+  I can't explain it easily.
+  Basically, `type instance F A = B` means that an argument `A` that being applied to function `F` equals to `B`.
+  So, in this case, the value of the returned data of `(AuthProtect "jwt)` must be equal to `Users`.
+- `type TopSekrit = ...` is the type of our REST interface. Which in turn is a result of the composition of the following:
+  - `"auth" :> ReqBody '[JSON] Users :> Post '[JSON] AuthUser` means that a POST request json payload value of `Users` at `/auth` will have response the json value of `AuthUser`.
+  - `:<|>` is a composition of two API.
+  - `"secrets" :> AuthProtect "jwt-auth" :> ReqBody '[JSON] UsersSecret :> Post '[JSON] ()` means that a POST request json payload value of `UsersSecret` at `/secrets` will be received and processed by server as long as the request has been authorized.
+  - `"secrets" :> Capture "username" Text :> AuthProtect "jwt-auth" :> Get '[JSON] [SuperSecrets]` means that a GET request at `/secret/:username` will be responded by json values of `[SuperSecrets]` as long as the request has been authorized.
+
+And then, we will create `Context` for our auth protected resources, where `Context` itself is *TO BE ADDED, in short a holder*
+
+So, we will create our `authContextCreator`:
+
+```
+- src/Lib.hs
+{-# Language FlexibleContexts #-}
+import Control.Error.Class
+import Network.Wai
+
+authContext :: Context '[AuthHandler Request Users]
+authContext = mkAuthHandler authHandler :. EmptyContext
+  where
+    authHandler :: (MonadError ServantErr m) => Request -> m Users
+    authHandler req =
+      case lookup "Authorization" (requestHeaders req) of
+        Nothing -> throwError err401
+        Just token -> undefined -- reserved for token validation.
+```
+Explanation:
+- We use `FlexibleContexts` extension because `throwError` has signature of `ServantErr m a` while our the result of token validation should be `Handler Users`.
+  So, to simplify a bit, we force `throwError` to have signature `ServantErr m Users` by using `FlexibleContexts` extension.
+- we import `Control.Error.Class`, not really important, but it will give us a clearer signature for our functions.
+- we import `Network.Wai` to intercept incoming requests to check its headers. Which will be explained in the next section.
+- `authContext :: Context '[AuthHandler Request Users]` is the signature for the next point.
+  It means that we will have a context which only contains an `AuthHandler` that accepts a `Request` and returns a `Users`.
+- `authContext = mkAuthhandler authHandler :. EmptyContext` we will create a custom handler, which is a request interceptor and should return `Users` (as defined in function signature), and then add it to an `EmptyContext`.
+- `authHandler :: (MonadError ServantErr m) => Request -> m Users`, as defined at `authContext`'s signature, this function has to return a wrapped `Users` object after it receives a `Request` and wrapper `m` has to be an instance of `ServantErr`.
+- `authHandler req = case lookup "Authorization" (requestHeaders req) of` means that when it receives a `Request`, it will look at the `Request`'s headers. `Authorization` header, to be exact.
+- If there's no `Authorization` header, it will throw an 401 error.
+- When there's `Authorization` header, it will process the `Request`'s header value to.... `undefined` at the moment.
+
+> What we've done so far, has been committed to git. Check it [here](https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/5001961eda92637a845357d79ec14a6a6ce69e2b).
+
+So, let's open `src/Auth.hs`

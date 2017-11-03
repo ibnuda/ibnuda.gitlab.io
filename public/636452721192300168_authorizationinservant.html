@@ -20,18 +20,23 @@
    </nav>
    <section class="container">
     <h1>Authorization in Servant: Walkthrough (WIP)</h1>
-<p>Words of caution: This article is about servant-server 0.11 which is still in experimental stage.
+<p>Words of caution: This article is about servant-server 0.11's <code>experimental-auth</code> which is still in experimental stage.
 Deployment in production is not couraged.
-And yes, I know about <code>servant-auth</code>.</p>
+And yes, I know about <code>servant-auth</code> but I haven't read it thoroughfully, yet.</p>
 <p>One of my friend once complained about the lacks of Servant's documentation on authorization, connecting to db, and many more.
 So, I want to help him.</p>
 <h2>Minimum Requirements</h2>
 <ul>
-<li>Understands haskell functions.</li>
+<li>Understands basic haskell.</li>
 </ul>
 <h2>Final Result</h2>
 <ul>
-<li>A working REST interface.</li>
+<li>A working REST interface.
+<pre><code>/auth          POST -&gt; requesting for jwt token.
+/secrets       POST -&gt; creating new secret. (JWT Auth.)
+/secrets/:user GET  -&gt; get secrets by username. (JWT Auth.)
+</code></pre>
+</li>
 <li>With authentication using JWT.</li>
 <li>And the program can talk with a database.</li>
 <li>You can look at this <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough">repo</a> for the final result (still in WIP tho.)</li>
@@ -153,7 +158,7 @@ So we will give it what it wants!</p>
 module Models where
 </code></pre>
 <p>But wait, there's more! Because <code>UsersId</code> in our data has a specialised result, we have to use <code>ExistensialQualification</code> or <code>GADTs</code> to allow this.
-And because we added a <code>Users json</code>, which is an instance declaration for <code>ToJSON</code>, we have to use <code>FlexibleInstance</code>.
+And because we have added a <code>Users json</code>, which is an instance declaration for <code>ToJSON</code>, we have to use <code>FlexibleInstance</code>.
 GHC's suggestions are our commands~</p>
 <pre><code>{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -426,6 +431,97 @@ createTokenForUser (Just user) = createToken user
 <blockquote>
 <p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/a9e60e057b1dc00fc3a4793d0058d1525710a8fb">here</a>.</p>
 </blockquote>
+<h3>REST interface using Servant.</h3>
+<p>So, here we are, we will design our REST interface. So, navigate to <code>src/Lib.hs</code> and delete the content.</p>
+<pre><code class="language-language=haskell">-- src/Lib.hs
+module Lib where
+
+import Data.Text -- To be able to use Text
+import Servant  -- Servant's functions. Like, :&gt;, :&lt;|&gt;, etc.
+import Servant.Server.Experimental.Auth -- Auth
+
+import Auth
+import Models
+import DB
+
+type instance AuthServerData (AuthProtect &quot;jwt-auth&quot;) = Users
+
+type TopSekrit =
+       &quot;auth&quot;
+       :&gt; ReqBody '[ JSON] Users
+       :&gt; Post '[ JSON] AuthUser
+  :&lt;|&gt; &quot;secrets&quot;
+       :&gt; AuthProtect &quot;jwt-auth&quot;
+       :&gt; ReqBody '[ JSON] UsersSecret
+       :&gt; Post '[ JSON] ()
+  :&lt;|&gt; &quot;secrets&quot;
+       :&gt; Capture &quot;username&quot; Text
+       :&gt; AuthProtect &quot;jwt-auth&quot;
+       :&gt; ReqBody '[ JSON] UsersSecret
+       :&gt; Get '[ JSON] [SuperSecrets]
+</code></pre>
+<p>If you compile the snippet above, you will get a lot of errors.
+For example, GHC suggests that we have to use <code>DataKinds</code>.
+And when have added that, we will get another error about <code>illegal operators</code> and how to fix it by adding <code>TypeOperators</code> extension.
+Which in turn, another error appeared, <code>illegal family instance</code> and how to fix it by adding <code>TypeFamilies</code> extension.
+After we've added those three extensions at the topmost source file, the source will be looked like this, and compiled just fine.</p>
+<pre><code class="language-language=haskell">-- src/Lib.hs
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+module Lib where
+</code></pre>
+<p>And the explanation of the snippet above is:</p>
+<ul>
+<li><code>type instance AuthServerData (AuthProtect &quot;jwt-auth&quot;) = Users</code>
+Sorry, without restorting to Stack Overflow <a href="https://stackoverflow.com/questions/20870432/type-family-vs-data-family-in-brief#comment31322081_20871880">answer</a>
+and <code>AuthServerData</code> <a href="https://hackage.haskell.org/package/servant-server-0.11.0.1/docs/Servant-Server-Experimental-Auth.html#t:AuthServerData">documentation</a>
+I can't explain it easily.
+Basically, <code>type instance F A = B</code> means that an argument <code>A</code> that being applied to function <code>F</code> equals to <code>B</code>.
+So, in this case, the value of the returned data of <code>(AuthProtect &quot;jwt)</code> must be equal to <code>Users</code>.</li>
+<li><code>type TopSekrit = ...</code> is the type of our REST interface. Which in turn is a result of the composition of the following:
+<ul>
+<li><code>&quot;auth&quot; :&gt; ReqBody '[JSON] Users :&gt; Post '[JSON] AuthUser</code> means that a POST request json payload value of <code>Users</code> at <code>/auth</code> will have response the json value of <code>AuthUser</code>.</li>
+<li><code>:&lt;|&gt;</code> is a composition of two API.</li>
+<li><code>&quot;secrets&quot; :&gt; AuthProtect &quot;jwt-auth&quot; :&gt; ReqBody '[JSON] UsersSecret :&gt; Post '[JSON] ()</code> means that a POST request json payload value of <code>UsersSecret</code> at <code>/secrets</code> will be received and processed by server as long as the request has been authorized.</li>
+<li><code>&quot;secrets&quot; :&gt; Capture &quot;username&quot; Text :&gt; AuthProtect &quot;jwt-auth&quot; :&gt; Get '[JSON] [SuperSecrets]</code> means that a GET request at <code>/secret/:username</code> will be responded by json values of <code>[SuperSecrets]</code> as long as the request has been authorized.</li>
+</ul>
+</li>
+</ul>
+<p>And then, we will create <code>Context</code> for our auth protected resources, where <code>Context</code> itself is <em>TO BE ADDED, in short a holder</em></p>
+<p>So, we will create our <code>authContextCreator</code>:</p>
+<pre><code>- src/Lib.hs
+{-# Language FlexibleContexts #-}
+import Control.Error.Class
+import Network.Wai
+
+authContext :: Context '[AuthHandler Request Users]
+authContext = mkAuthHandler authHandler :. EmptyContext
+  where
+    authHandler :: (MonadError ServantErr m) =&gt; Request -&gt; m Users
+    authHandler req =
+      case lookup &quot;Authorization&quot; (requestHeaders req) of
+        Nothing -&gt; throwError err401
+        Just token -&gt; undefined -- reserved for token validation.
+</code></pre>
+<p>Explanation:</p>
+<ul>
+<li>We use <code>FlexibleContexts</code> extension because <code>throwError</code> has signature of <code>ServantErr m a</code> while our the result of token validation should be <code>Handler Users</code>.
+So, to simplify a bit, we force <code>throwError</code> to have signature <code>ServantErr m Users</code> by using <code>FlexibleContexts</code> extension.</li>
+<li>we import <code>Control.Error.Class</code>, not really important, but it will give us a clearer signature for our functions.</li>
+<li>we import <code>Network.Wai</code> to intercept incoming requests to check its headers. Which will be explained in the next section.</li>
+<li><code>authContext :: Context '[AuthHandler Request Users]</code> is the signature for the next point.
+It means that we will have a context which only contains an <code>AuthHandler</code> that accepts a <code>Request</code> and returns a <code>Users</code>.</li>
+<li><code>authContext = mkAuthhandler authHandler :. EmptyContext</code> we will create a custom handler, which is a request interceptor and should return <code>Users</code> (as defined in function signature), and then add it to an <code>EmptyContext</code>.</li>
+<li><code>authHandler :: (MonadError ServantErr m) =&gt; Request -&gt; m Users</code>, as defined at <code>authContext</code>'s signature, this function has to return a wrapped <code>Users</code> object after it receives a <code>Request</code> and wrapper <code>m</code> has to be an instance of <code>ServantErr</code>.</li>
+<li><code>authHandler req = case lookup &quot;Authorization&quot; (requestHeaders req) of</code> means that when it receives a <code>Request</code>, it will look at the <code>Request</code>'s headers. <code>Authorization</code> header, to be exact.</li>
+<li>If there's no <code>Authorization</code> header, it will throw an 401 error.</li>
+<li>When there's <code>Authorization</code> header, it will process the <code>Request</code>'s header value to.... <code>undefined</code> at the moment.</li>
+</ul>
+<blockquote>
+<p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/5001961eda92637a845357d79ec14a6a6ce69e2b">here</a>.</p>
+</blockquote>
+<p>So, let's open <code>src/Auth.hs</code></p>
 
    </section>
   </main>
