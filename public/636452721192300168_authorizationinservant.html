@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Nothing Unusual</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="page content."/>
+  <meta name="author" content="IbnuDA"/>
+  <link rel="stylesheet" href="static/milligram.min.css"/>
+  <link rel="stylesheet" href="static/normalize.min.css"/>
+  <link rel="stylesheet" href="static/main.css"/>
+ </head>
+ <body>
+  <main class="wrapper">
+   <nav class="navigation">
+    <section class="container">
+     <a class="navigation-title" href="/">
+      Home
+     </a>
+    </section>
+   </nav>
+   <section class="container">
+    <h1>Authorization in Servant (WIP)</h1>
+<p>Words of caution: This article is about servant-server 0.11 which is still in experimental stage. Deployment in production is not couraged. And yes, I know about <code>servant-auth</code>.</p>
+<p>One of my friend once complained about the lacks of Servant's documentation on authorization, connecting to db, and many more. So, I want to help him.</p>
+<h2>Final Result</h2>
+<ul>
+<li>A working REST interface.</li>
+<li>With authentication using JWT.</li>
+<li>And the program can talk with a database.</li>
+</ul>
+<h2>Prerequisites.</h2>
+<p>There are a few things that we will use in this article. Namely:</p>
+<ul>
+<li>A running instance of MariaDB or MySQL. This choice was based on observation that in Indonesia, MySQL is more preferable than Postgres, though I personally choose Postgres any over db.</li>
+<li><code>stack</code>. We will use stack because it prevents cabal hell or something, that's what the internet says about it. So we will heed internet's call this time.</li>
+</ul>
+<p>A nice to have setup:</p>
+<ul>
+<li>Emacs with haskell mode. It eases our life a bit.</li>
+</ul>
+<h2>Installation.</h2>
+<p>We will create a servant project using <code>stack</code>. A pretty simple command line input will suffice. Something like this:</p>
+<pre><code>stack new OurServant servant
+</code></pre>
+<p>The previous line means that we ask <code>stack</code> to create a new project in folder named <code>OurServant</code> using <code>servant</code> template. There are many other templates, though. You can check it out. It's nice.</p>
+<p>Then we will change our directory to our project's directory and open an emacs instance there.</p>
+<pre><code>cd OurServant; emacs . -nw
+</code></pre>
+<p>Navigate to <code>OurServant.cabal</code> and then you will see a part like the following:</p>
+<pre><code>library
+  hs-source-dirs:     src
+  exposed-modules:    Lib
+  build-depends:      base &gt;= 4.7 &amp;&amp; &lt; 5
+                    , aeson
+                    , servant-server
+                    , wai
+                    , warp
+  default-language:   Haskell2010
+</code></pre>
+<p>Then you add dependencies:</p>
+<ul>
+<li><code>text</code> is, in short, an library for efficient unicode text</li>
+<li><code>time</code> well, it provides time!</li>
+<li><code>peristent</code> is... I guess something like <code>django-orm</code> or Scala's <code>slick</code> library.</li>
+<li><code>persistent-mysql</code> provides a MySQL backend for <code>persistent</code>.</li>
+<li><code>persistent-template</code> is a  provider of Template Haskell for <code>persistent</code>, I will not touch what does it mean in this article.</li>
+</ul>
+<p>And let's add a few other lines in our cabal file so it will look like the following:</p>
+<pre><code>library
+  hs-source-dirs:     src
+  exposed-modules:    Lib
+  other-modules:      Models -- new
+  build-depends:      base &gt;= 4.7 &amp;&amp; &lt; 5
+                    , aeson
+                    , persistent --new
+                    , persistent-mysql --new
+                    , persistent-template --new
+                    , servant-server
+                    , text --new
+                    , wai
+                    , warp
+  default-language:   Haskell2010
+</code></pre>
+<h2>Writing Code</h2>
+<h3>Database</h3>
+<p>Then we will create a new haskell source file named <code>Models.hs</code> in <code>src</code> directory.</p>
+<pre><code>-- src/Models.hs
+module Models where
+
+import Data.Aeson -- json (de)serialisation.
+import Data.Text
+import Data.Time
+import Database.Persist.Sql
+import Database.Persist.TH
+
+</code></pre>
+<p>For each <code>import</code> lines above, we tell that we will use their functionality in our sources. And then, we will put the following lines below the previous part.</p>
+<pre><code>-- src/Models.hs
+share
+  [mkPersist sqlSettings, mkMigrate &quot;migrateAll&quot;]
+  [persistLowerCase|
+  Users json
+    name Text sqltype=varchar(52)
+    pass Text sqltype=varchar(52)
+    Primary name
+    -- Unique of table Users named Name referring column name.
+    UniqueUsersName name
+    deriving show
+|]
+</code></pre>
+<p>The part of source code above means that we will create a migration plan named <code>migrateAll</code> by creating tables <code>users</code> which has <code>name</code> and <code>pass</code> columns and column <code>name</code> will be unique and will be used as the primary key.</p>
+<p>If we try to compile our project by inputting <code>stack build</code> in our root project directory, it will produce error something like <code>parse error on input '=' perhaps you need a 'let' in a 'do' block?</code>
+It means that GHC doesn't understand that we use <code>QuasiQuotes</code> syntax extension in our code. So we will add it at the topmost of our source code.</p>
+<pre><code>{-# LANGUAGE QuasiQuotes #-}
+module Models where
+
+import Data.Aeson
+import Data.Text
+</code></pre>
+<p>Again, we will receive an error stated that we have a naked expression and perhaps we intended to use TemplateHaskell. So, we'll add that syntax extension!</p>
+<pre><code>{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
+module Models where
+
+import Data.Aeson
+</code></pre>
+<p>And again, it looks like the GHC refused to compile our source again. GHC suggested that we use <code>TypeFamilies</code> extension. So we will give it what it wants!</p>
+<pre><code>{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+module Models where
+</code></pre>
+<p>But wait, there's more! Because <code>UsersId</code> in our data has a specialised result, we have to use <code>ExistensialQualification</code> or <code>GADTs</code> to allow this. And because we added a <code>Users json</code>, which is an instance declaration for <code>ToJSON</code>, we have to use <code>FlexibleInstance</code>. GHC's suggestion is our command~</p>
+<pre><code>{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+module Models where
+</code></pre>
+<p>We can compile it just fine! And then, we will create a new table.</p>
+<pre><code>-- src/Models.hs
+    UniqueUsersName name
+    deriving Show Eq
+  SuperSecrets json
+    something Text
+    by UsersId maxlen=52
+    deriving Show Eq
+</code></pre>
+<p>It means that we declare that we will create a new table named <code>super_secrets</code> which has <code>something</code> column and a foreign key <code>by</code> which refers to table <code>users</code>' primary key.
+Alas, when we compile our project, there will be an error stating that it is an illegal instance for <code>ToBackendKey SqlBackend SuperSecrets</code> but GHC suggests that we can use <code>MultiParamTypeClasses</code> to allow more. So we will reply GHC's call by applying the suggestion.</p>
+<pre><code>{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+module Models where
+</code></pre>
+<p>Okay, it's cool and dandy when we compile it. Then, we will create a migration plan (I don't know how does it should be called or its real name).</p>
+<pre><code>-- src/Models.hs
+doMigration = runMigration migrateAll
+</code></pre>
+<p>When we compile again, GHC will fail to compile because of ambiguous type variable <code>m0</code>. GHC inferred that <code>doMigration</code> has <code>ReaderT SqlBackend m0 ()</code> as its type and has potential instance of <code>IO</code> monad as its fixes. So we'll add that as <code>doMigration</code>'s type signature.</p>
+<pre><code>-- src/Models.hs
+doMigration :: ReaderT SqlBackend IO ()
+doMigration = runMigration migrateAll
+</code></pre>
+<h3>Auth part.</h3>
+
+   </section>
+  </main>
+ </body>
+</html>
