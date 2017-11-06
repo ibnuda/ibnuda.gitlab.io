@@ -1,8 +1,8 @@
 Authorization in Servant
 636452721192300168
 
-Authorization in Servant: Walkthrough (WIP)
-===========================================
+Authorization in Servant: Walkthrough
+=====================================
 
 Words of caution: This article is about servant-server 0.11's `experimental-auth` which is still in experimental stage.
 Deployment in production is not couraged.
