@@ -75,6 +75,7 @@ let h4 = elem "h4"
 let header = elem "header"
 let footer = elem "footer"
 let strong = elem "strong"
+let script = elem "script"
 let text = Text // SecurityElement.Escape >> Text
 let safeText = SecurityElement.Escape
 let (%=) name value = Attr (SecurityElement.Escape name, SecurityElement.Escape value)
