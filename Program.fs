@@ -1,11 +1,7 @@
-﻿open System
-
-open Conf
-open ReadWrite
-open Command
+﻿open Command
 
 [<EntryPoint>]
-let main argv =
+let main _ =
   printfn "Pick one of the following commands:"
   printfn "For new post : newpost"
   printfn "For compile  : compile"

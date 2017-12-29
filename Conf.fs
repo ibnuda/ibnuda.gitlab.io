@@ -1,7 +1,6 @@
 module Conf
 
 open System
-open System.Text
 
 /// Site: Blog's url.
 /// SiteTitle: The title of the blog.
@@ -14,7 +13,7 @@ type Conf =
     PublicPath: string
     PagesPath : string }
   /// Create a configuration.
-  static member Create (site, title, author, pub, pages) =
+  static member Create site title author pub pages =
     { Site      = site
       SiteTitle = title
       Author    = author
@@ -22,7 +21,11 @@ type Conf =
       PagesPath = pages }
   /// Default: mine.
   static member Default =
-    Conf.Create ("https://ibnuda.gitlab.io", "Nothing Unusual", "IbnuDA", "public", "pages")
+    Conf.Create "https://ibnuda.gitlab.io"
+                "Nothing Unusual"
+                "IbnuDA"
+                "public"
+                "pages"
 
 /// Create your own.
 let conf = Conf.Default

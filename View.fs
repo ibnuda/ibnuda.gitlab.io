@@ -30,10 +30,6 @@ let normalizecss =
     "rel" %= "stylesheet"
     "href" %= "static/normalize.min.css"
   ]
-let somethingJs =
-  script [
-    "src" %= "static/something.js"
-  ]
 
 let sitenav =
   nav [
@@ -58,7 +54,6 @@ let mainView content =
       milligramcss
       normalizecss
       maincss
-      somethingJs
     ]
     body [
       main [

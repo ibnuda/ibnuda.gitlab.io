@@ -1,6 +1,5 @@
 module Generate
 
-open System
 open System.IO
 
 open Markdig
