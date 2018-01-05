@@ -12,7 +12,7 @@ let untuple f (x, y) =
 let dateAndTitle info =
   DateTime(info.Date).ToString("yyyyMMdd") + " - " + info.Title
 
-let regexTitle title = Regex.Replace (title, "[^a-zA-Z0-9_.]+","")
+let regexTitle title = Regex.Replace (title, "[^a-zA-Z0-9_.]+","-")
 
 let pages = conf.PagesPath
 let publi = conf.PublicPath
