@@ -13,7 +13,9 @@ let parse (info : BlogInfo, content) =
 
 let generateAllPost () =
   Directory.GetFiles (conf.PagesPath)
-  |> Seq.map (readMarkdown >> parse >> untuple viewPage >> writeHtml)
+  |> Seq.map (readMarkdown >> parse >> untuple viewPage)
+  |> Seq.sortByDescending (fun (info, _) -> info.Date)
+  |> Seq.map writeHtml
   |> viewIndex
   |> htmlToString
   |> writeIndex

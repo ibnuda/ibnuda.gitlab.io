@@ -33,9 +33,10 @@ let readMarkdown path =
 /// Write html file to /public and then return returns
 let writeHtml (info, content) =
   let title = info.Title.ToLower()
-  let date = info.Date
-  let reptitle = regexTitle title
-  let filename = date.ToString () + "_" + reptitle + ".html"
+  let dateInt64 = info.Date
+  let articlesTitle = regexTitle title
+  let datetime = DateTime(dateInt64)
+  let filename = sprintf "%s-%s.html" (datetime.ToString "yyyy-MM-dd") articlesTitle
   File.WriteAllText (pathAndPublic filename, content)
   dateAndTitle info, filename
 
