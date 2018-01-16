@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Conf.fs" />
+    <Compile Include="ReadWrite.fs" />
+    <Compile Include="FsHtml.fs" />
+    <Compile Include="View.fs" />
+    <Compile Include="Generate.fs" />
+    <Compile Include="Command.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CoreCompat.System.Security" Version="4.2.3-r4" />
+    <PackageReference Include="Markdig" Version="0.12.3" />
+  </ItemGroup>
+</Project>

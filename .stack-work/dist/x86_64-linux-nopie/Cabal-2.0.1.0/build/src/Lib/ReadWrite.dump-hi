@@ -1,0 +1,341 @@
+
+==================== FINAL INTERFACE ====================
+2018-01-16 10:37:45.082697278 UTC
+
+interface Blog-0.1.0.0-7UCgsGDMj4K978bqFDwgCn:Lib.ReadWrite 8022
+  interface hash: 41101d090b782bea55351fde3e949106
+  ABI hash: 8828fb9b2c0c20eb6eef250bdaf050a8
+  export-list hash: 72bfbbc5953ec71c772ed75f24638cfd
+  orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
+  flag hash: ca8c70ac4c8f1da84bf45ec2104d137a
+  sig of: Nothing
+  used TH splices: False
+  where
+exports:
+  Lib.ReadWrite.createMarkdownFile
+  Lib.ReadWrite.deleteOnlyFiles
+  Lib.ReadWrite.htmlFilenameFromTitleAndDate
+  Lib.ReadWrite.readDirectory
+  Lib.ReadWrite.writeContent
+module dependencies: Lib.Prelude Lib.Types
+package dependencies: aeson-1.2.3.0 array-0.5.2.0 async-2.1.1.1
+                      attoparsec-0.13.2.0 base-4.10.1.0 base-compat-0.9.3 binary-0.8.5.1
+                      bytestring-0.10.8.2 conduit-1.2.12.1 containers-0.5.10.2
+                      deepseq-1.4.3.0 directory-1.3.0.2 dlist-0.8.0.3 exceptions-0.8.3
+                      filepath-1.4.1.2 ghc-boot-th-8.2.2 ghc-prim-0.5.1.1
+                      hashable-1.2.6.1 integer-gmp-1.0.1.0 integer-logarithms-1.0.2
+                      lifted-base-0.2.3.11 mmorph-1.1.0 monad-control-1.0.2.2 mtl-2.2.1
+                      primitive-0.6.2.0 protolude-0.2 random-1.1 regex-base-0.93.2
+                      regex-compat-0.95.1 regex-posix-0.95.2 resourcet-1.1.10 safe-0.3.15
+                      scientific-0.3.5.2 stm-2.4.4.1 tagged-0.8.5
+                      template-haskell-2.12.0.0 text-1.2.2.2 time-1.8.0.2
+                      time-locale-compat-0.1.1.3 transformers-0.5.2.0
+                      transformers-base-0.4.4 unix-2.7.2.2 unliftio-core-0.1.0.0
+                      unordered-containers-0.2.8.0 uuid-types-1.0.3 vector-0.12.0.1
+                      yaml-0.8.25.1
+orphans: regex-posix-0.95.2:Text.Regex.Posix.String
+         regex-posix-0.95.2:Text.Regex.Posix.Sequence
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString.Lazy
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString
+         regex-base-0.93.2:Text.Regex.Base.Context
+         attoparsec-0.13.2.0:Data.Attoparsec.ByteString.Char8
+         vector-0.12.0.1:Data.Vector.Unboxed
+         time-1.8.0.2:Data.Time.Format.Parse
+         time-1.8.0.2:Data.Time.LocalTime.Internal.ZonedTime
+         time-1.8.0.2:Data.Time.LocalTime.Internal.LocalTime
+         time-1.8.0.2:Data.Time.Calendar.Gregorian
+         attoparsec-0.13.2.0:Data.Attoparsec.Text.Internal
+         vector-0.12.0.1:Data.Vector.Fusion.Bundle
+         hashable-1.2.6.1:Data.Hashable.Generic
+         transformers-0.5.2.0:Control.Monad.Trans.Error
+         text-1.2.2.2:Data.Text.Lazy text-1.2.2.2:Data.Text
+         binary-0.8.5.1:Data.Binary.Generic text-1.2.2.2:Data.Text.Show
+         bytestring-0.10.8.2:Data.ByteString.Builder
+         stm-2.4.4.1:Control.Monad.STM base-4.10.1.0:GHC.Float
+         base-4.10.1.0:GHC.Base
+family instance modules: aeson-1.2.3.0:Data.Aeson.Types.Internal
+                         attoparsec-0.13.2.0:Data.Attoparsec.Internal.Types
+                         base-4.10.1.0:Control.Applicative base-4.10.1.0:Data.Complex
+                         base-4.10.1.0:Data.Either base-4.10.1.0:Data.Functor.Compose
+                         base-4.10.1.0:Data.Functor.Const
+                         base-4.10.1.0:Data.Functor.Identity
+                         base-4.10.1.0:Data.Functor.Product base-4.10.1.0:Data.Functor.Sum
+                         base-4.10.1.0:Data.List.NonEmpty base-4.10.1.0:Data.Monoid
+                         base-4.10.1.0:Data.Semigroup base-4.10.1.0:Data.Type.Equality
+                         base-4.10.1.0:Data.Version base-4.10.1.0:Data.Void
+                         base-4.10.1.0:GHC.Exts base-4.10.1.0:GHC.Generics
+                         base-4.10.1.0:GHC.IO.Exception base-4.10.1.0:GHC.TypeLits
+                         base-4.10.1.0:GHC.TypeNats
+                         conduit-1.2.12.1:Data.Conduit.Internal.Conduit
+                         conduit-1.2.12.1:Data.Conduit.Internal.Pipe
+                         containers-0.5.10.2:Data.IntMap.Internal
+                         containers-0.5.10.2:Data.IntSet.Internal
+                         containers-0.5.10.2:Data.Map.Internal
+                         containers-0.5.10.2:Data.Sequence.Internal
+                         containers-0.5.10.2:Data.Set.Internal containers-0.5.10.2:Data.Tree
+                         dlist-0.8.0.3:Data.DList ghc-boot-th-8.2.2:GHC.ForeignSrcLang.Type
+                         ghc-boot-th-8.2.2:GHC.LanguageExtensions.Type
+                         monad-control-1.0.2.2:Control.Monad.Trans.Control
+                         primitive-0.6.2.0:Control.Monad.Primitive
+                         primitive-0.6.2.0:Data.Primitive.Array
+                         resourcet-1.1.10:Control.Monad.Trans.Resource.Internal
+                         tagged-0.8.5:Data.Tagged
+                         template-haskell-2.12.0.0:Language.Haskell.TH.Syntax
+                         text-1.2.2.2:Data.Text text-1.2.2.2:Data.Text.Lazy
+                         unordered-containers-0.2.8.0:Data.HashMap.Base
+                         unordered-containers-0.2.8.0:Data.HashSet
+                         uuid-types-1.0.3:Data.UUID.Types.Internal
+                         uuid-types-1.0.3:Data.UUID.Types.Internal.Builder
+                         vector-0.12.0.1:Data.Vector vector-0.12.0.1:Data.Vector.Primitive
+                         vector-0.12.0.1:Data.Vector.Storable
+                         vector-0.12.0.1:Data.Vector.Unboxed
+                         vector-0.12.0.1:Data.Vector.Unboxed.Base
+import  -/  Lib.Prelude 8eac24bc2dc5aab4b790fdfc8e7369a2
+  exports: 42f646bb0e5962c755494a40465aca4e
+import  -/  Lib.Types bd576cffd5456309a0595f890a4c87ab
+  exports: 84ee93ab9f577fc8870ff704581c914a
+  Content 86f6bcaeae76cc96c57396a4d46a19b9
+  Content a77c6587d926b5e06c22fdebf1997238
+  contentText a77c6587d926b5e06c22fdebf1997238
+  contentType a77c6587d926b5e06c22fdebf1997238
+  emptyContent 3bb241e41f41589a467a2f95bb8e049d
+  filename a77c6587d926b5e06c22fdebf1997238
+  mdDate a77c6587d926b5e06c22fdebf1997238
+  mdTitle a77c6587d926b5e06c22fdebf1997238
+import  -/  base-4.10.1.0:Control.Monad ebed2e8e7444944e0c1d827c6faf40a4
+import  -/  base-4.10.1.0:Data.Foldable 9ed87455d68e87ff2b5b8725eae9897e
+import  -/  base-4.10.1.0:Data.Monoid c0108b166e27f747671c7fe4ffb11019
+import  -/  base-4.10.1.0:Data.Traversable 60ea7c2973e63de7d08d5d0269f96e67
+import  -/  base-4.10.1.0:GHC.Base 782fd99b5e36f3698a26179a49afca64
+import  -/  base-4.10.1.0:GHC.IO e261d8b68ccf81a359626fa520b57d1d
+import  -/  base-4.10.1.0:Text.Read 9e862e012b3c71e83cb56fb456188f44
+import  -/  directory-1.3.0.2:System.Directory c9e1b06708e6791ef125173fcae240d4
+import  -/  ghc-prim-0.5.1.1:GHC.Types b1fd0716441595db508c1a74387bf394
+import  -/  protolude-0.2:Protolude d933be1c19ccad6eea7f967f89a5aeee
+import  -/  regex-compat-0.95.1:Text.Regex ab162cafb1834c9a631b7a133fd4eb5e
+import  -/  text-1.2.2.2:Data.Text 179ed20f3e41d2270f9a36dd7f638215
+import  -/  text-1.2.2.2:Data.Text.IO 1ca4ce67f045bb080dfbe637e15ebfa8
+import  -/  text-1.2.2.2:Data.Text.Internal 965a1ec05875083803dc83d56dbb61f7
+import  -/  text-1.2.2.2:Data.Text.Show 634fe9da73de399c979e66d81c8736fe
+import  -/  time-1.8.0.2:Data.Time 801fb868684a9ca732a26c8ef6b804aa
+import  -/  time-1.8.0.2:Data.Time.Clock.Internal.UTCTime 71bab4ae2f93d15d9b706c230968f165
+import  -/  time-1.8.0.2:Data.Time.Clock.POSIX 1e8d8ebbad0b17747c3a84a37c227dba
+import  -/  time-1.8.0.2:Data.Time.Format a8260dc0d4f76c8ff48676d71f1bd784
+import  -/  time-1.8.0.2:Data.Time.Format.Locale 8e699a575db4d72d9f4385c688cba89c
+3e7fd4393df7b3b33baf71ff42ad33e4
+  $trModule :: GHC.Types.Module
+  {- HasNoCafRefs, Strictness: m,
+     Unfolding: (GHC.Types.Module
+                   Lib.ReadWrite.$trModule3
+                   Lib.ReadWrite.$trModule1) -}
+e3cf304b97cb39c07f3240a7da72d06b
+  $trModule1 :: GHC.Types.TrName
+  {- HasNoCafRefs, Strictness: m1,
+     Unfolding: (GHC.Types.TrNameS Lib.ReadWrite.$trModule2) -}
+3196f176cfa86bdb452685a892239989
+  $trModule2 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("Lib.ReadWrite"#) -}
+4d9cb6547b2c9763ecd61d5234d751d6
+  $trModule3 :: GHC.Types.TrName
+  {- HasNoCafRefs, Strictness: m1,
+     Unfolding: (GHC.Types.TrNameS Lib.ReadWrite.$trModule4) -}
+dff3dfde6b6816f2ab03e0e76aa925ce
+  $trModule4 :: GHC.Prim.Addr#
+  {- HasNoCafRefs,
+     Unfolding: ("Blog-0.1.0.0-7UCgsGDMj4K978bqFDwgCn"#) -}
+47e783048ccef96fed9c356442be2fae
+  $whtmlFilenameFromTitleAndDate ::
+    GHC.Prim.ByteArray#
+    -> GHC.Prim.Int#
+    -> GHC.Prim.Int#
+    -> Data.Time.Clock.Internal.UTCTime.UTCTime
+    -> Data.Text.Internal.Text
+  {- Arity: 4, Strictness: <L,U><S,U><S,U><L,1*U(1*U,A)>,
+     Inline: [0] -}
+7e24ddb94c4ac2b4c118706102c8b3d5
+  $wwriteContent ::
+    Data.Text.Internal.Text
+    -> Data.Text.Internal.Text
+    -> Data.Time.Clock.Internal.UTCTime.UTCTime
+    -> Data.Text.Internal.Text
+    -> Data.Text.Internal.Text
+    -> GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+  {- Arity: 6,
+     Strictness: <L,1*U(U,U,U)><L,1*U(U,U,U)><L,1*U(1*U,U)><L,1*U(U,U,U)><L,1*U(U,U,U)><S,U>,
+     Inline: [0] -}
+abb76e46410b6f5830402e3d4478a20b
+  createMarkdownFile ::
+    Data.Text.Internal.Text
+    -> Data.Text.Internal.Text -> GHC.Types.IO ()
+  {- Arity: 3, Strictness: <L,1*U(U,U,U)><L,U(U,U,U)><S,U>,
+     Unfolding: InlineRule (0, True, True)
+                Lib.ReadWrite.createMarkdownFile1
+                  `cast`
+                (<Data.Text.Internal.Text>_R
+                 ->_R <Data.Text.Internal.Text>_R
+                 ->_R Sym (GHC.Types.N:IO[0] <()>_R)) -}
+d0d2cf867b17c97a1430ff7d8eda4b1c
+  createMarkdownFile1 ::
+    Data.Text.Internal.Text
+    -> Data.Text.Internal.Text
+    -> GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+  {- Arity: 3, Strictness: <L,1*U(U,U,U)><L,U(U,U,U)><S,U> -}
+23a9fc534e1823ee1f8dd79796bcb096
+  deleteOnlyFiles :: Data.Text.Internal.Text -> GHC.Types.IO ()
+  {- Arity: 1, Strictness: <L,1*U(U,U,U)>,
+     Unfolding: InlineRule (0, True, True)
+                Lib.ReadWrite.deleteOnlyFiles1
+                  `cast`
+                (<Data.Text.Internal.Text>_R
+                 ->_R Sym (GHC.Types.N:IO[0] <()>_R)) -}
+9d368ec2b622d168f27e724e204114b2
+  deleteOnlyFiles1 ::
+    Data.Text.Internal.Text
+    -> GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+  {- Arity: 1, Strictness: <L,1*U(U,U,U)>,
+     Unfolding: (\ (path :: Data.Text.Internal.Text) ->
+                 System.Directory.withCurrentDirectory1
+                   @ ()
+                   (case path of wild { Data.Text.Internal.Text dt dt1 dt2 ->
+                    let {
+                      end :: GHC.Prim.Int# = GHC.Prim.+# dt1 dt2
+                    } in
+                    letrec {
+                      $wunfold :: GHC.Prim.Int# -> [GHC.Types.Char]
+                        {- Arity: 1, Strictness: <S,U>, Inline: [0] -}
+                      = \ (ww :: GHC.Prim.Int#) ->
+                        case GHC.Prim.tagToEnum#
+                               @ GHC.Types.Bool
+                               (GHC.Prim.>=# ww end) of wild1 {
+                          GHC.Types.False
+                          -> case GHC.Prim.indexWord16Array# dt ww of r# { DEFAULT ->
+                             case GHC.Prim.tagToEnum#
+                                    @ GHC.Types.Bool
+                                    (GHC.Prim.geWord# r# 55296##) of wild2 {
+                               GHC.Types.False
+                               -> GHC.Types.:
+                                    @ GHC.Types.Char
+                                    (GHC.Types.C# (GHC.Prim.chr# (GHC.Prim.word2Int# r#)))
+                                    ($wunfold (GHC.Prim.+# ww 1#))
+                               GHC.Types.True
+                               -> case GHC.Prim.tagToEnum#
+                                         @ GHC.Types.Bool
+                                         (GHC.Prim.leWord# r# 56319##) of wild3 {
+                                    GHC.Types.False
+                                    -> GHC.Types.:
+                                         @ GHC.Types.Char
+                                         (GHC.Types.C# (GHC.Prim.chr# (GHC.Prim.word2Int# r#)))
+                                         ($wunfold (GHC.Prim.+# ww 1#))
+                                    GHC.Types.True
+                                    -> GHC.Types.:
+                                         @ GHC.Types.Char
+                                         (case GHC.Prim.indexWord16Array#
+                                                 dt
+                                                 (GHC.Prim.+# ww 1#) of r#1 { DEFAULT ->
+                                          GHC.Types.C#
+                                            (GHC.Prim.chr#
+                                               (GHC.Prim.+#
+                                                  (GHC.Prim.+#
+                                                     (GHC.Prim.uncheckedIShiftL#
+                                                        (GHC.Prim.-# (GHC.Prim.word2Int# r#) 55296#)
+                                                        10#)
+                                                     (GHC.Prim.-# (GHC.Prim.word2Int# r#1) 56320#))
+                                                  65536#)) })
+                                         ($wunfold (GHC.Prim.+# ww 2#)) } } }
+                          GHC.Types.True -> GHC.Types.[] @ GHC.Types.Char }
+                    } in
+                    $wunfold dt1 })
+                   Lib.ReadWrite.deleteOnlyFiles2
+                     `cast`
+                   (Sym (GHC.Types.N:IO[0] <()>_R))) -}
+c61c8d30ab09279b984e97873d1a192d
+  deleteOnlyFiles2 ::
+    GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+  {- Arity: 1, Strictness: <S,U>,
+     Unfolding: (\ (s :: GHC.Prim.State# GHC.Prim.RealWorld) ->
+                 case System.Directory.getDirectoryContents1
+                        Lib.ReadWrite.deleteOnlyFiles5
+                        s of ds1 { (#,#) ipv ipv1 ->
+                 case Lib.ReadWrite.deleteOnlyFiles4
+                        ipv1
+                        ipv of ds2 { (#,#) ipv2 ipv3 ->
+                 Lib.ReadWrite.deleteOnlyFiles3 ipv3 ipv2 } }) -}
+501bff4ad374589d9ba3ae2987f958a3
+  deleteOnlyFiles3 ::
+    [GHC.IO.FilePath]
+    -> GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+  {- Arity: 2, Strictness: <S,1*U><S,U> -}
+412fafc5a6f0e797867ad955bccf48fb
+  deleteOnlyFiles4 ::
+    [GHC.IO.FilePath]
+    -> GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, [GHC.IO.FilePath] #)
+  {- Arity: 2, Strictness: <S,1*U><S,U> -}
+a19f0d3218927f2988f34ab057be4f98
+  deleteOnlyFiles5 :: [GHC.Types.Char]
+  {- Unfolding: (GHC.CString.unpackCString#
+                   Lib.ReadWrite.deleteOnlyFiles6) -}
+acafb803a4f66dc4c941511a6a0d68d8
+  deleteOnlyFiles6 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("."#) -}
+426bf7d5c183120b466a542872a9908c
+  htmlFilenameFromTitleAndDate ::
+    Data.Text.Internal.Text
+    -> Data.Time.Clock.Internal.UTCTime.UTCTime
+    -> Data.Text.Internal.Text
+  {- Arity: 2, Strictness: <S(SSS),1*U(U,U,U)><L,1*U(1*U,A)>,
+     Inline: [0],
+     Unfolding: InlineRule (2, True, False)
+                (\ (w :: Data.Text.Internal.Text)
+                   (w1 :: Data.Time.Clock.Internal.UTCTime.UTCTime) ->
+                 case w of ww { Data.Text.Internal.Text ww2 ww3 ww4 ->
+                 Lib.ReadWrite.$whtmlFilenameFromTitleAndDate ww2 ww3 ww4 w1 }) -}
+cc51b7f41773bc11893cc2f1efbe39a2
+  readDirectory ::
+    Data.Text.Internal.Text -> GHC.Types.IO [Lib.Types.Content]
+  {- Arity: 2, Strictness: <L,U(U,U,U)><S,U>,
+     Unfolding: InlineRule (0, True, True)
+                Lib.ReadWrite.readDirectory1
+                  `cast`
+                (<Data.Text.Internal.Text>_R
+                 ->_R Sym (GHC.Types.N:IO[0] <[Lib.Types.Content]>_R)) -}
+40fbfb7c3cd7e000abdea1edd0078624
+  readDirectory1 ::
+    Data.Text.Internal.Text
+    -> GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, [Lib.Types.Content] #)
+  {- Arity: 2, Strictness: <L,U(U,U,U)><S,U> -}
+b2091394b15ffa26516b59dcea21cbc7
+  writeContent :: Lib.Types.Content -> GHC.Types.IO ()
+  {- Arity: 2,
+     Strictness: <S,1*U(1*U(U,U,U),1*U(U,U,U),1*U(1*U,U),1*U(U,U,U),1*U(U,U,U))><S,U>,
+     Unfolding: InlineRule (0, True, True)
+                Lib.ReadWrite.writeContent1
+                  `cast`
+                (<Lib.Types.Content>_R ->_R Sym (GHC.Types.N:IO[0] <()>_R)) -}
+7d737ef118b25aff0a3ff555873e012b
+  writeContent1 ::
+    Lib.Types.Content
+    -> GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+  {- Arity: 2,
+     Strictness: <S,1*U(1*U(U,U,U),1*U(U,U,U),1*U(1*U,U),1*U(U,U,U),1*U(U,U,U))><S,U>,
+     Inline: [0],
+     Unfolding: InlineRule (2, True, False)
+                (\ (w :: Lib.Types.Content)
+                   (w1 :: GHC.Prim.State# GHC.Prim.RealWorld) ->
+                 case w of ww { Lib.Types.Content ww2 ww3 ww4 ww5 ww6 ->
+                 Lib.ReadWrite.$wwriteContent ww2 ww3 ww4 ww5 ww6 w1 }) -}
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+
