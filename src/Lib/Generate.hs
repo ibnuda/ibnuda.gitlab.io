@@ -104,4 +104,11 @@ fullFledgedHtmlGeneration conf = do
       }
 
 defaultConfig :: Configuration
-defaultConfig = Configuration "url" "name" "author" "pages" "posts" "public"
+defaultConfig =
+  Configuration
+    "https://ibnuda.gitlab.io"
+    "Nothing Unusual"
+    "Ibnu D. Aji"
+    "pages"
+    "posts"
+    "public"
