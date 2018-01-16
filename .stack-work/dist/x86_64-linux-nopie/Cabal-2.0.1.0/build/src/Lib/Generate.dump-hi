@@ -1,0 +1,245 @@
+
+==================== FINAL INTERFACE ====================
+2018-01-16 10:38:06.032401814 UTC
+
+interface Blog-0.1.0.0-7UCgsGDMj4K978bqFDwgCn:Lib.Generate 8022
+  interface hash: adb7f37da2a41d88a0eba90866bbaac2
+  ABI hash: 550aefa8c1c56a381e0b090657b828b4
+  export-list hash: 086509e019913f147b82086ac24142a7
+  orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
+  flag hash: ca8c70ac4c8f1da84bf45ec2104d137a
+  sig of: Nothing
+  used TH splices: False
+  where
+exports:
+  Lib.Generate.defaultConfig
+  Lib.Generate.fullFledgedHtmlGeneration
+module dependencies: Lib.Prelude Lib.ReadWrite Lib.Types
+package dependencies: aeson-1.2.3.0 array-0.5.2.0 async-2.1.1.1
+                      attoparsec-0.13.2.0 base-4.10.1.0 base-compat-0.9.3 binary-0.8.5.1
+                      blaze-builder-0.4.0.2 blaze-html-0.9.0.1 blaze-markup-0.8.0.0
+                      bytestring-0.10.8.2 conduit-1.2.12.1 conduit-extra-1.2.3.1
+                      containers-0.5.10.2 css-text-0.1.2.2 data-default-0.7.1.1
+                      data-default-class-0.1.2.0 data-default-instances-containers-0.0.1
+                      data-default-instances-dlist-0.0.1
+                      data-default-instances-old-locale-0.0.1 deepseq-1.4.3.0
+                      directory-1.3.0.2 dlist-0.8.0.3 exceptions-0.8.3 filepath-1.4.1.2
+                      ghc-boot-th-8.2.2 ghc-prim-0.5.1.1 hashable-1.2.6.1
+                      integer-gmp-1.0.1.0 integer-logarithms-1.0.2 lifted-base-0.2.3.11
+                      markdown-0.1.16 mmorph-1.1.0 monad-control-1.0.2.2 mtl-2.2.1
+                      network-uri-2.6.1.0 old-locale-1.0.0.7 parsec-3.1.11
+                      primitive-0.6.2.0 protolude-0.2 random-1.1 regex-base-0.93.2
+                      regex-compat-0.95.1 regex-posix-0.95.2 resourcet-1.1.10 safe-0.3.15
+                      scientific-0.3.5.2 stm-2.4.4.1 streaming-commons-0.1.18
+                      tagged-0.8.5 tagsoup-0.14.2 template-haskell-2.12.0.0 text-1.2.2.2
+                      time-1.8.0.2 time-locale-compat-0.1.1.3 transformers-0.5.2.0
+                      transformers-base-0.4.4 unix-2.7.2.2 unliftio-core-0.1.0.0
+                      unordered-containers-0.2.8.0 utf8-string-1.0.1.1 uuid-types-1.0.3
+                      vector-0.12.0.1 xml-conduit-1.7.0 xml-types-0.3.6
+                      xss-sanitize-0.3.5.7 yaml-0.8.25.1
+orphans: data-default-instances-containers-0.0.1:Data.Default.Instances.Containers
+         data-default-instances-dlist-0.0.1:Data.Default.Instances.DList
+         data-default-instances-old-locale-0.0.1:Data.Default.Instances.OldLocale
+         regex-posix-0.95.2:Text.Regex.Posix.String
+         regex-posix-0.95.2:Text.Regex.Posix.Sequence
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString.Lazy
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString
+         regex-base-0.93.2:Text.Regex.Base.Context
+         attoparsec-0.13.2.0:Data.Attoparsec.ByteString.Char8
+         vector-0.12.0.1:Data.Vector.Unboxed
+         time-1.8.0.2:Data.Time.Format.Parse
+         time-1.8.0.2:Data.Time.LocalTime.Internal.ZonedTime
+         time-1.8.0.2:Data.Time.LocalTime.Internal.LocalTime
+         time-1.8.0.2:Data.Time.Calendar.Gregorian
+         attoparsec-0.13.2.0:Data.Attoparsec.Text.Internal
+         vector-0.12.0.1:Data.Vector.Fusion.Bundle
+         hashable-1.2.6.1:Data.Hashable.Generic
+         transformers-0.5.2.0:Control.Monad.Trans.Error
+         text-1.2.2.2:Data.Text.Lazy text-1.2.2.2:Data.Text
+         binary-0.8.5.1:Data.Binary.Generic text-1.2.2.2:Data.Text.Show
+         bytestring-0.10.8.2:Data.ByteString.Builder
+         stm-2.4.4.1:Control.Monad.STM base-4.10.1.0:GHC.Float
+         base-4.10.1.0:GHC.Base
+family instance modules: aeson-1.2.3.0:Data.Aeson.Types.Internal
+                         attoparsec-0.13.2.0:Data.Attoparsec.Internal.Types
+                         base-4.10.1.0:Control.Applicative base-4.10.1.0:Data.Complex
+                         base-4.10.1.0:Data.Either base-4.10.1.0:Data.Functor.Compose
+                         base-4.10.1.0:Data.Functor.Const
+                         base-4.10.1.0:Data.Functor.Identity
+                         base-4.10.1.0:Data.Functor.Product base-4.10.1.0:Data.Functor.Sum
+                         base-4.10.1.0:Data.List.NonEmpty base-4.10.1.0:Data.Monoid
+                         base-4.10.1.0:Data.Semigroup base-4.10.1.0:Data.Type.Equality
+                         base-4.10.1.0:Data.Version base-4.10.1.0:Data.Void
+                         base-4.10.1.0:GHC.Exts base-4.10.1.0:GHC.Generics
+                         base-4.10.1.0:GHC.IO.Exception base-4.10.1.0:GHC.TypeLits
+                         base-4.10.1.0:GHC.TypeNats
+                         conduit-1.2.12.1:Data.Conduit.Internal.Conduit
+                         conduit-1.2.12.1:Data.Conduit.Internal.Pipe
+                         containers-0.5.10.2:Data.IntMap.Internal
+                         containers-0.5.10.2:Data.IntSet.Internal
+                         containers-0.5.10.2:Data.Map.Internal
+                         containers-0.5.10.2:Data.Sequence.Internal
+                         containers-0.5.10.2:Data.Set.Internal containers-0.5.10.2:Data.Tree
+                         dlist-0.8.0.3:Data.DList ghc-boot-th-8.2.2:GHC.ForeignSrcLang.Type
+                         ghc-boot-th-8.2.2:GHC.LanguageExtensions.Type
+                         monad-control-1.0.2.2:Control.Monad.Trans.Control
+                         network-uri-2.6.1.0:Network.URI
+                         primitive-0.6.2.0:Control.Monad.Primitive
+                         primitive-0.6.2.0:Data.Primitive.Array
+                         resourcet-1.1.10:Control.Monad.Trans.Resource.Internal
+                         tagged-0.8.5:Data.Tagged
+                         template-haskell-2.12.0.0:Language.Haskell.TH.Syntax
+                         text-1.2.2.2:Data.Text text-1.2.2.2:Data.Text.Lazy
+                         unordered-containers-0.2.8.0:Data.HashMap.Base
+                         unordered-containers-0.2.8.0:Data.HashSet
+                         uuid-types-1.0.3:Data.UUID.Types.Internal
+                         uuid-types-1.0.3:Data.UUID.Types.Internal.Builder
+                         vector-0.12.0.1:Data.Vector vector-0.12.0.1:Data.Vector.Primitive
+                         vector-0.12.0.1:Data.Vector.Storable
+                         vector-0.12.0.1:Data.Vector.Unboxed
+                         vector-0.12.0.1:Data.Vector.Unboxed.Base
+                         xml-types-0.3.6:Data.XML.Types
+import  -/  Lib.Prelude 8eac24bc2dc5aab4b790fdfc8e7369a2
+  exports: 42f646bb0e5962c755494a40465aca4e
+import  -/  Lib.ReadWrite 8828fb9b2c0c20eb6eef250bdaf050a8
+  exports: 72bfbbc5953ec71c772ed75f24638cfd
+  htmlFilenameFromTitleAndDate 426bf7d5c183120b466a542872a9908c
+  readDirectory cc51b7f41773bc11893cc2f1efbe39a2
+  writeContent b2091394b15ffa26516b59dcea21cbc7
+import  -/  Lib.Types bd576cffd5456309a0595f890a4c87ab
+  exports: 84ee93ab9f577fc8870ff704581c914a
+  Configuration 32c66125f68989882d5c801be9c95547
+  Configuration fccfdbba4be045603ef498a37ea99f11
+  Content 86f6bcaeae76cc96c57396a4d46a19b9
+  Content a77c6587d926b5e06c22fdebf1997238
+  author fccfdbba4be045603ef498a37ea99f11
+  contentText a77c6587d926b5e06c22fdebf1997238
+  contentType a77c6587d926b5e06c22fdebf1997238
+  filename a77c6587d926b5e06c22fdebf1997238
+  mdDate a77c6587d926b5e06c22fdebf1997238
+  mdTitle a77c6587d926b5e06c22fdebf1997238
+  pathGenerated fccfdbba4be045603ef498a37ea99f11
+  pathPages fccfdbba4be045603ef498a37ea99f11
+  pathPosts fccfdbba4be045603ef498a37ea99f11
+  siteName fccfdbba4be045603ef498a37ea99f11
+  siteURL fccfdbba4be045603ef498a37ea99f11
+import  -/  base-4.10.1.0:Data.Foldable 9ed87455d68e87ff2b5b8725eae9897e
+import  -/  base-4.10.1.0:Data.Monoid c0108b166e27f747671c7fe4ffb11019
+import  -/  base-4.10.1.0:Data.OldList 555420b092ca8cf0a8f9666bc0e07dcf
+import  -/  base-4.10.1.0:GHC.Base 782fd99b5e36f3698a26179a49afca64
+import  -/  base-4.10.1.0:GHC.List e3060fbeb44ce0038e6b4dedf2dd9cf1
+import  -/  blaze-html-0.9.0.1:Text.Blaze.Html fc6a1b924f218eea8ebfa6c45f91682f
+import  -/  blaze-html-0.9.0.1:Text.Blaze.Html.Renderer.Pretty 89c525df34b574c58da5b5d365562e41
+import  -/  blaze-html-0.9.0.1:Text.Blaze.Html5 69808798072049aad99f3ca8a5771028
+import  -/  blaze-html-0.9.0.1:Text.Blaze.Html5.Attributes 0aeb98fec03f47edf4a1d54939f17c61
+import  -/  blaze-markup-0.8.0.0:Text.Blaze.Internal ec2ea25a71035a8078863a4b49fb04a4
+import  -/  data-default-class-0.1.2.0:Data.Default.Class 278151683eef69e272ea7389d6cf3aaf
+import  -/  ghc-prim-0.5.1.1:GHC.Types b1fd0716441595db508c1a74387bf394
+import  -/  markdown-0.1.16:Text.Markdown b11cec6b695c26945161a174b0f6a244
+import  -/  protolude-0.2:Protolude d933be1c19ccad6eea7f967f89a5aeee
+import  -/  text-1.2.2.2:Data.Text 179ed20f3e41d2270f9a36dd7f638215
+import  -/  text-1.2.2.2:Data.Text.Internal 965a1ec05875083803dc83d56dbb61f7
+import  -/  text-1.2.2.2:Data.Text.Lazy 81519b2620a59f59cc542108fc87fdfb
+import  -/  time-1.8.0.2:Data.Time 801fb868684a9ca732a26c8ef6b804aa
+import  -/  time-1.8.0.2:Data.Time.Clock.Internal.UTCTime 71bab4ae2f93d15d9b706c230968f165
+import  -/  time-1.8.0.2:Data.Time.Clock.POSIX 1e8d8ebbad0b17747c3a84a37c227dba
+import  -/  time-1.8.0.2:Data.Time.Format a8260dc0d4f76c8ff48676d71f1bd784
+import  -/  time-1.8.0.2:Data.Time.Format.Locale 8e699a575db4d72d9f4385c688cba89c
+006ed3efcb6c170e7afbbaf528ad378f
+  $trModule :: GHC.Types.Module
+  {- HasNoCafRefs, Strictness: m,
+     Unfolding: (GHC.Types.Module
+                   Lib.Generate.$trModule3
+                   Lib.Generate.$trModule1) -}
+2edb4f19b58f3d276257d25e9eb3d430
+  $trModule1 :: GHC.Types.TrName
+  {- HasNoCafRefs, Strictness: m1,
+     Unfolding: (GHC.Types.TrNameS Lib.Generate.$trModule2) -}
+a6a5e5f0b372c548afb0728ae85de0ac
+  $trModule2 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("Lib.Generate"#) -}
+bc2dd8affa62f0b92658cc1741c4e593
+  $trModule3 :: GHC.Types.TrName
+  {- HasNoCafRefs, Strictness: m1,
+     Unfolding: (GHC.Types.TrNameS Lib.Generate.$trModule4) -}
+370f5ea2e38cd93fe47d44c50db7c374
+  $trModule4 :: GHC.Prim.Addr#
+  {- HasNoCafRefs,
+     Unfolding: ("Blog-0.1.0.0-7UCgsGDMj4K978bqFDwgCn"#) -}
+84a9b6d9701510fb789a69d3f151a291
+  defaultConfig :: Lib.Types.Configuration
+  {- Strictness: m,
+     Unfolding: (Lib.Types.Configuration
+                   Lib.Generate.defaultConfig11
+                   Lib.Generate.defaultConfig9
+                   Lib.Generate.defaultConfig7
+                   Lib.Generate.defaultConfig5
+                   Lib.Generate.defaultConfig3
+                   Lib.Generate.defaultConfig1) -}
+7584ef33efb4563ee159526dd1c3b464
+  defaultConfig1 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.Generate.defaultConfig2) -}
+ae0c28554908863d192217c47c72ce2f
+  defaultConfig10 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("name"#) -}
+c6ee5dc1d373941c23e22d2d88bcd99b
+  defaultConfig11 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.Generate.defaultConfig12) -}
+dac0d95b8a6731d4d6b7cef807de883a
+  defaultConfig12 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("url"#) -}
+5a9204d00f984ad3a6f1d29c510df4c8
+  defaultConfig2 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("public"#) -}
+b0a7f998bf2b8610b843c35cbe91a8e4
+  defaultConfig3 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.Generate.defaultConfig4) -}
+b5dc93dd1b30e316e43bdc3d17d55801
+  defaultConfig4 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("posts"#) -}
+9193e89967cf593b9eb162da9c32fa34
+  defaultConfig5 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.Generate.defaultConfig6) -}
+88262916a81333f432293bccc1dd32e0
+  defaultConfig6 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("pages"#) -}
+212e22bc63ae57c4043ca781ba46bd00
+  defaultConfig7 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.Generate.defaultConfig8) -}
+d29fea145426d2f10d2bfae2991a01ba
+  defaultConfig8 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("author"#) -}
+9b3c7cf4c22d4646b4854ce60ec7c4be
+  defaultConfig9 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.Generate.defaultConfig10) -}
+f906067a499d5d65d8087601f0adcf7d
+  fullFledgedHtmlGeneration ::
+    Lib.Types.Configuration -> GHC.Types.IO ()
+  {- Arity: 2,
+     Strictness: <L,U(A,U,U,1*U(U,U,U),1*U(U,U,U),1*U(U,U,U))><S,U>,
+     Unfolding: InlineRule (0, True, True)
+                Lib.Generate.fullFledgedHtmlGeneration1
+                  `cast`
+                (<Lib.Types.Configuration>_R
+                 ->_R Sym (GHC.Types.N:IO[0] <()>_R)) -}
+a74fc6f7fe9757a9065fdfff1b1c1211
+  fullFledgedHtmlGeneration1 ::
+    Lib.Types.Configuration
+    -> GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+  {- Arity: 2,
+     Strictness: <L,U(A,U,U,1*U(U,U,U),1*U(U,U,U),1*U(U,U,U))><S,U> -}
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+

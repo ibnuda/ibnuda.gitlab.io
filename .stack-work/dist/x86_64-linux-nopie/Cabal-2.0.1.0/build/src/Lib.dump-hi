@@ -1,0 +1,358 @@
+
+==================== FINAL INTERFACE ====================
+2018-01-16 10:37:47.622926473 UTC
+
+interface Blog-0.1.0.0-7UCgsGDMj4K978bqFDwgCn:Lib 8022
+  interface hash: b4e7d38d9fa98117fbac9e802fb5d176
+  ABI hash: 69b8a927b7dbf82839e3f4a66b03c125
+  export-list hash: 03b3dba65152d26e3d34c6182ff71c50
+  orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
+  flag hash: 7399f57116c12e49b9488539eafeeee9
+  sig of: Nothing
+  used TH splices: False
+  where
+exports:
+  Lib.doingSomething
+module dependencies: Lib.Generate Lib.Prelude Lib.ReadWrite
+                     Lib.Types
+package dependencies: aeson-1.2.3.0 array-0.5.2.0 async-2.1.1.1
+                      attoparsec-0.13.2.0 base-4.10.1.0 base-compat-0.9.3 binary-0.8.5.1
+                      blaze-builder-0.4.0.2 blaze-html-0.9.0.1 blaze-markup-0.8.0.0
+                      bytestring-0.10.8.2 conduit-1.2.12.1 conduit-extra-1.2.3.1
+                      containers-0.5.10.2 css-text-0.1.2.2 data-default-0.7.1.1
+                      data-default-class-0.1.2.0 data-default-instances-containers-0.0.1
+                      data-default-instances-dlist-0.0.1
+                      data-default-instances-old-locale-0.0.1 deepseq-1.4.3.0
+                      directory-1.3.0.2 dlist-0.8.0.3 exceptions-0.8.3 filepath-1.4.1.2
+                      ghc-boot-th-8.2.2 ghc-prim-0.5.1.1 hashable-1.2.6.1
+                      integer-gmp-1.0.1.0 integer-logarithms-1.0.2 lifted-base-0.2.3.11
+                      markdown-0.1.16 mmorph-1.1.0 monad-control-1.0.2.2 mtl-2.2.1
+                      network-uri-2.6.1.0 old-locale-1.0.0.7 parsec-3.1.11
+                      primitive-0.6.2.0 protolude-0.2 random-1.1 regex-base-0.93.2
+                      regex-compat-0.95.1 regex-posix-0.95.2 resourcet-1.1.10 safe-0.3.15
+                      scientific-0.3.5.2 stm-2.4.4.1 streaming-commons-0.1.18
+                      tagged-0.8.5 tagsoup-0.14.2 template-haskell-2.12.0.0 text-1.2.2.2
+                      time-1.8.0.2 time-locale-compat-0.1.1.3 transformers-0.5.2.0
+                      transformers-base-0.4.4 unix-2.7.2.2 unliftio-core-0.1.0.0
+                      unordered-containers-0.2.8.0 utf8-string-1.0.1.1 uuid-types-1.0.3
+                      vector-0.12.0.1 xml-conduit-1.7.0 xml-types-0.3.6
+                      xss-sanitize-0.3.5.7 yaml-0.8.25.1
+orphans: data-default-instances-containers-0.0.1:Data.Default.Instances.Containers
+         data-default-instances-dlist-0.0.1:Data.Default.Instances.DList
+         data-default-instances-old-locale-0.0.1:Data.Default.Instances.OldLocale
+         regex-posix-0.95.2:Text.Regex.Posix.String
+         regex-posix-0.95.2:Text.Regex.Posix.Sequence
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString.Lazy
+         regex-posix-0.95.2:Text.Regex.Posix.ByteString
+         regex-base-0.93.2:Text.Regex.Base.Context
+         attoparsec-0.13.2.0:Data.Attoparsec.ByteString.Char8
+         vector-0.12.0.1:Data.Vector.Unboxed
+         time-1.8.0.2:Data.Time.Format.Parse
+         time-1.8.0.2:Data.Time.LocalTime.Internal.ZonedTime
+         time-1.8.0.2:Data.Time.LocalTime.Internal.LocalTime
+         time-1.8.0.2:Data.Time.Calendar.Gregorian
+         attoparsec-0.13.2.0:Data.Attoparsec.Text.Internal
+         vector-0.12.0.1:Data.Vector.Fusion.Bundle
+         hashable-1.2.6.1:Data.Hashable.Generic
+         transformers-0.5.2.0:Control.Monad.Trans.Error
+         text-1.2.2.2:Data.Text.Lazy text-1.2.2.2:Data.Text
+         binary-0.8.5.1:Data.Binary.Generic text-1.2.2.2:Data.Text.Show
+         bytestring-0.10.8.2:Data.ByteString.Builder
+         stm-2.4.4.1:Control.Monad.STM base-4.10.1.0:GHC.Float
+         base-4.10.1.0:GHC.Base
+family instance modules: aeson-1.2.3.0:Data.Aeson.Types.Internal
+                         attoparsec-0.13.2.0:Data.Attoparsec.Internal.Types
+                         base-4.10.1.0:Control.Applicative base-4.10.1.0:Data.Complex
+                         base-4.10.1.0:Data.Either base-4.10.1.0:Data.Functor.Compose
+                         base-4.10.1.0:Data.Functor.Const
+                         base-4.10.1.0:Data.Functor.Identity
+                         base-4.10.1.0:Data.Functor.Product base-4.10.1.0:Data.Functor.Sum
+                         base-4.10.1.0:Data.List.NonEmpty base-4.10.1.0:Data.Monoid
+                         base-4.10.1.0:Data.Semigroup base-4.10.1.0:Data.Type.Equality
+                         base-4.10.1.0:Data.Version base-4.10.1.0:Data.Void
+                         base-4.10.1.0:GHC.Exts base-4.10.1.0:GHC.Generics
+                         base-4.10.1.0:GHC.IO.Exception base-4.10.1.0:GHC.TypeLits
+                         base-4.10.1.0:GHC.TypeNats
+                         conduit-1.2.12.1:Data.Conduit.Internal.Conduit
+                         conduit-1.2.12.1:Data.Conduit.Internal.Pipe
+                         containers-0.5.10.2:Data.IntMap.Internal
+                         containers-0.5.10.2:Data.IntSet.Internal
+                         containers-0.5.10.2:Data.Map.Internal
+                         containers-0.5.10.2:Data.Sequence.Internal
+                         containers-0.5.10.2:Data.Set.Internal containers-0.5.10.2:Data.Tree
+                         dlist-0.8.0.3:Data.DList ghc-boot-th-8.2.2:GHC.ForeignSrcLang.Type
+                         ghc-boot-th-8.2.2:GHC.LanguageExtensions.Type
+                         monad-control-1.0.2.2:Control.Monad.Trans.Control
+                         network-uri-2.6.1.0:Network.URI
+                         primitive-0.6.2.0:Control.Monad.Primitive
+                         primitive-0.6.2.0:Data.Primitive.Array
+                         resourcet-1.1.10:Control.Monad.Trans.Resource.Internal
+                         tagged-0.8.5:Data.Tagged
+                         template-haskell-2.12.0.0:Language.Haskell.TH.Syntax
+                         text-1.2.2.2:Data.Text text-1.2.2.2:Data.Text.Lazy
+                         unordered-containers-0.2.8.0:Data.HashMap.Base
+                         unordered-containers-0.2.8.0:Data.HashSet
+                         uuid-types-1.0.3:Data.UUID.Types.Internal
+                         uuid-types-1.0.3:Data.UUID.Types.Internal.Builder
+                         vector-0.12.0.1:Data.Vector vector-0.12.0.1:Data.Vector.Primitive
+                         vector-0.12.0.1:Data.Vector.Storable
+                         vector-0.12.0.1:Data.Vector.Unboxed
+                         vector-0.12.0.1:Data.Vector.Unboxed.Base
+                         xml-types-0.3.6:Data.XML.Types
+import  -/  Lib.Generate 550aefa8c1c56a381e0b090657b828b4
+  exports: 086509e019913f147b82086ac24142a7
+  defaultConfig 84a9b6d9701510fb789a69d3f151a291
+  fullFledgedHtmlGeneration f906067a499d5d65d8087601f0adcf7d
+import  -/  Lib.Prelude 8eac24bc2dc5aab4b790fdfc8e7369a2
+  exports: 42f646bb0e5962c755494a40465aca4e
+import  -/  Lib.ReadWrite 8828fb9b2c0c20eb6eef250bdaf050a8
+  exports: 72bfbbc5953ec71c772ed75f24638cfd
+  createMarkdownFile abb76e46410b6f5830402e3d4478a20b
+  deleteOnlyFiles 23a9fc534e1823ee1f8dd79796bcb096
+import  -/  base-4.10.1.0:GHC.Base 782fd99b5e36f3698a26179a49afca64
+import  -/  base-4.10.1.0:System.Environment c9f912affeed5beb387a8c5d2b2c6102
+import  -/  ghc-prim-0.5.1.1:GHC.Types b1fd0716441595db508c1a74387bf394
+import  -/  protolude-0.2:Protolude d933be1c19ccad6eea7f967f89a5aeee
+import  -/  protolude-0.2:Show f88ba4da4c3f97ff79d1bd94bb71e784
+import  -/  text-1.2.2.2:Data.Text 179ed20f3e41d2270f9a36dd7f638215
+import  -/  text-1.2.2.2:Data.Text.Internal 965a1ec05875083803dc83d56dbb61f7
+f7293a3ef4d210761f6b85ba76e42293
+  $trModule :: GHC.Types.Module
+  {- HasNoCafRefs, Strictness: m,
+     Unfolding: (GHC.Types.Module Lib.$trModule3 Lib.$trModule1) -}
+6ee7fc937cfa287ca7f454faf00d71b4
+  $trModule1 :: GHC.Types.TrName
+  {- HasNoCafRefs, Strictness: m1,
+     Unfolding: (GHC.Types.TrNameS Lib.$trModule2) -}
+4d6b37e21e345f4bc16a2380a01e022f
+  $trModule2 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("Lib"#) -}
+b5f90bdce1a1c353a8548a2df86b2f73
+  $trModule3 :: GHC.Types.TrName
+  {- HasNoCafRefs, Strictness: m1,
+     Unfolding: (GHC.Types.TrNameS Lib.$trModule4) -}
+22a33d7faa507f2bbbca6d4bfccb1e10
+  $trModule4 :: GHC.Prim.Addr#
+  {- HasNoCafRefs,
+     Unfolding: ("Blog-0.1.0.0-7UCgsGDMj4K978bqFDwgCn"#) -}
+a80c11f00e2a846772836d5e1448ef24
+  $wfail ::
+    GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+  {- Arity: 1, Strictness: <S,U>, Inline: [0],
+     Unfolding: (\ (w :: GHC.Prim.State# GHC.Prim.RealWorld) ->
+                 case Data.Text.IO.appendFile2
+                        GHC.IO.Handle.FD.stdout
+                        Lib.doingSomething14
+                        w of ds1 { (#,#) ipv ipv1 ->
+                 case GHC.IO.Handle.Text.$whPutChar
+                        GHC.IO.Handle.FD.stdout
+                        '\n'#
+                        ipv of ds2 { (#,#) ipv2 ipv3 ->
+                 case Data.Text.IO.appendFile2
+                        GHC.IO.Handle.FD.stdout
+                        Lib.doingSomething12
+                        ipv2 of ds3 { (#,#) ipv4 ipv5 ->
+                 case GHC.IO.Handle.Text.$whPutChar
+                        GHC.IO.Handle.FD.stdout
+                        '\n'#
+                        ipv4 of ds4 { (#,#) ipv6 ipv7 ->
+                 case Data.Text.IO.appendFile2
+                        GHC.IO.Handle.FD.stdout
+                        Lib.doingSomething10
+                        ipv6 of ds5 { (#,#) ipv8 ipv9 ->
+                 case GHC.IO.Handle.Text.$whPutChar
+                        GHC.IO.Handle.FD.stdout
+                        '\n'#
+                        ipv8 of ds6 { (#,#) ipv10 ipv11 ->
+                 case Data.Text.IO.appendFile2
+                        GHC.IO.Handle.FD.stdout
+                        Lib.doingSomething9
+                        ipv10 of ds7 { (#,#) ipv12 ipv13 ->
+                 case GHC.IO.Handle.Text.$whPutChar
+                        GHC.IO.Handle.FD.stdout
+                        '\n'#
+                        ipv12 of ds8 { (#,#) ipv14 ipv15 ->
+                 case Data.Text.IO.appendFile2
+                        GHC.IO.Handle.FD.stdout
+                        Lib.doingSomething8
+                        ipv14 of ds9 { (#,#) ipv16 ipv17 ->
+                 GHC.IO.Handle.Text.$whPutChar
+                   GHC.IO.Handle.FD.stdout
+                   '\n'#
+                   ipv16 } } } } } } } } }) -}
+ab98b52bf6c51ec02e946059089ac490
+  $wouter ::
+    GHC.Prim.MutableByteArray# GHC.Prim.RealWorld
+    -> GHC.Prim.Int#
+    -> [GHC.Types.Char]
+    -> GHC.Prim.Int#
+    -> GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld,
+          Data.Text.Internal.Text #)
+  {- Arity: 5, Strictness: <L,U><S,U><S,1*U><S,U><S,U>,
+     Inline: [0] -}
+7a48564269376b34a18d8e3f99498095
+  doingSomething :: GHC.Types.IO ()
+  {- Arity: 1, Strictness: <S,U>,
+     Unfolding: InlineRule (0, True, True)
+                Lib.doingSomething1 `cast` (Sym (GHC.Types.N:IO[0] <()>_R)) -}
+8696adcc0aece736ce8a21cf2eb68a2e
+  doingSomething1 ::
+    GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+  {- Arity: 1, Strictness: <S,U>,
+     Unfolding: (\ (s :: GHC.Prim.State# GHC.Prim.RealWorld) ->
+                 case (Foreign.Marshal.Alloc.allocaBytesAligned
+                         @ Foreign.C.Types.CInt
+                         @ [GHC.Base.String]
+                         Foreign.Storable.$fStorableBool7
+                         Foreign.Storable.$fStorableBool7
+                         System.Environment.getArgs1
+                           `cast`
+                         (<GHC.Ptr.Ptr Foreign.C.Types.CInt>_R
+                          ->_R Sym (GHC.Types.N:IO[0] <[GHC.Base.String]>_R)))
+                        `cast`
+                      (GHC.Types.N:IO[0] <[GHC.Base.String]>_R)
+                        s of ds1 { (#,#) ipv ipv1 ->
+                 case ipv1 of wild {
+                   [] -> Lib.$wfail ipv
+                   : ds ds2
+                   -> let {
+                        fail :: GHC.Prim.Void#
+                                -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+                          <join 1> {- Arity: 1, Strictness: <L,A> -}
+                        = \ (ds3 :: GHC.Prim.Void#)[OneShot] ->
+                          let {
+                            fail1 :: GHC.Prim.Void#
+                                     -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+                              <join 1> {- Arity: 1, Strictness: <L,A> -}
+                            = \ (ds4 :: GHC.Prim.Void#)[OneShot] ->
+                              case GHC.Base.eqString
+                                     ds
+                                     (GHC.CString.unpackCString# Lib.doingSomething7) of wild1 {
+                                GHC.Types.False -> Lib.$wfail ipv
+                                GHC.Types.True
+                                -> case ds2 of wild2 {
+                                     [] -> Lib.$wfail ipv
+                                     : ctype titles
+                                     -> Lib.ReadWrite.createMarkdownFile1
+                                          (case GHC.Magic.runRW#
+                                                  @ ('GHC.Types.TupleRep
+                                                       '['GHC.Types.TupleRep '[],
+                                                         'GHC.Types.LiftedRep])
+                                                  @ (# GHC.Prim.State# GHC.Prim.RealWorld,
+                                                       Data.Text.Internal.Text #)
+                                                  (\ (s1 :: GHC.Prim.State#
+                                                              GHC.Prim.RealWorld)[OneShot] ->
+                                                   case GHC.Prim.newByteArray#
+                                                          @ GHC.Prim.RealWorld
+                                                          10#
+                                                          s1 of ds5 { (#,#) ipv2 ipv3 ->
+                                                   Lib.$wouter
+                                                     ipv3
+                                                     4#
+                                                     ctype
+                                                     0#
+                                                     ipv2 }) of ds5 { (#,#) ipv2 ipv3 ->
+                                           ipv3 })
+                                          (case GHC.Base.map
+                                                  @ [GHC.Types.Char]
+                                                  @ Data.Text.Internal.Text
+                                                  Data.Text.pack
+                                                  titles of wild3 {
+                                             []
+                                             -> Data.Text.concat
+                                                  (GHC.Types.[] @ Data.Text.Internal.Text)
+                                             : x1 xs
+                                             -> Data.Text.concat
+                                                  (GHC.Types.:
+                                                     @ Data.Text.Internal.Text
+                                                     x1
+                                                     (Lib.doingSomething_go1 xs)) })
+                                          ipv } }
+                          } in
+                          case GHC.Base.eqString
+                                 ds
+                                 (GHC.CString.unpackCString# Lib.doingSomething6) of wild1 {
+                            GHC.Types.False -> fail1 GHC.Prim.void#
+                            GHC.Types.True
+                            -> case ds2 of wild2 {
+                                 []
+                                 -> case Lib.doingSomething3 ipv of ds4 { (#,#) ipv2 ipv3 ->
+                                    Lib.Generate.fullFledgedHtmlGeneration1
+                                      Lib.Generate.defaultConfig
+                                      ipv2 }
+                                 : ipv2 ipv3 -> fail1 GHC.Prim.void# } }
+                      } in
+                      case GHC.Base.eqString
+                             ds
+                             (GHC.CString.unpackCString# Lib.doingSomething2) of wild1 {
+                        GHC.Types.False -> fail GHC.Prim.void#
+                        GHC.Types.True
+                        -> case ds2 of wild2 {
+                             [] -> Lib.doingSomething3 ipv
+                             : ipv2 ipv3 -> fail GHC.Prim.void# } } } }) -}
+29d3fd47bfeb6318da38ae0d5f3a97af
+  doingSomething10 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.doingSomething11) -}
+8f185667ce4491484e2e67101a2e5077
+  doingSomething11 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("new page title_of_page"#) -}
+05971e14bda47851b32d455e94d6b79d
+  doingSomething12 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.doingSomething13) -}
+05f22cd8121ac211fabc42ed0472ab20
+  doingSomething13 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("new post title_of_post"#) -}
+bc0958acb2fb6a6da073c47de978f705
+  doingSomething14 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.doingSomething15) -}
+0112cb781a252aed87ba18695850554c
+  doingSomething15 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("should be one of the following:"#) -}
+e1f1268b4632f4dfd467aba29e303b4b
+  doingSomething2 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("clean"#) -}
+d5064a0aa5921db3510b4cfd8fa56865
+  doingSomething3 ::
+    GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+  {- Unfolding: (Lib.ReadWrite.deleteOnlyFiles1
+                   Lib.doingSomething4) -}
+752d522f76cf822a10ee704a828239a0
+  doingSomething4 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.doingSomething5) -}
+41b4ed54bd09db118e3a3c9b529e1aca
+  doingSomething5 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("public"#) -}
+c9b6a25626f95617c0f891f75990b859
+  doingSomething6 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("compile"#) -}
+380335cbc4c8cf3dde637ca26bcfcbd3
+  doingSomething7 :: GHC.Prim.Addr#
+  {- HasNoCafRefs, Unfolding: ("new"#) -}
+792816ff8f73e7531e9a8cde8efef104
+  doingSomething8 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.doingSomething2) -}
+703ec8aedbf6143558fbbd6e256642b4
+  doingSomething9 :: Data.Text.Internal.Text
+  {- Unfolding: (Data.Text.Show.unpackCString#
+                   Lib.doingSomething6) -}
+6055635e2604320a427cdbf17f693935
+  doingSomething_go1 ::
+    [Data.Text.Internal.Text] -> [Data.Text.Internal.Text]
+  {- Arity: 1, Strictness: <S,1*U> -}
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+

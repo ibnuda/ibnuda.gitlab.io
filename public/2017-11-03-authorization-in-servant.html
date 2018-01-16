@@ -1,75 +1,57 @@
-<!DOCTYPE html>
+Authorization in Servant
+2017-11-03 00:00:00 UTC
+<!DOCTYPE HTML>
+
 <html>
- <head>
-  <title>Nothing Unusual</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="page content."/>
-  <meta name="author" content="IbnuDA"/>
-  <link rel="stylesheet" href="static/milligram.min.css"/>
-  <link rel="stylesheet" href="static/normalize.min.css"/>
-  <link rel="stylesheet" href="static/main.css"/>
- </head>
- <body>
-  <main class="wrapper">
-   <nav class="navigation">
-    <section class="container">
-     <a class="navigation-title" href="/">
-      Home
-     </a>
-    </section>
-   </nav>
-   <section class="container">
-    <h1>Authorization in Servant: Walkthrough</h1>
-<p>Words of caution: This article is about servant-server 0.11's <code>experimental-auth</code> which is still in experimental stage.
+    <head>
+        <meta name="viewport" value="width=device-width, initial-scale=1.0">
+        <meta name="description" value="Authorization in Servant: Walkthrough
+=====================================
+
+Words of caution: This article is about servant-server 0.11&#39;s `experimental-auth` which is still in experimental stage.
+Dep">
+        <meta name="author" value="author">
+        <link rel="stylesheet" type="text/css" href="static/css/milligram.min.css">
+        <title>
+            name
+        </title>
+    </head>
+    <body>
+        <main class="wrapper">
+            <nav class="navigation">
+                <section class="container">
+                    <a class="navigation-title" href="index.html">
+                        Home
+                    </a>
+                    <ul class="navigation-list float-right">
+                        <li class="navigation-item">
+                            <a href="2018-01-01-about.html" class="navigation-link">
+                                About
+                            </a>
+                        </li>
+                    </ul>
+                </section>
+            </nav>
+            <section class="container">
+                <h1>Authorization in Servant: Walkthrough</h1><p>Words of caution: This article is about servant-server 0.11's <code>experimental-auth</code> which is still in experimental stage.
 Deployment in production is not couraged.
-And yes, I know about <code>servant-auth</code> but I haven't read it thoroughfully, yet.</p>
-<p>One of my friend once complained about the lacks of Servant's documentation on authorization, connecting to db, and many more.
-So, I want to help him.</p>
-<h2>Minimum Requirements</h2>
-<ul>
-<li>Understands basic haskell.</li>
-</ul>
-<h2>Final Result</h2>
-<ul>
-<li>A working REST interface.
-<pre><code>/auth          POST -&gt; requesting for jwt token.
+And yes, I know about <code>servant-auth</code> but I haven't read it thoroughfully, yet.</p><p>One of my friend once complained about the lacks of Servant's documentation on authorization, connecting to db, and many more.
+So, I want to help him.</p><h2>Minimum Requirements</h2><p>The reader of this article only has to understands basic haskell.</p><h2>Final Result</h2><p>We will have a working REST interface with the following scheme (or something):</p><pre><code>/auth          POST -&gt; requesting for jwt token.
 /secrets       POST -&gt; creating new secret. (JWT Auth.)
 /secrets/:user GET  -&gt; get secrets by username. (JWT Auth.)
-</code></pre>
-</li>
-<li>With authentication using JWT.</li>
-<li>And the program can talk with a database.</li>
-<li>You can look at this <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough">repo</a> for the final result.</li>
-</ul>
-<h2>Prerequisites.</h2>
-<p>There are a few things that we will use in this article.
-Namely:</p>
-<ul>
-<li>A running instance of MariaDB or MySQL.
-This choice was based on observation that in Indonesia, MySQL is more preferable than Postgres, though I personally choose Postgres any over db.</li>
-<li><code>stack</code>.
+</code></pre><ul><li>With authentication using JWT.</li><li>And the program can talk with a database.</li><li>You can look at this <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough">repo</a> for the final result.</li></ul><h2>Prerequisites.</h2><p>There are a few things that we will use in this article.
+Namely:
+- A running instance of MariaDB or MySQL.
+This choice was based on observation that in Indonesia, MySQL is more preferable than Postgres, though I personally choose Postgres any over db.
+- <code>stack</code>.
 We will use stack because it prevents cabal hell or something, that's what the internet says about it.
-So we will heed internet's call this time.</li>
-</ul>
-<p>A nice to have setup:</p>
-<ul>
-<li>Emacs with haskell mode. It eases our life a bit.</li>
-</ul>
-<h2>Installation.</h2>
-<p>We will create a servant project using <code>stack</code>.
+So we will heed internet's call this time.</p><p>A nice to have setup:
+- Emacs with haskell mode. It eases our life a bit.</p><h2>Installation.</h2><p>We will create a servant project using <code>stack</code>.
 A pretty simple command line input will suffice.
-Something like this:</p>
-<pre><code>stack new OurServant servant
-</code></pre>
-<p>The previous line means that we ask <code>stack</code> to create a new project in folder named <code>OurServant</code> using <code>servant</code> template.
+Something like this:</p><pre><code>stack new OurServant servant</code></pre><p>The previous line means that we ask <code>stack</code> to create a new project in folder named <code>OurServant</code> using <code>servant</code> template.
 There are many other templates, though.
 You can check it out.
-It's nice.</p>
-<p>Then we will change our directory to our project's directory and open an emacs instance there.</p>
-<pre><code>cd OurServant; emacs . -nw
-</code></pre>
-<p>Navigate to <code>OurServant.cabal</code> and then you will see a part like the following:</p>
-<pre><code>library
+It's nice.</p><p>Then we will change our directory to our project's directory and open an emacs instance there.</p><pre><code>cd OurServant; emacs . -nw</code></pre><p>Navigate to <code>OurServant.cabal</code> and then you will see a part like the following:</p><pre><code>library
   hs-source-dirs:     src
   exposed-modules:    Lib
   build-depends:      base &gt;= 4.7 &amp;&amp; &lt; 5
@@ -77,18 +59,12 @@ It's nice.</p>
                     , servant-server
                     , wai
                     , warp
-  default-language:   Haskell2010
-</code></pre>
-<p>Then you add dependencies:</p>
-<ul>
-<li><code>text</code> is, in short, an library for efficient unicode text</li>
-<li><code>time</code> well, it provides time!</li>
-<li><code>peristent</code> is... I guess something like <code>django-orm</code> or Scala's <code>slick</code> library.</li>
-<li><code>persistent-mysql</code> provides a MySQL backend for <code>persistent</code>.</li>
-<li><code>persistent-template</code> is a  provider of Template Haskell for <code>persistent</code>, I will not touch what does it mean in this article.</li>
-</ul>
-<p>And let's add a few other lines in our cabal file so it will look like the following:</p>
-<pre><code>library
+  default-language:   Haskell2010</code></pre><p>Then you add dependencies:
+- <code>text</code> is, in short, an library for efficient unicode text
+- <code>time</code> well, it provides time!
+- <code>peristent</code> is... I guess something like <code>django-orm</code> or Scala's <code>slick</code> library.
+- <code>persistent-mysql</code> provides a MySQL backend for <code>persistent</code>.
+- <code>persistent-template</code> is a  provider of Template Haskell for <code>persistent</code>, I will not touch what does it mean in this article.</p><p>And let's add a few other lines in our cabal file so it will look like the following:</p><pre><code>library
   hs-source-dirs:     src
   exposed-modules:    Lib
   other-modules:      Models -- new
@@ -101,12 +77,7 @@ It's nice.</p>
                     , text --new
                     , wai
                     , warp
-  default-language:   Haskell2010
-</code></pre>
-<h2>Writing Code</h2>
-<h3>Database and Models</h3>
-<p>Then we will create a new haskell source file named <code>Models.hs</code> in <code>src</code> directory.</p>
-<pre><code>-- src/Models.hs
+  default-language:   Haskell2010</code></pre><h2>Writing Code</h2><h3>Database and Models</h3><p>Then we will create a new haskell source file named <code>Models.hs</code> in <code>src</code> directory.</p><pre><code>-- src/Models.hs
 module Models where
 
 import Data.Aeson -- json (de)serialisation.
@@ -114,11 +85,8 @@ import Data.Text
 import Data.Time
 import Database.Persist.Sql
 import Database.Persist.TH
-
-</code></pre>
-<p>For each <code>import</code> lines above, we tell that we will use their functionality in our sources.
-And then, we will put the following lines below the previous part.</p>
-<pre><code>-- src/Models.hs
+</code></pre><p>For each <code>import</code> lines above, we tell that we will use their functionality in our sources.
+And then, we will put the following lines below the previous part.</p><pre><code>-- src/Models.hs
 share
   [mkPersist sqlSettings, mkMigrate &quot;migrateAll&quot;]
   [persistLowerCase|
@@ -130,47 +98,36 @@ share
     UniqueUsersName name
     deriving show
 |]
-</code></pre>
-<p>The part of source code above means that we will create a migration plan named <code>migrateAll</code> by creating tables <code>users</code> which has <code>name</code> and <code>pass</code> columns and column <code>name</code> will be unique and will be used as the primary key.
-And the type of those two will be <code>varchar</code> with maximal length 52 characters.</p>
-<p>If we try to compile our project by inputting <code>stack build</code> at our root project directory, it will produce error something like <code>parse error on input '=' perhaps you need a 'let' in a 'do' block?</code>
+</code></pre><p>The part of source code above means that we will create a migration plan named <code>migrateAll</code> by creating tables <code>users</code> which has <code>name</code> and <code>pass</code> columns and column <code>name</code> will be unique and will be used as the primary key.
+And the type of those two will be <code>varchar</code> with maximal length 52 characters.</p><p>If we try to compile our project by inputting <code>stack build</code> at our root project directory, it will produce error something like <code>parse error on input '=' perhaps you need a 'let' in a 'do' block?</code>
 It means that GHC doesn't understand that we use <code>QuasiQuotes</code> syntax extension in our code.
-So we will add it at the topmost of our source code.</p>
-<pre><code>{-# LANGUAGE QuasiQuotes #-}
+So we will add it at the topmost of our source code.</p><pre><code>{-# LANGUAGE QuasiQuotes #-}
 module Models where
 
 import Data.Aeson
 import Data.Text
-</code></pre>
-<p>Again, we will receive an error stated that we have a naked expression and perhaps we intended to use TemplateHaskell.
-So, we'll add that syntax extension!</p>
-<pre><code>{-# LANGUAGE QuasiQuotes #-}
+</code></pre><p>Again, we will receive an error stated that we have a naked expression and perhaps we intended to use TemplateHaskell.
+So, we'll add that syntax extension!</p><pre><code>{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Models where
 
 import Data.Aeson
-</code></pre>
-<p>And again, it looks like the GHC refused to compile our source again.
+</code></pre><p>And again, it looks like the GHC refused to compile our source again.
 GHC suggested that we use <code>TypeFamilies</code> extension.
-So we will give it what it wants!</p>
-<pre><code>{-# LANGUAGE QuasiQuotes #-}
+So we will give it what it wants!</p><pre><code>{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 module Models where
-</code></pre>
-<p>But wait, there's more! Because <code>UsersId</code> in our data has a specialised result, we have to use <code>ExistensialQualification</code> or <code>GADTs</code> to allow this.
+</code></pre><p>But wait, there's more! Because <code>UsersId</code> in our data has a specialised result, we have to use <code>ExistensialQualification</code> or <code>GADTs</code> to allow this.
 And because we have added a <code>Users json</code>, which is an instance declaration for <code>ToJSON</code>, we have to use <code>FlexibleInstance</code>.
-GHC's suggestions are our commands~</p>
-<pre><code>{-# LANGUAGE ExistentialQuantification #-}
+GHC's suggestions are our commands~</p><pre><code>{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 module Models where
-</code></pre>
-<p>We can compile it just fine! And then, we will create a new table.</p>
-<pre><code>-- src/Models.hs
+</code></pre><p>We can compile it just fine! And then, we will create a new table.</p><pre><code>-- src/Models.hs
     UniqueUsersName name
     deriving Show Eq
   SuperSecrets json
@@ -178,11 +135,9 @@ module Models where
     at UTCTime
     by UsersId maxlen=52
     deriving Show Eq
-</code></pre>
-<p>It means that we declare that we will create a new table named <code>super_secrets</code> which has <code>something</code> column, a column with <code>datetime</code> type, and a foreign key <code>by</code> which refers to table <code>users</code>' primary key.
+</code></pre><p>It means that we declare that we will create a new table named <code>super_secrets</code> which has <code>something</code> column, a column with <code>datetime</code> type, and a foreign key <code>by</code> which refers to table <code>users</code>' primary key.
 Alas, when we compile our project, there will be an error stating that it is an illegal instance for <code>ToBackendKey SqlBackend SuperSecrets</code> but GHC suggests that we can use <code>MultiParamTypeClasses</code> to allow more.
-So we will reply GHC's call by applying the suggestion.</p>
-<pre><code>{-# LANGUAGE ExistentialQuantification #-}
+So we will reply GHC's call by applying the suggestion.</p><pre><code>{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -190,25 +145,19 @@ So we will reply GHC's call by applying the suggestion.</p>
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 module Models where
-</code></pre>
-<p>Okay, it's cool and dandy when we compile it.
-Then, we will create a migration plan (I don't know how should it be called or its real name).</p>
-<pre><code>-- src/Models.hs
+</code></pre><p>Okay, it's cool and dandy when we compile it.
+Then, we will create a migration plan (I don't know how should it be called or its real name).</p><pre><code>-- src/Models.hs
 doMigration = runMigration migrateAll
-</code></pre>
-<p>When we compile it again, GHC will fail to compile because of ambiguous type variable <code>m0</code>.
+</code></pre><p>When we compile it again, GHC will fail to compile because of ambiguous type variable <code>m0</code>.
 GHC inferred that <code>doMigration</code> has <code>ReaderT SqlBackend m0 ()</code> as its type and has potential instance of <code>IO</code> in place of <code>m0</code> as its fix.
-So we'll add that as <code>doMigration</code>'s type signature.</p>
-<pre><code>-- src/Models.hs
+So we'll add that as <code>doMigration</code>'s type signature.</p><pre><code>-- src/Models.hs
 doMigration :: ReaderT SqlBackend IO ()
 doMigration = runMigration migrateAll
-</code></pre>
-<p>The next step is creating a model for our reply token and <code>POST</code> data for our REST interface.
+</code></pre><p>The next step is creating a model for our reply token and <code>POST</code> data for our REST interface.
 In order to be able to encode our data to Json, <code>AuthUser</code> have to derive <code>Generic</code>.
 Which in turn, we have to import <code>GHC.Generics</code>.
 And then GHC will suggest that we have to use <code>DeriveGeneric</code> extension.
-So we will do that!</p>
-<pre><code>-- src/Models.hs
+So we will do that!</p><pre><code>-- src/Models.hs
 {-# LANGUAGE DeriveGeneric #-}
 import GHC.Generics
 -- snip!
@@ -224,14 +173,8 @@ instance FromJSON AuthUser
 instance ToJSON AuthUser
 instance FromJSON UsersSecret
 instance ToJSON UsersSecret
-</code></pre>
-<p>We don't have to create instances of <code>FromJSON</code> and <code>ToJSON</code> for our <code>Users</code> and <code>SuperSecrets</code> because in our template above, we have already declared that!</p>
-<h3>Communicating to Database.</h3>
-<p>We will take a shortcut without reading outside config whatsoever.
-That means, we will hardcode our database connection string etc to our code.</p>
-<p>Next, we create a file named <code>DB.hs</code> in our <code>src</code> directory and then open it in our editor.</p>
-<p>According to <code>persistent-mysql</code> <a href="https://hackage.haskell.org/package/persistent-mysql-1.2.1/docs/Database-Persist-MySQL.html#t:ConnectInfo">documentation</a>, we can create a connection pool to mysql using <code>createMySQLPool</code> which takes a <code>ConnectInfo</code> and an integer that represents number of pool connections.</p>
-<pre><code>-- src/DB.hs
+</code></pre><p>We don't have to create instances of <code>FromJSON</code> and <code>ToJSON</code> for our <code>Users</code> and <code>SuperSecrets</code> because in our template above, we have already declared that!</p><h3>Communicating to Database.</h3><p>We will take a shortcut without reading outside config whatsoever.
+That means, we will hardcode our database connection string etc to our code.</p><p>Next, we create a file named <code>DB.hs</code> in our <code>src</code> directory and then open it in our editor.</p><p>According to <code>persistent-mysql</code> <a href="https://hackage.haskell.org/package/persistent-mysql-1.2.1/docs/Database-Persist-MySQL.html#t:ConnectInfo">documentation</a>, we can create a connection pool to mysql using <code>createMySQLPool</code> which takes a <code>ConnectInfo</code> and an integer that represents number of pool connections.</p><pre><code>-- src/DB.hs
 module DB where
 
 import Database.Persist.MySQL
@@ -246,62 +189,35 @@ createPool = createMySQLPool connection 5
       , connectPassword = &quot;jaran&quot;
       , connectDatabase = &quot;owo&quot;
       }
-</code></pre>
-<p>When we compile that, we will receive an error that states that we have an error of ambiguous type.
+</code></pre><p>When we compile that, we will receive an error that states that we have an error of ambiguous type.
 We can easily supress that error by defining our <code>createPool</code>'s signature.
 But when we give our function a signature (<code>IO ConnectionPool</code>), we will receive an error that no instance of <code>MonadLogger IO</code> in our function.
 Again, that is an easy problem.
 We can import <code>Control.Monad.Logger</code> and put <code>runStdoutLoggingT</code> (a stdout logger transformer) in front of <code>createMySQLPool</code>.
-So, the final shape of the function is like the following snippet.</p>
-<pre><code>-- src/DB.hs
+So, the final shape of the function is like the following snippet.</p><pre><code>-- src/DB.hs
 import Control.Monad.Logger
 
 createPool :: IO ConnectionPool
 createPool = runStdoutLoggingT $ createMySQLPool connection 5
-</code></pre>
-<p>After we have a wrapper for our connection pool, then we will create a query runner.
-That is, a function that takes a query and then execute it.</p>
-<pre><code>-- src/DB.hs
+</code></pre><p>After we have a wrapper for our connection pool, then we will create a query runner.
+That is, a function that takes a query and then execute it.</p><pre><code>-- src/DB.hs
 runQuery query = do
   pool &lt;- createPool
   runSqlPool query pool
-</code></pre>
-<p>In order to be able to query, we have to import <code>Database.Persist</code>.
-And we will also create a normal sql query for looking a user in our db by username and password.</p>
-<pre><code>-- src/DB.hs
+</code></pre><p>In order to be able to query, we have to import <code>Database.Persist</code>.
+And we will also create a normal sql query for looking a user in our db by username and password.</p><pre><code>-- src/DB.hs
 import Data.Text -- for our functions' signatures.
 import Database.Persist
 -- snip
 lookUserByUsernameAndPassword :: Text -&gt; Text -&gt; IO (Maybe Users)
 lookUserByUsernameAndPassword username password = do
   mUser &lt;- runQuery $ selectFirst [UsersName ==. username, UsersPass ==. password] []
---case mUser of 
+--case mUser of
 --  Nothing -&gt; return Nothin
 --  Just user -&gt; return $ Just $ entityVal user
   return $ fmap entityVal mUser
-</code></pre>
-<p>A little explanation:</p>
-<ul>
-<li><code>lookUserByUsernameAndPassword</code> is a function that takes two <code>Text</code> parameters which return an IO wrapper of a thing that is an instance of <code>Users</code> if there's a row in db that matches the parameters.
-Or nothing if there is no matches.</li>
-<li><code>mUser</code> is a result of wrapped computation of the database querying.</li>
-<li><code>runQuery</code>: our query runner, which takes the next query.</li>
-<li><code>selectFirst [UsersName ==. username, UsersPass ==. password][]</code> is our query.
-<ul>
-<li><code>selectFirst</code> means we only take at most 1 result.</li>
-<li>Symbol <code>==.</code> denotes equality in our query.</li>
-<li><code>UsersName</code> and <code>UsersPass</code> denotes the parts in our &quot;template&quot; above. <code>Users</code> part refers to table <code>users</code> and <code>Name</code> and <code>Pass</code> refers to column <code>name</code> and <code>pass</code>.</li>
-<li>Empty square brackets can be used as ordering the data or limit or your normal query options.</li>
-</ul>
-</li>
-<li><del>Because there's a probability that there's no information in our table that satisfies our requirement, we can query have to check our result.</del></li>
-<li><del>If there result is <code>Nothing</code> or there's no user like that, we will return <code>Nothing</code>.</del></li>
-<li><del>Else, we will return the entity value of our result query.</del></li>
-<li>we will just return the value of <code>fmap entityVal mUser</code>.
-<code>fmap</code> lets a function to take a wrapped thing and then wrap the result of the previous function with the same wrapper of the wrapped input.</li>
-</ul>
-<p>Then we will create an insert and a get function for <code>super_secrets</code> table.</p>
-<pre><code>-- src/DB.hs
+</code></pre><p>A little explanation:</p><ul><li><code>lookUserByUsernameAndPassword</code> is a function that takes two <code>Text</code> parameters which return an IO wrapper of a thing that is an instance of <code>Users</code> if there's a row in db that matches the parameters.
+Or nothing if there is no matches.</li><li><code>mUser</code> is a result of wrapped computation of the database querying.</li><li><code>runQuery</code>: our query runner, which takes the next query.</li><li><code>selectFirst [UsersName ==. username, UsersPass ==. password][]</code> is our query.</li><li><code>selectFirst</code> means we only take at most 1 result.</li><li>Symbol <code>==.</code> denotes equality in our query.</li><li><code>UsersName</code> and <code>UsersPass</code> denotes the parts in our &quot;template&quot; above. <code>Users</code> part refers to table <code>users</code> and <code>Name</code> and <code>Pass</code> refers to column <code>name</code> and <code>pass</code>.</li><li>Empty square brackets can be used as ordering the data or limit or your normal query options.</li><li><del>Because there's a probability that there's no information in our table that satisfies our requirement, we can query have to check our result.</del></li><li><del>If there result is `Nothing` or there's no user like that, we will return `Nothing`.</del></li><li><del>Else, we will return the entity value of our result query.</del></li><li>we will just return the value of <code>fmap entityVal mUser</code>. <code>fmap</code> lets a function to take a wrapped thing and then wrap the result of the previous function with the same wrapper of the wrapped input.</li></ul><p>Then we will create an insert and a get function for <code>super_secrets</code> table.</p><pre><code>-- src/DB.hs
 import Data.Text hiding (map)
 import Data.Time
 -- snip
@@ -314,45 +230,17 @@ insertSecret username usersSecret = do
   now &lt;- getCurrentTime
   runQuery $
     insert $ SuperSecrets (something UsersSecret) now (UsersKey username)
-</code></pre>
-<p>A little explanation for first function:</p>
-<ul>
-<li>We hide <code>map</code> from text because it makes function <code>map</code> ambiguous (the other is from <code>Prelude</code>).</li>
-<li>We import <code>Data.Time</code> for getting current time.</li>
-<li><code>lookSecretByUsername :: Text -&gt; IO [SuperSecrets]</code> is the signature of that function.
-It takes <code>Text</code> as a parameter and returns an <code>SuperSecrets</code> list wrapped in an <code>IO</code> wrapper.</li>
-<li><code>secrets</code> is the result of the wrapped computation of query execution by <code>runQuery</code>.</li>
-<li><code>selectList [SuperSecretsBy ==. (UsersKey username)] []</code>:
-<ul>
-<li><code>selectList</code> gets all records in DB which satisfy the query.</li>
-<li><code>SuperSecretsBy</code> represents column <code>by</code> in table <code>super_secrets</code> which is a foreign key to <code>users</code>.<code>name</code>.</li>
-<li>Symbol <code>==.</code> denotes equality.</li>
-<li><code>(UsersKey username)</code> means a primary key with value <code>username</code>.</li>
-</ul>
-</li>
-<li>And then we return a <code>map</code>ed of <code>entitiyVal</code>ues of the computation result.
-Explanation for the second function:</li>
-<li><code>insertSecret :: Text -&gt; UsersSecret -&gt; IO (Key SuperSecrets)</code> is the signature of the function.
-Which is a function that takes a <code>Text</code> and a <code>UsersSecret</code> as parameters then return a wrapped primary key of the inserted row.</li>
-<li><code>now</code> is the result of computation of <code>getCurrentTime</code>. <code>now</code> itself is an <code>UTCTime</code>.</li>
-<li>then we <code>insert</code> <code>something</code> from field <code>UsersSecret</code> into column <code>something</code>, <code>now</code> into <code>at</code> column, and <code>UserKey username</code> into foreign key <code>by</code> of <code>SuperSecrets</code> table.</li>
-</ul>
-<blockquote>
-<p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/2ecf7bb1438c5d1c2c7ef32745f639f96d3d3634">here</a>.</p>
-</blockquote>
-<h3>Auth (JWT)</h3>
-<p>Our auth process is:</p>
-<ul>
-<li>A http request comes from outside of the program.</li>
-<li>Server parse its payload.</li>
-<li>If the payload's format is satisfy our <code>Users</code> schema, server authenticate the payload with the existing data (could be from DB or whatever) and then return an auth json object with token.</li>
-<li>If the payload doesn't match, then return an empty auth json object without token.</li>
-</ul>
-<p>We will use JWT for our authentication and/or authorization framework.
+</code></pre><p>A little explanation for first function:</p><ul><li>We hide <code>map</code> from text because it makes function <code>map</code> ambiguous (the other is from <code>Prelude</code>).</li><li>We import <code>Data.Time</code> for getting current time.</li><li><code>lookSecretByUsername :: Text -&gt; IO [SuperSecrets]</code> is the signature of that function.
+It takes <code>Text</code> as a parameter and returns an <code>SuperSecrets</code> list wrapped in an <code>IO</code> wrapper.</li><li><code>secrets</code> is the result of the wrapped computation of query execution by <code>runQuery</code>.</li><li><code>selectList [SuperSecretsBy ==. (UsersKey username)] []</code>:
+- <code>selectList</code> gets all records in DB which satisfy the query.
+- <code>SuperSecretsBy</code> represents column <code>by</code> in table <code>super_secrets</code> which is a foreign key to <code>users</code>.<code>name</code>.
+- Symbol <code>==.</code> denotes equality.
+- <code>(UsersKey username)</code> means a primary key with value <code>username</code>.</li><li>And then we return a <code>map</code>ed of <code>entitiyVal</code>ues of the computation result.
+Explanation for the second function:</li><li><code>insertSecret :: Text -&gt; UsersSecret -&gt; IO (Key SuperSecrets)</code> is the signature of the function.
+Which is a function that takes a <code>Text</code> and a <code>UsersSecret</code> as parameters then return a wrapped primary key of the inserted row.</li><li><code>now</code> is the result of computation of <code>getCurrentTime</code>. <code>now</code> itself is an <code>UTCTime</code>.</li><li>then we <code>insert</code> <code>something</code> from field <code>UsersSecret</code> into column <code>something</code>, <code>now</code> into <code>at</code> column, and <code>UserKey username</code> into foreign key <code>by</code> of <code>SuperSecrets</code> table.</li></ul><blockquote><p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/2ecf7bb1438c5d1c2c7ef32745f639f96d3d3634">here</a>.</p></blockquote><h3>Auth (JWT)</h3><p>Our auth process is:</p><ul><li>A http request comes from outside of the program.</li><li>Server parse its payload.</li><li>If the payload's format is satisfy our <code>Users</code> schema, server authenticate the payload with the existing data (could be from DB or whatever) and then return an auth json object with token.</li><li>If the payload doesn't match, then return an empty auth json object without token.</li></ul><p>We will use JWT for our authentication and/or authorization framework.
 So, we will create a new source file named <code>Auth.hs</code>.
 But firstly, we have to define what kind of payload we will send and receive.
-So, let's say something like this:</p>
-<pre><code>{
+So, let's say something like this:</p><pre><code>{
   &quot;exp&quot;: int64, --seconds since unix epoch.
   &quot;iat&quot;: int64, --seconds since unix epoch.
   &quot;jti&quot;: guid,
@@ -360,10 +248,8 @@ So, let's say something like this:</p>
   &quot;sub&quot;: string
   &quot;name&quot;: string, -- an unregistered claim.
 }
-</code></pre>
-<p>Because we have decided that we will use unix' epoch and guid, we will add <code>guid</code> and <code>jwt</code> packages into our dependencies.
-Don't forget to add <code>Auth</code> into <code>other-modules</code>.</p>
-<pre><code>-- cabal file.
+</code></pre><p>Because we have decided that we will use unix' epoch and guid, we will add <code>guid</code> and <code>jwt</code> packages into our dependencies.
+Don't forget to add <code>Auth</code> into <code>other-modules</code>.</p><pre><code>-- cabal file.
   other-modules:      Models
                     , DB
                     , Auth --new
@@ -371,10 +257,7 @@ Don't forget to add <code>Auth</code> into <code>other-modules</code>.</p>
                     , aeson
                     , jwt --new
                     , guid --new
-</code></pre>
-<p>Because stack is unable to resolve <code>guid</code>, we have to input <code>stack solver --update-config</code> at our shell in our root directory and then we input <code>stack build</code> in shell.</p>
-<p>So, we will edit <code>src/Auth.hs</code> in our editor.</p>
-<pre><code>-- src/Auth.hs
+</code></pre><p>Because stack is unable to resolve <code>guid</code>, we have to input <code>stack solver --update-config</code> at our shell in our root directory and then we input <code>stack build</code> in shell.</p><p>So, we will edit <code>src/Auth.hs</code> in our editor.</p><pre><code>-- src/Auth.hs
 module Auth where
 import Data.Time
 import Data.Time.Clock.POSIX -- for our jwt's exp and iat.
@@ -383,10 +266,7 @@ nowPosix :: IO POSIXTime
 nowPosix = do
   now &lt;- getCurrentTime
   return $ utcTimeToPOSIXSeconds now
-</code></pre>
-<p>The explanation is just a standard explanation, <code>nowPosix</code> is a wrapper for the amount of seconds that have passed since unix epoch.</p>
-<p>And then we will write our token creation function.</p>
-<pre><code>--src/Auth.hs
+</code></pre><p>The explanation is just a standard explanation, <code>nowPosix</code> is a wrapper for the amount of seconds that have passed since unix epoch.</p><p>And then we will write our token creation function.</p><pre><code>--src/Auth.hs
 {-# LANGUAGE OverloadedStrings #-}
 import Data.Aeson
 import Data.GUID
@@ -413,37 +293,16 @@ createToken user = do
       key = secret &quot;Indonesia Raya&quot;
       token = encodeSigned HS256 key claims
   return $ AuthUser (usersName user) token
-</code></pre>
-<p>Explanation</p>
-<ul>
-<li>We use <code>OverloadedStrings</code> extension to tell GHC to regards <code>[Char]</code> or <code>String</code> as <code>Text</code>.</li>
-<li>We import <code>Data.GUID</code> and <code>Web.JWT</code> while hiding function <code>exp</code> from <code>Prelude</code>.
+</code></pre><p>Explanation</p><ul><li>We use <code>OverloadedStrings</code> extension to tell GHC to regards <code>[Char]</code> or <code>String</code> as <code>Text</code>.</li><li>We import <code>Data.GUID</code> and <code>Web.JWT</code> while hiding function <code>exp</code> from <code>Prelude</code>.
 We do that because the two former is required by our function.
-And hiding <code>exp</code> because conflicting function from <code>JWT</code>.</li>
-<li><code>now</code> and <code>guid</code> are the results of the respective computational wrapper.</li>
-<li><code>creation</code> and <code>expiration</code> are for our <code>iat</code> and <code>exp</code> JWT payload's claims.</li>
-<li><code>stringOrURI</code> is a function from <code>Web.JWT</code> which takes a <code>Text</code> and returns <code>JWTClaimsSet</code>.</li>
-<li><code>claims</code> is an instance of <code>JWTClaimsSet</code> from <code>Web.JWT</code> package.</li>
-<li><code>unregisteredClaims</code> is used for our <code>claims</code>.
-It has signature as <code>[(Text, Value)]</code>, while <code>Value</code> itself is a representation of Haskell value as JSON object by <code>aeson</code> library.</li>
-<li><code>key</code> is our secret keys for jwt encription.</li>
-<li><code>token</code> is the result of signed JWT encoding by HS256 encription.</li>
-<li>this function returns an <code>AuthUser</code> object.</li>
-</ul>
-<p>Then we will use the function above to match the query result from DB.</p>
-<pre><code>-- src/Auth.hs
+And hiding <code>exp</code> because conflicting function from <code>JWT</code>.</li><li><code>now</code> and <code>guid</code> are the results of the respective computational wrapper.</li><li><code>creation</code> and <code>expiration</code> are for our <code>iat</code> and <code>exp</code> JWT payload's claims.</li><li><code>stringOrURI</code> is a function from <code>Web.JWT</code> which takes a <code>Text</code> and returns <code>JWTClaimsSet</code>.</li><li><code>claims</code> is an instance of <code>JWTClaimsSet</code> from <code>Web.JWT</code> package.</li><li><code>unregisteredClaims</code> is used for our <code>claims</code>.
+It has signature as <code>[(Text, Value)]</code>, while <code>Value</code> itself is a representation of Haskell value as JSON object by <code>aeson</code> library.</li><li><code>key</code> is our secret keys for jwt encription.</li><li><code>token</code> is the result of signed JWT encoding by HS256 encription.</li><li>this function returns an <code>AuthUser</code> object.</li></ul><p>Then we will use the function above to match the query result from DB.</p><pre><code>-- src/Auth.hs
 -- snip
 createTokenForUser :: Maybe Users -&gt; IO AuthUser
 createTokenForUser Nothing = return $ AuthUser &quot;&quot; &quot;&quot;
 createTokenForUser (Just user) = createToken user
-</code></pre>
-<blockquote>
-<p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/a9e60e057b1dc00fc3a4793d0058d1525710a8fb">here</a>.</p>
-</blockquote>
-<h3>REST interface using Servant.</h3>
-<p>So, here we are, we will design our REST interface.
-So, navigate to <code>src/Lib.hs</code> and delete the content.</p>
-<pre><code>-- src/Lib.hs
+</code></pre><blockquote><p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/a9e60e057b1dc00fc3a4793d0058d1525710a8fb">here</a>.</p></blockquote><h3>REST interface using Servant.</h3><p>So, here we are, we will design our REST interface.
+So, navigate to <code>src/Lib.hs</code> and delete the content.</p><pre><code>-- src/Lib.hs
 module Lib where
 
 import Data.Text -- To be able to use Text
@@ -469,38 +328,21 @@ type TopSekrit =
        :&gt; AuthProtect &quot;jwt-auth&quot;
        :&gt; ReqBody '[ JSON] UsersSecret
        :&gt; Get '[ JSON] [SuperSecrets]
-</code></pre>
-<p>If you compile the snippet above, you will get a lot of errors.
+</code></pre><p>If you compile the snippet above, you will get a lot of errors.
 For example, GHC suggests that we have to use <code>DataKinds</code>.
 And when have added that, we will get another error about <code>illegal operators</code> and how to fix it by adding <code>TypeOperators</code> extension.
 Which in turn, another error appeared, <code>illegal family instance</code> and how to fix it by adding <code>TypeFamilies</code> extension.
-After we've added those three extensions at the topmost source file, the source will be looked like this, and compiles just fine.</p>
-<pre><code>-- src/Lib.hs
+After we've added those three extensions at the topmost source file, the source will be looked like this, and compiles just fine.</p><pre><code>-- src/Lib.hs
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 module Lib where
-</code></pre>
-<p>And the explanation of the snippet above is:</p>
-<ul>
-<li><code>type instance AuthServerData (AuthProtect &quot;jwt-auth&quot;) = Users</code>
+</code></pre><p>And the explanation of the snippet above is:</p><ul><li><code>type instance AuthServerData (AuthProtect &quot;jwt-auth&quot;) = Users</code>
 Sorry, without restorting to Stack Overflow <a href="https://stackoverflow.com/questions/20870432/type-family-vs-data-family-in-brief#comment31322081_20871880">answer</a>
 and <code>AuthServerData</code> <a href="https://hackage.haskell.org/package/servant-server-0.11.0.1/docs/Servant-Server-Experimental-Auth.html#t:AuthServerData">documentation</a>
 I can't explain it easily.
 Basically, <code>type instance F A = B</code> means that an argument <code>A</code> that being applied to function <code>F</code> equals to <code>B</code>.
-So, in this case, the value of the returned data of <code>(AuthProtect &quot;jwt)</code> must be equal to <code>Users</code>.</li>
-<li><code>type TopSekrit = ...</code> is the type of our REST interface. Which in turn is a result of the composition of the following:
-<ul>
-<li><code>&quot;auth&quot; :&gt; ReqBody '[JSON] Users :&gt; Post '[JSON] AuthUser</code> means that a POST request json payload value of <code>Users</code> at <code>/auth</code> will have response the json value of <code>AuthUser</code>.</li>
-<li><code>:&lt;|&gt;</code> is a composition of two API.</li>
-<li><code>&quot;secrets&quot; :&gt; AuthProtect &quot;jwt-auth&quot; :&gt; ReqBody '[JSON] UsersSecret :&gt; Post '[JSON] ()</code> means that a POST request json payload value of <code>UsersSecret</code> at <code>/secrets</code> will be received and processed by server as long as the request has been authorized.</li>
-<li><code>&quot;secrets&quot; :&gt; Capture &quot;username&quot; Text :&gt; AuthProtect &quot;jwt-auth&quot; :&gt; Get '[JSON] [SuperSecrets]</code> means that a GET request at <code>/secret/:username</code> will be responded by json values of <code>[SuperSecrets]</code> as long as the request has been authorized, while <code>:username</code> is a string..</li>
-</ul>
-</li>
-</ul>
-<p>And then, we will create <code>Context</code> for our auth protected resources, where <code>Context</code> itself, in short, a list of our handler requirements.</p>
-<p>So, we will create our <code>secretContext</code>:</p>
-<pre><code>- src/Lib.hs
+So, in this case, the value of the returned data of <code>(AuthProtect &quot;jwt)</code> must be equal to <code>Users</code>.</li><li><code>type TopSekrit = ...</code> is the type of our REST interface. Which in turn is a result of the composition of the following:<ul><li><code>&quot;auth&quot; :&gt; ReqBody '[JSON] Users :&gt; Post '[JSON] AuthUser</code> means that a POST request json payload value of <code>Users</code> at <code>/auth</code> will have response the json value of <code>AuthUser</code>.</li><li><code>:&lt;|&gt;</code> is a composition of two API.</li><li><code>&quot;secrets&quot; :&gt; AuthProtect &quot;jwt-auth&quot; :&gt; ReqBody '[JSON] UsersSecret :&gt; Post '[JSON] ()</code> means that a POST request json payload value of <code>UsersSecret</code> at <code>/secrets</code> will be received and processed by server as long as the request has been authorized.</li></ul></li><li><code>&quot;secrets&quot; :&gt; Capture &quot;username&quot; Text :&gt; AuthProtect &quot;jwt-auth&quot; :&gt; Get '[JSON] [SuperSecrets]</code> means that a GET request at <code>/secret/:username</code> will be responded by json values of <code>[SuperSecrets]</code> as long as the request has been authorized, while <code>:username</code> is a string..</li></ul><p>And then, we will create <code>Context</code> for our auth protected resources, where <code>Context</code> itself, in short, a list of our handler requirements.</p><p>So, we will create our <code>secretContext</code>:</p><pre><code>- src/Lib.hs
 {-# Language FlexibleContexts #-}
 import Control.Error.Class
 import Network.Wai
@@ -513,28 +355,11 @@ secretContext = mkAuthHandler secretHandler :. EmptyContext
       case lookup &quot;Authorization&quot; (requestHeaders req) of
         Nothing -&gt; throwError err401
         Just token -&gt; undefined -- reserved for token validation.
-</code></pre>
-<p>Explanation:</p>
-<ul>
-<li>We use <code>FlexibleContexts</code> extension because <code>throwError</code> has signature of <code>ServantErr m a</code> while our the result of token validation should be <code>Handler Users</code>.
-So, to simplify it a bit, we force <code>throwError</code> to have signature <code>ServantErr m Users</code> by using <code>FlexibleContexts</code> extension.</li>
-<li>we import <code>Control.Error.Class</code>, not really important, but it will give us a clearer signature for our functions.</li>
-<li>we import <code>Network.Wai</code> to intercept incoming requests to check its headers. Which will be explained in the next section.</li>
-<li><code>secretContext :: Context '[AuthHandler Request Users]</code> is the signature for the next point.
-It means that we will have a context which only contains an <code>AuthHandler</code> that accepts a <code>Request</code> and returns a <code>Users</code>.</li>
-<li><code>secretContext = mkAuthhandler secretHandler :. EmptyContext</code> means that we will create a custom handler, which is a request interceptor and should return <code>Users</code> (as defined in function signature), and then add it to an <code>EmptyContext</code>.</li>
-<li><code>secretHandler :: (MonadError ServantErr m) =&gt; Request -&gt; m Users</code>, as defined by <code>secretContext</code>'s signature, this function has to return a wrapped <code>Users</code> object after it receives a <code>Request</code> and wrapper <code>m</code> has to be an instance of <code>ServantErr</code>.</li>
-<li><code>secretHandler req = case lookup &quot;Authorization&quot; (requestHeaders req) of</code> means that when it receives a <code>Request</code>, it will look at the <code>Request</code>'s headers.
-<code>Authorization</code> header, to be exact.</li>
-<li>If there's no <code>Authorization</code> header, it will throw a 401 error.</li>
-<li>When there's <code>Authorization</code> header, it will process the <code>Request</code>'s header value to.... <code>undefined</code> at the moment.
-We back to this part later.</li>
-</ul>
-<blockquote>
-<p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/5001961eda92637a845357d79ec14a6a6ce69e2b">here</a>.</p>
-</blockquote>
-<p>So, let's open <code>src/Auth.hs</code></p>
-<pre><code>-- src/Auth.hs
+</code></pre><p>Explanation:</p><ul><li>We use <code>FlexibleContexts</code> extension because <code>throwError</code> has signature of <code>ServantErr m a</code> while our the result of token validation should be <code>Handler Users</code>.
+So, to simplify it a bit, we force <code>throwError</code> to have signature <code>ServantErr m Users</code> by using <code>FlexibleContexts</code> extension.</li><li>we import <code>Control.Error.Class</code>, not really important, but it will give us a clearer signature for our functions.</li><li>we import <code>Network.Wai</code> to intercept incoming requests to check its headers. Which will be explained in the next section.</li><li><code>secretContext :: Context '[AuthHandler Request Users]</code> is the signature for the next point.
+It means that we will have a context which only contains an <code>AuthHandler</code> that accepts a <code>Request</code> and returns a <code>Users</code>.</li><li><code>secretContext = mkAuthhandler secretHandler :. EmptyContext</code> means that we will create a custom handler, which is a request interceptor and should return <code>Users</code> (as defined in function signature), and then add it to an <code>EmptyContext</code>.</li><li><code>secretHandler :: (MonadError ServantErr m) =&gt; Request -&gt; m Users</code>, as defined by <code>secretContext</code>'s signature, this function has to return a wrapped <code>Users</code> object after it receives a <code>Request</code> and wrapper <code>m</code> has to be an instance of <code>ServantErr</code>.</li><li><code>secretHandler req = case lookup &quot;Authorization&quot; (requestHeaders req) of</code> means that when it receives a <code>Request</code>, it will look at the <code>Request</code>'s headers.
+<code>Authorization</code> header, to be exact.</li><li>If there's no <code>Authorization</code> header, it will throw a 401 error.</li><li>When there's <code>Authorization</code> header, it will process the <code>Request</code>'s header value to.... <code>undefined</code> at the moment.
+We back to this part later.</li></ul><blockquote><p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/5001961eda92637a845357d79ec14a6a6ce69e2b">here</a>.</p></blockquote><p>So, let's open <code>src/Auth.hs</code></p><pre><code>-- src/Auth.hs
 import Data.ByteString -- insert bytestring to your cabal dependencies.
 import Data.Text
 import Data.Text.Encoding
@@ -546,28 +371,8 @@ decodeTokenHeader rawToken = do
   where
     (bearer, jwtBase64) = breakOnEnd &quot; &quot; $ decodeUtf8 rawToken
     decodedJWT = Web.JWT.decode jwtBase64
-</code></pre>
-<p>The snippet above means that</p>
-<ul>
-<li>We import <code>Data.ByteString</code> from <code>bytestring</code> package which was inserted into our <code>dependencies</code> part in our cabal file.</li>
-<li>We also import <code>Data.Text</code> and <code>Data.Text.Encoding</code>.</li>
-<li><code>decodeTokenHeader :: ByteString -&gt; Maybe (JWT VerifiedJWT)</code> means that this function takes a <code>ByteString</code> (because request headers are <code>ByteStrings</code>) and returns <code>Nothing</code> or <code>Just $ JWT VerifiedJWT</code>.</li>
-<li>Now, we will wrap our computation in the following block.
-<ul>
-<li><code>jwt</code> is the result of <code>decodedJWT</code> computation.</li>
-<li>And then we will <code>verify</code> <code>jwt</code> with our <code>secret Text</code>.</li>
-<li>where did we get <code>jwt</code>, though?
-<ul>
-<li>First, we break the value of <code>Authorization</code> header, which is <code>Bearer thisis.apayloadjwt.secretinbase64</code> on the last space in the header value.</li>
-<li>Then we decode <code>jwtBase64</code> using <code>JWT</code> library. The result, could be nothing, or just a jwt.</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<p>After that, we will create two functions, the first one will be used check the expiration of the token.
-And the second one will be used to get the <code>name</code> claim from the token.</p>
-<pre><code>-- src/Auth.hs
+</code></pre><p>The snippet above means that</p><ul><li>We import <code>Data.ByteString</code> from <code>bytestring</code> package which was inserted into our <code>dependencies</code> part in our cabal file.</li><li>We also import <code>Data.Text</code> and <code>Data.Text.Encoding</code>.</li><li><code>decodeTokenHeader :: ByteString -&gt; Maybe (JWT VerifiedJWT)</code> means that this function takes a <code>ByteString</code> (because request headers are <code>ByteStrings</code>) and returns <code>Nothing</code> or <code>Just $ JWT VerifiedJWT</code>.</li><li>Now, we will wrap our computation in the following block.<ul><li><code>jwt</code> is the result of <code>decodedJWT</code> computation.</li><li>And then we will <code>verify</code> <code>jwt</code> with our <code>secret Text</code>.</li><li>where did we get <code>jwt</code>, though?<ul><li>First, we break the value of <code>Authorization</code> header, which is <code>Bearer thisis.apayloadjwt.secretinbase64</code> on the last space in the header value.</li><li>Then we decode <code>jwtBase64</code> using <code>JWT</code> library. The result, could be nothing, or just a jwt.</li></ul></li></ul></li></ul><p>After that, we will create two functions, the first one will be used check the expiration of the token.
+And the second one will be used to get the <code>name</code> claim from the token.</p><pre><code>-- src/Auth.hs
 -- snip!
 isTokenExpired :: JWT r -&gt; IO Bool
 isTokenExpired token = do
@@ -575,20 +380,9 @@ isTokenExpired token = do
   case ((exp $ claims token), (numericDate now)) of
     (Just expiration, Just now) -&gt; return $ expiration &lt; now
     _ -&gt; return True
-</code></pre>
-<p>This above function has the following explanation:</p>
-<ul>
-<li><code>isTokenExpired :: JWT r -&gt; IO Bool</code> means that this function will be wrapped in <code>JWT</code> wrapper and will return an <code>IO</code> wrapped <code>Bool</code>.</li>
-<li><code>isTokenExpired token = do</code> this function will be executed in a wrapped computation.</li>
-<li><code>now</code> is an unwrapped value of <code>nowPosix</code> computation.</li>
-<li>Then we will match the value of <code>(exp $ claims token)</code> and <code>(numericDate now)</code>.
-<ul>
-<li>If the results of the two computations are <code>Just value</code>, we will return the value of comparison.</li>
-<li>Otherwise, we consider the token is already expired.</li>
-</ul>
-</li>
-</ul>
-<pre><code>-- src/Auth.hs
+</code></pre><p>This above function has the following explanation:</p><ul><li><code>isTokenExpired :: JWT r -&gt; IO Bool</code> means that this function will be wrapped in <code>JWT</code> wrapper and will return an <code>IO</code> wrapped <code>Bool</code>.</li><li><code>isTokenExpired token = do</code> this function will be executed in a wrapped computation.</li><li><code>now</code> is an unwrapped value of <code>nowPosix</code> computation.</li><li>Then we will match the value of <code>(exp $ claims token)</code> and <code>(numericDate now)</code>.
+- If the results of the two computations are <code>Just value</code>, we will return the value of comparison.
+- Otherwise, we consider the token is already expired.</li></ul><pre><code>-- src/Auth.hs
 import Data.String
 -- snip!
 getNameClaimsFromToken :: (FromJSON t, IsString t) =&gt; JWT r -&gt; t
@@ -599,31 +393,16 @@ getNameClaimsFromToken token =
       case fromJSON a of
         Success s -&gt; s
         Error _   -&gt; &quot;&quot;
-</code></pre>
-<p>Compared to the previous function, this function is a bit longer.</p>
-<ul>
-<li>We will import <code>Data.String</code> to ensure that our function's return value has <code>IsString</code> instance.</li>
-<li><code>getNameClaimsFromToken :: (FromJSON t, IsString t) =&gt; JWT r -&gt; t</code> is this function's signature.
-Meaning, this function will take a <code>JWT</code> named <code>r</code> and will return <code>t</code> which has <code>IsString</code> and <code>FromJSON</code> instance.</li>
-<li>Because <code>token</code> is a <code>JWT</code> object, then we can extract <code>claims</code> from it, and then extract <code>unregisteredClaims</code> from the previous result.
-Furthermore, the previous result (which has type: <code>Map Text Value</code>) will be transformed by <code>Map.toList</code> then we will search the value from key <code>name</code>.</li>
-<li>If the result of the previous step was <code>Nothing</code> we will return an empty string.</li>
-<li>Else, we will transform the value into its json value.</li>
-<li>If the result of the previous result success, we will return it.
-Now you know why we should import <code>Data.String</code>.</li>
-<li>Else, we will return an empty string.</li>
-</ul>
-<p>The next step is creating a query into database to look for a user by its name.
-So, let's open <code>src/DB.hs</code>.</p>
-<pre><code>-- src/DB.hs
+</code></pre><p>Compared to the previous function, this function is a bit longer.</p><ul><li>We will import <code>Data.String</code> to ensure that our function's return value has <code>IsString</code> instance.</li><li><code>getNameClaimsFromToken :: (FromJSON t, IsString t) =&gt; JWT r -&gt; t</code> is this function's signature.
+Meaning, this function will take a <code>JWT</code> named <code>r</code> and will return <code>t</code> which has <code>IsString</code> and <code>FromJSON</code> instance.</li><li>Because <code>token</code> is a <code>JWT</code> object, then we can extract <code>claims</code> from it, and then extract <code>unregisteredClaims</code> from the previous result.
+Furthermore, the previous result (which has type: <code>Map Text Value</code>) will be transformed by <code>Map.toList</code> then we will search the value from key <code>name</code>.</li><li>If the result of the previous step was <code>Nothing</code> we will return an empty string.</li><li>Else, we will transform the value into its json value.</li><li>If the result of the previous result success, we will return it.
+Now you know why we should import <code>Data.String</code>.</li><li>Else, we will return an empty string.</li></ul><p>The next step is creating a query into database to look for a user by its name.
+So, let's open <code>src/DB.hs</code>.</p><pre><code>-- src/DB.hs
 lookUserByUsername :: Text -&gt; IO (Maybe Users)
 lookUserByUsername username = do
   mUser &lt;- runQuery $ selectFirst [UsersName ==. username] []
   return $ fmap entityVal mUser
-</code></pre>
-<p>Basically, the same explanation with <code>lookByUsernameAndPassword</code> function. But simpler because we only use one criterion.</p>
-<p>Because we've written that function, let's back to <code>src/Lib.hs</code> and continue from <code>undefined</code> node of <code>secretHandler</code>.</p>
-<pre><code>-- src/Lib.hs
+</code></pre><p>Basically, the same explanation with <code>lookByUsernameAndPassword</code> function. But simpler because we only use one criterion.</p><p>Because we've written that function, let's back to <code>src/Lib.hs</code> and continue from <code>undefined</code> node of <code>secretHandler</code>.</p><pre><code>-- src/Lib.hs
 import Control.Monad.Class.IO
 -- snip!
     secretHandler :: Request -&gt; Handler Users
@@ -643,28 +422,9 @@ import Control.Monad.Class.IO
           case maybeUser of
             Nothing -&gt; throwError err401
             Just user -&gt; return user
-</code></pre>
-<p>The continuation of the previous explanation is:</p>
-<ul>
-<li>We have to import <code>Control.Monad.Class.IO</code> to be able to use <code>liftIO</code>.
-We can consider <code>liftIO</code> as a function to tranform an <code>IO</code> wrapper to another wrapper.</li>
-<li>When there's <code>Authorization</code> header in a request, which in turn will be decoded by <code>decodeTokenHeader</code>.</li>
-<li>If the result of decoding is <code>Nothing</code>, meaning not a verified JWT, server will throw a 401 error.</li>
-<li>Else, we will try to get <code>Users</code> object from the decoded JWT using <code>getUserFromToken</code>.</li>
-<li>In <code>getUserFromToken</code>, firstly, we check the expiration status of the token in a wrapped computation.</li>
-<li>if the token is expired, server will throw a 401 error.</li>
-<li>Else, we will create look a user by getting its name first from <code>token</code>.</li>
-<li>Again, if there's no user like that, server will throw a 401 error.</li>
-<li>Else, server will return the handled <code>user</code>.</li>
-</ul>
-<blockquote>
-<p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/534d158c86d91823c7139f626e63f40b6db497be">here</a>.</p>
-</blockquote>
-<h2>Writing Server Application.</h2>
-<p>After finishing the previous sections, we already have the requirements to create the server application.
-So, the next step is <em>really</em> building it!</p>
-<p>Let's navigate to <code>src/Lib.hs</code></p>
-<pre><code>-- src/Lib.hs
+</code></pre><p>The continuation of the previous explanation is:</p><ul><li>We have to import <code>Control.Monad.Class.IO</code> to be able to use <code>liftIO</code>.
+We can consider <code>liftIO</code> as a function to tranform an <code>IO</code> wrapper to another wrapper.</li><li>When there's <code>Authorization</code> header in a request, which in turn will be decoded by <code>decodeTokenHeader</code>.</li><li>If the result of decoding is <code>Nothing</code>, meaning not a verified JWT, server will throw a 401 error.</li><li>Else, we will try to get <code>Users</code> object from the decoded JWT using <code>getUserFromToken</code>.</li><li>In <code>getUserFromToken</code>, firstly, we check the expiration status of the token in a wrapped computation.</li><li>if the token is expired, server will throw a 401 error.</li><li>Else, we will create look a user by getting its name first from <code>token</code>.</li><li>Again, if there's no user like that, server will throw a 401 error.</li><li>Else, server will return the handled <code>user</code>.</li></ul><blockquote><p>What we've done so far, has been committed to git. Check it <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/534d158c86d91823c7139f626e63f40b6db497be">here</a>.</p></blockquote><h2>Writing Server Application.</h2><p>After finishing the previous sections, we already have the requirements to create the server application.
+So, the next step is <i>really</i> building it!</p><p>Let's navigate to <code>src/Lib.hs</code></p><pre><code>-- src/Lib.hs
 secretServer :: Server TopSekrit
 secretServer = pAuthH :&lt;|&gt; pSecretH :&lt;|&gt; gSecretUserH
   where
@@ -683,38 +443,15 @@ secretServer = pAuthH :&lt;|&gt; pSecretH :&lt;|&gt; gSecretUserH
       if (usersName users /= username)
         then throwError401 err401
         else liftIO $ lookSecretByUsername username
-</code></pre>
-<p>Let's explain that snippet a little.</p>
-<ul>
-<li><code>secretServer :: Server TopSekrit</code> means that <code>secretServer</code> is a server that takes <code>TopSekrit</code>'s form as its form.</li>
-<li><code>secretServer = pAuthH :&lt;|&gt; pSecretH :&lt;|&gt; gSecretUserH</code> means that we will fill <code>secretServer</code>'s form by filling it with
-<ul>
-<li><code>pAuthH</code>.</li>
-<li>Combined with <code>pSecretH</code>.</li>
-<li>Combined with <code>gSecretUserH</code>.</li>
-</ul>
-</li>
-<li><code>pAuthH :: (MonadIO m) =&gt; Users -&gt; m AuthUser</code> is the type signature of this function.
-Wrapper <code>m</code> has to wrap an <code>AuthUser</code> object as the return value for a <code>Users</code> object while <code>m</code> itself has <code>MonadIO</code> instance.</li>
-<li><code>pAuthH requestFromUser = do</code> this function receives <code>Users</code> object named <code>requestFromUser</code>.</li>
-<li><code>mUser &lt;- liftIO $ lookUserByUsernameAndPassword (usersName requestFromUser) (usersPass requestFromUser)</code>
-this means that <code>mUser</code> is the unwrapped value of the returned result of the <code>lookUserByUsernameAndPassword</code> function which was <em>lifted</em> by <code>liftIO</code>.</li>
-<li><code>liftIO $ createTokenForUser mUser</code> and then we the result of the <code>createTokenForUser</code> after <em>lifted</em> by <code>liftIO</code>.</li>
-<li><code>pSecretH :: (MonadIO m) =&gt; Users -&gt; UsersSecret -&gt; m (Key SuperSecrets)</code> is the type signature of this function.
-Wrapper <code>m</code> has to wrap an <code>Key SuperSecrets</code> object as the return value for a <code>Users</code> object while <code>m</code> itself has <code>MonadIO</code> instance.</li>
-<li><code>pSecretH users userSecret = do</code> this function receives <code>Users</code> object from authentication using JWT and <code>userSecret</code> object in form of JSON.</li>
-<li><code>key &lt;- liftIO $ insertSecret (usersName users) userSecret</code>
-this means that <code>key</code> is the unwrapped value of the returned result of the <code>insertSecret</code> function which was <em>lifted</em> by <code>liftIO</code>.</li>
-<li>Then we will return that.</li>
-<li><code>gSecretUserH :: (MonadIO m, MonadError ServantErr m) =&gt; Users -&gt; Text -&gt; m [SuperSecrets]</code> is this function signature.
-this function will return a wrapped list of <code>SuperSecrets</code> in a wrapper that has <code>MonadIO</code> and <code>MonadError ServantErr</code> instances.</li>
-<li><code>gSecretUserH users username = do</code> this function receives <code>Text</code> named <code>username</code> and <code>Users</code> from authentication by JWT.</li>
-<li><code>if (usersName users /= username)</code> checks whether the <code>usersName</code> value of <code>users</code> is the not same as <code>username</code> or not.</li>
-<li><code>then throwError401 err401</code> if so, server will throw an unauthorized error.</li>
-<li><code>else liftIO $ lookSecretByUsername username</code> else, it will return the result of <code>lookSecretByUsername</code> with <code>username</code> as its parameter.</li>
-</ul>
-<p>After writing our server library's main function, we will continue by writing our proxy (whatever that means, actually. I don't understand it).</p>
-<pre><code>-- src/Lib.hs
+</code></pre><p>Let's explain that snippet a little.</p><ul><li><code>secretServer :: Server TopSekrit</code> means that <code>secretServer</code> is a server that takes <code>TopSekrit</code>'s form as its form.</li><li><code>secretServer = pAuthH :&lt;|&gt; pSecretH :&lt;|&gt; gSecretUserH</code> means that we will fill <code>secretServer</code>'s form by filling it with
+- <code>pAuthH</code>.
+- Combined with <code>pSecretH</code>.
+- Combined with <code>gSecretUserH</code>.</li><li><code>pAuthH :: (MonadIO m) =&gt; Users -&gt; m AuthUser</code> is the type signature of this function.
+Wrapper <code>m</code> has to wrap an <code>AuthUser</code> object as the return value for a <code>Users</code> object while <code>m</code> itself has <code>MonadIO</code> instance.</li><li><code>pAuthH requestFromUser = do</code> this function receives <code>Users</code> object named <code>requestFromUser</code>.</li><li><code>mUser &lt;- liftIO $ lookUserByUsernameAndPassword (usersName requestFromUser) (usersPass requestFromUser)</code>
+this means that <code>mUser</code> is the unwrapped value of the returned result of the <code>lookUserByUsernameAndPassword</code> function which was <i>lifted</i> by <code>liftIO</code>.</li><li><code>liftIO $ createTokenForUser mUser</code> and then we the result of the <code>createTokenForUser</code> after <i>lifted</i> by <code>liftIO</code>.</li><li><code>pSecretH :: (MonadIO m) =&gt; Users -&gt; UsersSecret -&gt; m (Key SuperSecrets)</code> is the type signature of this function.
+Wrapper <code>m</code> has to wrap an <code>Key SuperSecrets</code> object as the return value for a <code>Users</code> object while <code>m</code> itself has <code>MonadIO</code> instance.</li><li><code>pSecretH users userSecret = do</code> this function receives <code>Users</code> object from authentication using JWT and <code>userSecret</code> object in form of JSON.</li><li><code>key &lt;- liftIO $ insertSecret (usersName users) userSecret</code>
+this means that <code>key</code> is the unwrapped value of the returned result of the <code>insertSecret</code> function which was <i>lifted</i> by <code>liftIO</code>.</li><li>Then we will return that.</li><li><code>gSecretUserH :: (MonadIO m, MonadError ServantErr m) =&gt; Users -&gt; Text -&gt; m [SuperSecrets]</code> is this function signature.
+this function will return a wrapped list of <code>SuperSecrets</code> in a wrapper that has <code>MonadIO</code> and <code>MonadError ServantErr</code> instances.</li><li><code>gSecretUserH users username = do</code> this function receives <code>Text</code> named <code>username</code> and <code>Users</code> from authentication by JWT.</li><li><code>if (usersName users /= username)</code> checks whether the <code>usersName</code> value of <code>users</code> is the not same as <code>username</code> or not.</li><li><code>then throwError401 err401</code> if so, server will throw an unauthorized error.</li><li><code>else liftIO $ lookSecretByUsername username</code> else, it will return the result of <code>lookSecretByUsername</code> with <code>username</code> as its parameter.</li></ul><p>After writing our server library's main function, we will continue by writing our proxy (whatever that means, actually. I don't understand it).</p><pre><code>-- src/Lib.hs
 import Database.Persist.Sql
 import Network.Wai.Handler.Warp as Warp
 secretProxy :: Proxy TopSekrit
@@ -724,32 +461,21 @@ secretApp :: IO ()
 secretApp = do
   runQuery doMigration
   Warp.run 8000 $ serveWithContext secretProxy authContext secretServer
-</code></pre>
-<p>Again, we will import a few modules for this function.
+</code></pre><p>Again, we will import a few modules for this function.
 Then we will make our <code>secretProxy</code> has the shape of <code>TopSekrit</code>.
-Ultimately, we will make our function as an <code>IO</code> wrapped function which will executer our database migration plan and then run the server (with our <code>secretContext</code>, <code>secretProxy</code>, and <code>secretServer</code>) at port 8000.</p>
-<pre><code>-- app/Main.hs
+Ultimately, we will make our function as an <code>IO</code> wrapped function which will executer our database migration plan and then run the server (with our <code>secretContext</code>, <code>secretProxy</code>, and <code>secretServer</code>) at port 8000.</p><pre><code>-- app/Main.hs
 module Main where
 import Lib
 
 main :: IO ()
 main = secretApp
-</code></pre>
-<p>The snippet above is our main function of our application. So, we just put the main function of our library.</p>
-<p><img src="images/servant_auth_auth_ok.png" alt="Requesting auth ok!" /></p>
-<p>The image above is the result of the request when there's data in db where <code>name</code> column equals to <code>ibnu</code> and <code>pass</code> column equals to <code>jaran</code>.
-<img src="images/servant_auth_auth_not_ok.png" alt="Requesting auth not ok!" /></p>
-<p>The image above is the result of the request when there's no data in db where <code>name</code> column equals to <code>ibnu</code> and <code>pass</code> column equals to <code>kuda</code>.
-<img src="images/servant_auth_post_secret_ok.png" alt="Posting secret ok!" /></p>
-<p>The image above is the result of the request when the request has <code>Authorization</code> header with a valid token.
-<img src="images/servant_auth_post_secret_not_ok.png" alt="Posting secret not ok!" /></p>
-<p>The image above is the result of the request when the request has <code>Authorization</code> header with a valid token but it has expired.
-<img src="images/servant_auth_get_secret_ok.png" alt="Requesting secret ok!" /></p>
-<p><img src="images/servant_auth_get_secret_not_ok.png" alt="Requesting secret not ok!" /></p>
-<p>FINISH!</p>
-<p>Final result of the walkthrough is <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/2b108304aec447d52f221dbbeaf5e31a447ca1af">here</a>!</p>
-
-   </section>
-  </main>
- </body>
+</code></pre><p>The snippet above is our main function of our application. So, we just put the main function of our library.</p><p><img src="images/servant_auth_auth_ok.png" alt="Requesting auth ok!"></p><p>The image above is the result of the request when there's data in db where <code>name</code> column equals to <code>ibnu</code> and <code>pass</code> column equals to <code>jaran</code>.
+<img src="images/servant_auth_auth_not_ok.png" alt="Requesting auth not ok!"></p><p>The image above is the result of the request when there's no data in db where <code>name</code> column equals to <code>ibnu</code> and <code>pass</code> column equals to <code>kuda</code>.
+<img src="images/servant_auth_post_secret_ok.png" alt="Posting secret ok!"></p><p>The image above is the result of the request when the request has <code>Authorization</code> header with a valid token.
+<img src="images/servant_auth_post_secret_not_ok.png" alt="Posting secret not ok!"></p><p>The image above is the result of the request when the request has <code>Authorization</code> header with a valid token but it has expired.
+<img src="images/servant_auth_get_secret_ok.png" alt="Requesting secret ok!"></p><p><img src="images/servant_auth_get_secret_not_ok.png" alt="Requesting secret not ok!"></p><p>FINISH!</p><p>Final result of the walkthrough is <a href="https://gitlab.com/ibnuda/Servant-Auth-Walkthrough/tree/2b108304aec447d52f221dbbeaf5e31a447ca1af">here</a>!</p>
+            </section>
+        </main>
+    </body>
 </html>
+

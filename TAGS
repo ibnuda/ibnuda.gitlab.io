@@ -1,0 +1,44 @@
+
+./Setup.hs,15
+main main1,2
+
+./test/Spec.hs,30
+main main2,3
+main main3,4
+
+./app/Main.hs,52
+module Main Main0,1
+main main5,6
+main main6,7
+
+./src/Lib.hs,65
+module LibLib0,1
+someFunc someFunc6,7
+someFunc someFunc7,8
+
+./src/Lib/ReadWrite.hs,139
+module Lib.ReadWrite Lib.ReadWrite0,1
+readIndividualFile readIndividualFile10,11
+readPages readPages17,18
+readPages readPages18,19
+
+./src/Lib/Prelude.hs,35
+module Lib.PreludeLib.Prelude0,1
+
+./src/Lib/Types.hs,529
+module Lib.Types Lib.Types0,1
+data Configuration Configuration4,5
+data Configuration = ConfigurationConfiguration4,5
+  { siteURL siteURL5,6
+  , siteName siteName6,7
+  , author author7,8
+  , pathPages pathPages8,9
+  , pathPosts pathPosts9,10
+  , pathGenerated pathGenerated10,11
+data ReadMarkdown ReadMarkdown13,14
+data ReadMarkdown = ReadMarkdownReadMarkdown13,14
+  { filename filename14,15
+  , title title15,16
+  , date date16,17
+  , contentType contentType17,18
+  , contentText contentText18,19
