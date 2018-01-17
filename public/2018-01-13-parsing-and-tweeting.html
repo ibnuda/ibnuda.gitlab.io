@@ -36,21 +36,11 @@ So, I gue">
                 <h1>Parsing and Tweeting</h1><p>At <code>$WORK</code>, I'm getting a lot of information that have to be parsed in form of
 text file.
 Whether it's from email, log files, and stuffs like that.
-So, I guess I have to automate those information parsing to ease my life a bit.</p><p>Here's what I've done.
-- Read file.
-- Parse stuff.
-- Spit out those parsed stuff to whatever I want.</p><p>And for this article, I want to put the parsed information of a dumped-archive of
+So, I guess I have to automate those information parsing to ease my life a bit.</p><p>Here's what I've done.</p><ul><li>Read file.</li><li>Parse stuff.</li><li>Spit out those parsed stuff to whatever I want.</li></ul><p>And for this article, I want to put the parsed information of a dumped-archive of
 a whatsapp chat group, create a sequence of random words using markov-chain,
 and then tweet it.
-(The tweet part is just a cherry on top, actually)</p><h3>Data Format</h3><p>Basically, a dumped archive of WhatsApp chat looks like the following format.</p><pre><code>{DateTime}{CommaSeparator}{Whitespace}{Dash}{Whitespace}{Sender}{Colon}{Whitespace}{Message}</code></pre><p>where
-- <code>{DateTime}</code> is the date and time of the message sent, minus the second part.
-- <code>{CommaSeparator}</code> is a char of <code>,</code>.
-- <code>{Whitespace}</code> is a char of <code> </code>.
-- <code>{Dash}</code> is a char of <code>-</code>.
-- <code>{Sender}</code>, as far as I know, is an array of valid utf8 characters.
-- <code>{Colon}</code> is a char of <code>:</code>.
-- <code>{Message}</code> could be a multiline array of utf8 characters.
-  While it could contains medias, we will ommit it for the sake of simplicity.</p><pre><code>20/01/2018, 10:10 - Ibnu Daru Aji: This is a message.
+(The tweet part is just a cherry on top, actually)</p><h3>Data Format</h3><p>Basically, a dumped archive of WhatsApp chat looks like the following format.</p><pre><code>{DateTime}{CommaSeparator}{Whitespace}{Dash}{Whitespace}{Sender}{Colon}{Whitespace}{Message}</code></pre><p>where</p><ul><li><code>{DateTime}</code> is the date and time of the message sent, minus the second part.</li><li><code>{CommaSeparator}</code> is a char of <code>,</code>.</li><li><code>{Whitespace}</code> is a char of <code> </code>.</li><li><code>{Dash}</code> is a char of <code>-</code>.</li><li><code>{Sender}</code>, as far as I know, is an array of valid utf8 characters.</li><li><code>{Colon}</code> is a char of <code>:</code>.</li><li><code>{Message}</code> could be a multiline array of utf8 characters.
+While it could contains medias, we will ommit it for the sake of simplicity.</li></ul><pre><code>20/01/2018, 10:10 - Ibnu Daru Aji: This is a message.
 20/01/2018, 10:11 - Ibnu Daru Aji: This is a message.
 </code></pre><h3>Parsing</h3><p>We will use haskell package, <code>attoparsec</code>, to parse it.
 The following snippet parses the <code>DateTime</code> token:</p><pre><code>import qualified Data.Attoparsec.ByteString.Char8 as BC
@@ -153,17 +143,11 @@ mainFunc = do
       print res
     _ -&gt; do
       putStrLn (&quot;&lt;this program&gt; &lt;file archive&gt; &lt;usernames&gt;&quot; :: Text)
-      exitFailure</code></pre><p>That function will:
-- create a random seed.
-- create twinfo (from the samples of <code>twitter-conduit</code>)
-- create tls manager.
-- get arguments from command line.
-- when the arguments are less than than two, the program will error.
-- when the argements more than two, the program will:
-  - take the first argument as the filename of the caht archive.
-  - take the rest of the arguments to decide which sender's messages which
-    will be used as the input of <code>generateBullshit</code> function.
-  - tweet the result of generated chain.</p><p>All in all, it was a nice learning experience for a short weekend.
+      exitFailure</code></pre><p>That function will:</p><ul><li>create a random seed.</li><li>create twinfo (from the samples of <code>twitter-conduit</code>)</li><li>create tls manager.</li><li>get arguments from command line.</li><li>when the arguments are less than than two, the program will error.</li><li>when the argements more than two, the program will:
+- take the first argument as the filename of the caht archive.
+- take the rest of the arguments to decide which sender's messages which
+  will be used as the input of <code>generateBullshit</code> function.
+- tweet the result of generated chain.</li></ul><p>All in all, it was a nice learning experience for a short weekend.
 You can read the whole program <a href="https://gitlab.com/ibunda/Tiwik">here</a>.</p>
             </section>
         </main>
