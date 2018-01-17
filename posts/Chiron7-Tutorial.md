@@ -63,6 +63,7 @@ module AuthModels =
       { Quali     = quali
         UserId    = uid
         ExpiresIn = eIn }
+
 ```
 In the above code, we have imported `Chiron` and `Chiron.Operators` modules from the Chiron package. We will use that in a few minutes.
 And there's an object type, named `Token`, which has `Quali` property, which in turn is a `Qualification`. That type has a static member which will be used in the module which has the same name as the specified object previously.
@@ -97,6 +98,7 @@ module Token =
     <!> Json.Decode.required decodeQualif      "qualification"
     <*> Json.Decode.required Json.Decode.guid  "userid"
     <*> Json.Decode.required Json.Decode.int64 "expiresin"
+
 ```
 ### Functions' Explanation
 There are basically five things there.
@@ -111,6 +113,7 @@ let decode =
   <!> Json.Decode.required Json.Decode.int    "id"
   <*> Json.Decode.required Json.Decode.int    "value"
   <*> Json.Decode.required Json.Decode.string "name"
+
 ```
 By defining `decode`, we have created a `Decoder` with two params, `JsonObject` as the input and `Token` as the output.
 At the snippet above, there are two operators (which we've imported from `Chiron.Operators`). An operator `<!>` and operator `<*>`.
@@ -133,6 +136,7 @@ let decode =
   Json.Decoder.map create (Json.Decode.required Json.Decode.int    "id")
   |> Json.Decoder.apply   (Json.Decode.required Json.Decode.int    "value")
   |> Json.Decoder.apply   (Json.Decode.required Json.Decode.string "name")
+
 ```
 Basically, the `decode` function above means, in particular order of the `create` function's signature, we will take values from a `JsonObject`:
 
@@ -150,6 +154,7 @@ let encode qualif jsonObj =
   |> Json.Encode.required Json.Encode.int    "id"    qualif.Id
   |> Json.Encode.required Json.Encode.int    "value" qualif.Value
   |> Json.Encode.required Json.Encode.string "name"  qualif.Name
+
 ```
 The `encode` function above means, we will take a `Qualification` object and another `JsonObject` and then do the following step.
 
@@ -174,6 +179,7 @@ let decode =
   <!> Json.Decode.required decodeQualif      "qualification"
   <*> Json.Decode.required Json.Decode.guid  "userid"
   <*> Json.Decode.required Json.Decode.int64 "expiresin"
+  
 ```
 Basically, the `decode` function above means, in particular order of the `create` function's signature, we will take values from a `JsonObject`:
 
@@ -190,6 +196,7 @@ let encode token jsonObj =
   |> Json.Encode.required encodeQualif      "qualification" token.Quali
   |> Json.Encode.required Json.Encode.guid  "userid"        token.UserId
   |> Json.Encode.required Json.Encode.int64 "expiresin"     token.ExpiresIn
+
 ```
 The `encode` function above means, we will take a `Qualification` object and another `JsonObject` and then do the following step.
 
@@ -207,6 +214,7 @@ let inline modelToJson (encoder : 'a -> JsonObject -> JsonObject) model =
   model
   |> Json.Encode.jsonObjectWith encoder
   |> Json.format
+
 ```
 The `modelToJson` function above takes a parameter which has a signature `'a -> JsonObject -> JsonObject` (or an `ObjectBuilder<'a>`) and an instance of object with type `'a`.
 That function means:
@@ -223,13 +231,15 @@ let inline jsonToModel (decoder : JsonObject -> JsonResult<'a>) jsonstr : 'a opt
   match parsingRes with
   | JPass result -> Some result
   | JFail _      -> None
+
 ```
 And when we want to deserialise json string to an object, we will use the function `jsonToModel` above which takes a function which tranfrom `JsonObject` to `JsonResult<'a>` (or an `ObjectReader<'a>`) and a string which we assume as a json string. The result of that function is an option type of `'a`.
 That function means :
-  1. Parse the input, `jsonStr`. At this step, the result of the function is `JsonResult<Json>`.
-  2. If the result parsed is `JPass json`, we will read the `json` using `ObjectReader<'a>`. Else, just return the `JFail jfailure`.
-  3. Save the result of step 2 to `parsingRes`.
-  4. If the `parsingRes` succesfully parsed, we will have `Some result`. Else, `None` will be returned.
+
+1. Parse the input, `jsonStr`. At this step, the result of the function is `JsonResult<Json>`.
+2. If the result parsed is `JPass json`, we will read the `json` using `ObjectReader<'a>`. Else, just return the `JFail jfailure`.
+3. Save the result of step 2 to `parsingRes`.
+4. If the `parsingRes` succesfully parsed, we will have `Some result`. Else, `None` will be returned.
 
 ## Example.
 The usage is something like this:

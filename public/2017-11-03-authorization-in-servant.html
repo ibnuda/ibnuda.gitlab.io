@@ -57,12 +57,7 @@ It's nice.</p><p>Then we will change our directory to our project's directory an
                     , servant-server
                     , wai
                     , warp
-  default-language:   Haskell2010</code></pre><p>Then you add dependencies:
-- <code>text</code> is, in short, an library for efficient unicode text
-- <code>time</code> well, it provides time!
-- <code>peristent</code> is... I guess something like <code>django-orm</code> or Scala's <code>slick</code> library.
-- <code>persistent-mysql</code> provides a MySQL backend for <code>persistent</code>.
-- <code>persistent-template</code> is a  provider of Template Haskell for <code>persistent</code>, I will not touch what does it mean in this article.</p><p>And let's add a few other lines in our cabal file so it will look like the following:</p><pre><code>library
+  default-language:   Haskell2010</code></pre><p>Then you add dependencies:</p><ul><li><code>text</code> is, in short, an library for efficient unicode text</li><li><code>time</code> well, it provides time!</li><li><code>peristent</code> is... I guess something like <code>django-orm</code> or Scala's <code>slick</code> library.</li><li><code>persistent-mysql</code> provides a MySQL backend for <code>persistent</code>.</li><li><code>persistent-template</code> is a  provider of Template Haskell for <code>persistent</code>, I will not touch what does it mean in this article.</li></ul><p>And let's add a few other lines in our cabal file so it will look like the following:</p><pre><code>library
   hs-source-dirs:     src
   exposed-modules:    Lib
   other-modules:      Models -- new

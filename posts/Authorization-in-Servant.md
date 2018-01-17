@@ -69,6 +69,7 @@ library
   default-language:   Haskell2010
 ```
 Then you add dependencies:
+
 - `text` is, in short, an library for efficient unicode text
 - `time` well, it provides time!
 - `peristent` is... I guess something like `django-orm` or Scala's `slick` library.

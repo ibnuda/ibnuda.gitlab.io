@@ -9,6 +9,7 @@ Whether it's from email, log files, and stuffs like that.
 So, I guess I have to automate those information parsing to ease my life a bit.
 
 Here's what I've done.
+
 - Read file.
 - Parse stuff.
 - Spit out those parsed stuff to whatever I want.
@@ -24,6 +25,7 @@ Basically, a dumped archive of WhatsApp chat looks like the following format.
 {DateTime}{CommaSeparator}{Whitespace}{Dash}{Whitespace}{Sender}{Colon}{Whitespace}{Message}
 ```
 where
+
 - `{DateTime}` is the date and time of the message sent, minus the second part.
 - `{CommaSeparator}` is a char of `,`.
 - `{Whitespace}` is a char of ` `.
@@ -173,6 +175,7 @@ mainFunc = do
       exitFailure
 ```
 That function will:
+
 - create a random seed.
 - create twinfo (from the samples of `twitter-conduit`)
 - create tls manager.
