@@ -2,6 +2,7 @@
 module Lib.ReadWrite
   ( readDirectory
   , writeContent
+  , writeHtml
   , createMarkdownFile
   , htmlFilenameFromTitleAndDate
   , deleteOnlyFiles
@@ -30,11 +31,11 @@ readIndividualFile above nameOfFile = do
     fn = unpack above ++ "/" ++ nameOfFile
 
 getOnlyFiles :: FilePath -> IO [FilePath]
-getOnlyFiles path = do
+getOnlyFiles path =
   withCurrentDirectory path $ getDirectoryContents "." >>= filterM doesFileExist
 
 deleteOnlyFiles :: Text -> IO ()
-deleteOnlyFiles path = do
+deleteOnlyFiles path =
   withCurrentDirectory (unpack path) $
     getDirectoryContents "." >>= filterM doesFileExist >>= mapM_ removeFile
 
@@ -54,13 +55,16 @@ htmlFilenameFromTitleAndDate title date =
   in toLower $ pack dat <> "-" <> fn <> ".html" :: Text
 
 write :: Text -> Text -> Text -> IO ()
-write ctype fname content = do
+write ctype fname content =
   writeFile (unpack ctype ++ "/" ++ unpack fname) content
 
 writeContent :: Content -> IO ()
-writeContent Content {..} = do
+writeContent Content {..} =
   write contentType filename $
     unlines [mdTitle, show mdDate, contentText]
+
+writeHtml :: Content -> IO ()
+writeHtml Content {..} = write contentType filename contentText
 
 createMarkdownFile :: Text -> Text -> IO ()
 createMarkdownFile cType cTitle = do

@@ -60,6 +60,12 @@ skeleton Configuration {..} navbar markdownContent =
         navbar
         mainContent markdownContent
 
+createIndexItem :: Content -> Content
+createIndexItem cont =
+  cont
+  { filename = htmlFilenameFromTitleAndDate (mdTitle cont) (mdDate cont)
+  }
+
 indexItem :: Text -> Text -> UTCTime -> Html
 indexItem postlink posttitle postdate =
   let dat = formatTime defaultTimeLocale "%z%F" $ utctDay postdate
@@ -83,10 +89,10 @@ fullFledgedHtmlGeneration conf = do
   let navbar = navigationBar cpages
       generatedpages = map (mdContentToHtml conf navbar) cpages
       generatedposts = map (mdContentToHtml conf navbar) cposts
-  mapM_ writeContent generatedposts
-  cpublic <- readDirectory $ pathGenerated conf
-  writeContent $ indexHtml conf navbar $ indexGeneration cpublic
-  mapM_ writeContent generatedpages
+      contentindex = map createIndexItem cposts
+  mapM_ writeHtml generatedposts
+  writeHtml $ indexHtml conf navbar $ indexGeneration contentindex
+  mapM_ writeHtml generatedpages
   where
     mdContentToHtml :: Configuration -> Html -> Content -> Content
     mdContentToHtml config navbar cont =
@@ -94,7 +100,7 @@ fullFledgedHtmlGeneration conf = do
       { filename = htmlFilenameFromTitleAndDate (mdTitle cont) (mdDate cont)
       , contentText =
           T.pack . BP.renderHtml . skeleton config navbar $ contentText cont
-      , contentType = "public"
+      , contentType = pathGenerated config
       }
     indexHtml :: Configuration -> Html -> Content -> Content
     indexHtml config navbar cont =
