@@ -7,6 +7,7 @@ import           Data.Text     (intercalate, pack)
 import           Lib.Generate
 import           Lib.Prelude   hiding (intercalate)
 import           Lib.ReadWrite
+import           Lib.Types
 
 doingSomething :: IO ()
 doingSomething = do
@@ -15,9 +16,9 @@ doingSomething = do
     "new":ctype:titles ->
       createMarkdownFile (pack ctype) (intercalate " " . map pack $ titles)
     ["compile"] -> do
-      deleteOnlyFiles "public"
+      deleteOnlyFiles $ pathGenerated defaultConfig
       fullFledgedHtmlGeneration defaultConfig
-    ["clean"] -> deleteOnlyFiles "public"
+    ["clean"] -> deleteOnlyFiles $ pathGenerated defaultConfig
     _ -> do
       putStrLn ("should be one of the following:" :: Text)
       putStrLn ("new post title_of_post" :: Text)
