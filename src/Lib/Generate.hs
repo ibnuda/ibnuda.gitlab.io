@@ -44,8 +44,8 @@ mainContent mdContent = do
   section ! class_ "container" $ do markdownToHtml mdContent
 
 
-skeleton :: Configuration -> Html -> Text -> Html
-skeleton Configuration {..} navbar markdownContent =
+skeleton :: Configuration -> Html -> Text -> Text -> Html
+skeleton Configuration {..} navbar titleContent markdownContent =
   docTypeHtml $ do
     head $ do
       H.meta ! name "viewport" ! value "width=device-width, initial-scale=1.0"
@@ -54,7 +54,7 @@ skeleton Configuration {..} navbar markdownContent =
       H.meta ! name "author" ! value (textValue author)
       H.link ! rel "stylesheet" ! type_ "text/css" !
         href "static/css/milligram.min.css"
-      H.title $ text siteName
+      H.title $ text $ siteName <> " - " <> titleContent
     body $ do
       main ! class_ "wrapper" $ do
         navbar
@@ -72,13 +72,13 @@ indexItem postlink posttitle postdate =
   in li $ do
        a ! href (textValue postlink) $ text $ T.pack dat <> " - " <> posttitle
 
-indexGeneration :: [Content] -> Content
-indexGeneration posts =
+indexGeneration :: [Content] -> Text -> Content
+indexGeneration posts path =
   let indexpage =
         ul $
         forM_ (reverse . sort $ posts) $ \pst ->
           indexItem (filename pst) (mdTitle pst) (mdDate pst)
-  in Content "index.html" "index" (posixSecondsToUTCTime 0) "public" $
+  in Content "index.html" "Index" (posixSecondsToUTCTime 0) path $
      T.pack . BP.renderHtml $ indexpage
 
 
@@ -91,7 +91,8 @@ fullFledgedHtmlGeneration conf = do
       generatedposts = map (mdContentToHtml conf navbar) cposts
       contentindex = map createIndexItem cposts
   mapM_ writeHtml generatedposts
-  writeHtml $ indexHtml conf navbar $ indexGeneration contentindex
+  writeHtml $
+    indexHtml conf navbar $ indexGeneration contentindex (pathGenerated conf)
   mapM_ writeHtml generatedpages
   where
     mdContentToHtml :: Configuration -> Html -> Content -> Content
@@ -99,14 +100,16 @@ fullFledgedHtmlGeneration conf = do
       cont
       { filename = htmlFilenameFromTitleAndDate (mdTitle cont) (mdDate cont)
       , contentText =
-          T.pack . BP.renderHtml . skeleton config navbar $ contentText cont
+          T.pack . BP.renderHtml $
+          skeleton config navbar (mdTitle cont) (contentText cont)
       , contentType = pathGenerated config
       }
     indexHtml :: Configuration -> Html -> Content -> Content
     indexHtml config navbar cont =
       cont
       { contentText =
-          T.pack . BP.renderHtml . skeleton config navbar $ contentText cont
+          T.pack . BP.renderHtml $
+          skeleton config navbar (mdTitle cont) (contentText cont)
       }
 
 defaultConfig :: Configuration
