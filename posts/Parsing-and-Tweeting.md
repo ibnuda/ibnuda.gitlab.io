@@ -112,6 +112,7 @@ data Bericht = Bericht
   }
 ```
 `parserBericht` function combines
+
 - `parserDatum` to parse date.
 - `parserVerzender` to parse sender.
 - skip two characters.
@@ -182,6 +183,7 @@ That function will:
 - get arguments from command line.
 - when the arguments are less than than two, the program will error.
 - when the argements more than two, the program will:
+
   - take the first argument as the filename of the caht archive.
   - take the rest of the arguments to decide which sender's messages which
     will be used as the input of `generateBullshit` function.

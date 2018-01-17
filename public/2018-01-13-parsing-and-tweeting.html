@@ -98,17 +98,12 @@ data Bericht = Bericht
   { datum   :: UTCTime
   , sender  :: ByteString
   , content :: [ByteString]
-  }</code></pre><p><code>parserBericht</code> function combines
-- <code>parserDatum</code> to parse date.
-- <code>parserVerzender</code> to parse sender.
-- skip two characters.
-- takes many lines until end of input or the first few characters of a new line
-  could be parsed to a <code>{DateTime}</code>.
-- then, returns a <code>Bericht</code> object.
+  }</code></pre><p><code>parserBericht</code> function combines</p><ul><li><code>parserDatum</code> to parse date.</li><li><code>parserVerzender</code> to parse sender.</li><li>skip two characters.</li><li>takes many lines until end of input or the first few characters of a new line
+could be parsed to a <code>{DateTime}</code>.</li><li>then, returns a <code>Bericht</code> object.
 <code>isDatumAhead</code> is a parser that look a head whether the next input could be parsed
 as <code>DateTime</code> or not.
 And the reason why there's a <code>splitAtSpace</code> is because we want it as per words
-for the input of markov chain in the next section.</p><p>And because there are many messages, we will create type and parser for that.</p><pre><code>type ChatLog = [Bericht]
+for the input of markov chain in the next section.</li></ul><p>And because there are many messages, we will create type and parser for that.</p><pre><code>type ChatLog = [Bericht]
 parserChatLog = many parserBericht</code></pre><h3>Cherries on Top</h3><p>We will use <code>markov-chain</code> package to generate the data we will tweet.</p><pre><code>import qualified Data.Attoparsec.Lazy as AP
 import qualified Data.ByteString as B
 import Data.MarkovChain
@@ -143,11 +138,8 @@ mainFunc = do
       print res
     _ -&gt; do
       putStrLn (&quot;&lt;this program&gt; &lt;file archive&gt; &lt;usernames&gt;&quot; :: Text)
-      exitFailure</code></pre><p>That function will:</p><ul><li>create a random seed.</li><li>create twinfo (from the samples of <code>twitter-conduit</code>)</li><li>create tls manager.</li><li>get arguments from command line.</li><li>when the arguments are less than than two, the program will error.</li><li>when the argements more than two, the program will:
-- take the first argument as the filename of the caht archive.
-- take the rest of the arguments to decide which sender's messages which
-  will be used as the input of <code>generateBullshit</code> function.
-- tweet the result of generated chain.</li></ul><p>All in all, it was a nice learning experience for a short weekend.
+      exitFailure</code></pre><p>That function will:</p><ul><li>create a random seed.</li><li>create twinfo (from the samples of <code>twitter-conduit</code>)</li><li>create tls manager.</li><li>get arguments from command line.</li><li>when the arguments are less than than two, the program will error.</li><li><p>when the argements more than two, the program will:</p><ul><li>take the first argument as the filename of the caht archive.</li><li>take the rest of the arguments to decide which sender's messages which
+will be used as the input of <code>generateBullshit</code> function.</li><li>tweet the result of generated chain.</li></ul></li></ul><p>All in all, it was a nice learning experience for a short weekend.
 You can read the whole program <a href="https://gitlab.com/ibunda/Tiwik">here</a>.</p>
             </section>
         </main>
