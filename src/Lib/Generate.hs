@@ -48,7 +48,7 @@ skeleton :: Configuration -> Html -> Text -> Text -> Html
 skeleton Configuration {..} navbar titleContent markdownContent =
   docTypeHtml $ do
     head $ do
-      H.meta ! name "viewport" ! value "width=device-width, initial-scale=1.0"
+      H.meta ! name "viewport" ! value "width=device-width, initial-scale=1.0, user-scalable=yes"
       H.meta ! name "description" !
         value (textValue $ T.take 200 markdownContent)
       H.meta ! name "author" ! value (textValue author)

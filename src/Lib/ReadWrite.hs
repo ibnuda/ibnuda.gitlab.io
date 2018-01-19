@@ -76,4 +76,4 @@ createMarkdownFile cType cTitle = do
           "post" -> "posts"
           _      -> "posts" :: Text
   writeContent $
-    Content (filename <> ".md") cTitle now dir "#Write Here!!!\nPlease."
+    Content (filename <> ".md") cTitle now dir "# Write Here!!!\nPlease."
