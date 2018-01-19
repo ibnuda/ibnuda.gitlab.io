@@ -82,7 +82,30 @@ read the markdown files. Thus I write this function</p><pre><code>write :: Text 
 write ctype fname content =
   writeFile (unpack ctype ++ &quot;/&quot; ++ unpack fname) content
 </code></pre><p>Which is just a wrapper for <code>Data.Text.IO.writeFile</code> while append the name content type
-and fname as the real filename of the written file..</p>
+and fname as the real filename of the written file.
+While reading the file, I wanted it the same, I put two arguments (type and filename)
+and will get a <code>Content</code> object.</p><pre><code>readIndividualFile :: Text -&gt; [Char] -&gt; IO Content
+readIndividualFile above nameOfFile = do
+  content &lt;- readFile fn
+  case lines content of
+    title:date:writing -&gt;
+      pure $
+      Content (pack nameOfFile) title (TR.read $ unpack date) above $
+      unlines writing
+    _ -&gt; pure emptyContent
+  where
+    fn = unpack above ++ &quot;/&quot; ++ nameOfFile
+</code></pre><p>Considering the structure of the written markdown file,</p><pre><code>This is the Title
+2018-01-01 01:11:11.111111111 UTC --This is the date
+# This is the Title
+</code></pre><p>I had to skip two lines of the content of the file. Yeah, innefficient, I know.
+Especially when I use the strict version of the <code>Data.Text.IO</code>, then load it
+into memory, then <code>lines</code> it, and finally create a <code>Content</code> object (which also
+<code>unlines</code> those <code>[Text]</code>).</p><h4>Generating HTML</h4><p>After the markdown files are succesfully read, the program only had to parse the
+markdown content of the <code>Content</code> object into HTML and then write it into the
+<code>pathGenerated</code>.
+Though it's not that straightforward.</p><p>In order to generate HTML, I don't know, I feel stupid:</p><ol><li>Read the all of the contents of the <code>pathPages</code> and <code>pathPosts</code> directory.</li><li>Generate the navbar.</li><li>Hold it in the memory.</li><li>While at it, gnerate the HTML contents from those two <code>paths</code> (with the navbar from number 2, obv.)</li><li>Generate index from a list of read <code>Content</code>s  from <code>pathPosts</code> directory.</li><li>Write the html files of the generated posts.</li><li>Write the index.</li><li>Write the generated pages from the step number 1.</li></ol><p>I feel ashamed of myself. But well, at the moment, this program serves its purpose well,
+I guess.</p>
             </section>
         </main>
     </body>
