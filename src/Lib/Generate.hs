@@ -59,6 +59,9 @@ skeleton Configuration {..} navbar titleContent markdownContent =
       main ! class_ "wrapper" $ do
         navbar
         mainContent markdownContent
+    footer $ do
+      text "This material is shared under the "
+      a ! href "https://creativecommons.org/licenses/by/4.0" $ text "CC-BY License."
 
 createIndexItem :: Content -> Content
 createIndexItem cont =
