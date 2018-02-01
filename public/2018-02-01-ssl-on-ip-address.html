@@ -50,7 +50,7 @@ server {
 </code></pre><p>On that <code>server</code> block, we tell nginx to</p><ul><li>Listen to port 8443.</li><li>Use SSL encryption thingy.</li><li>Use the generated certs by OwnTracks' <code>generate.sh</code></li><li>Name of the server is <code>$YOUR_PUBLIC_IP</code>.</li><li>And we will redirect all requests to a running web app at port 5000.</li></ul><p>I swear on me mum's name, mate, Nginx's configuration file is much nicer than Apache HTTPD's.
 That's just a personal taste, though.</p><h3>???</h3><p>(Re)Start the nginx service / daemon.</p><h3>Profit</h3><p>Fire up your browser and open <code>https://$YOUR_PUBLIC_IP</code>. You will be greeted by ssl warning.
 Just accept it.
-Sometimes, you have to trust and believe yourself.</p>
+Sometimes, you have to trust and believe in yourself.</p>
             </section>
         </main>
     </body>

@@ -64,4 +64,4 @@ That's just a personal taste, though.
 ### Profit
 Fire up your browser and open `https://$YOUR_PUBLIC_IP`. You will be greeted by ssl warning.
 Just accept it.
-Sometimes, you have to trust and believe yourself.
+Sometimes, you have to trust and believe in yourself.
