@@ -52,10 +52,10 @@ dependencies:
 - telegram-bot-simple
 </code></pre><p>Where <code>telegram-bot-simple</code> is the name of the library which we previously included
 in our <code>stack.yaml</code>.</p><p>Let's build it for a giggle by issuing <code>stack build</code> at the project's root directory.
-It should compile just fine, I guess.</p><p>Next, we will create our domain model.</p><h3>Database Thingy</h3><p>We will add a few dependencies on our <code>package.yaml</code>.</p><ul><li><code>persistent</code> for talking to database.</li><li><code>persistent-postgresql</code> for talking to postgresql, specifically.</li><li><code>persistent-template</code>, it eases our life a bit. Though prolong the compile time.</li><li><code>esqueleto</code> it's nice to join the tables in a <del>bar</del> database.</li><li><code>text</code>, I just like <code>Text</code>.</li></ul><p>Then, we will create a file named <code>Model.hs</code> in our <code>src</code> directory and include it
+It should compile just fine, I guess.</p><p>Next, we will create our domain model.</p><h3>Database Thingy</h3><p>We will add a few dependencies on our <code>package.yaml</code>.</p><ul><li><code>persistent</code> for talking to database.</li><li><code>persistent-postgresql</code> for talking to postgresql, specifically.</li><li><code>persistent-template</code>, it eases our life a bit. Though prolong the compile time.</li><li><code>esqueleto</code> it's nice to join the tables in a <del>bar</del> database.</li><li><code>text</code>, I just like <code>Text</code>.</li><li><code>time</code></li></ul><p>Then, we will create a file named <code>Model.hs</code> in our <code>src</code> directory and include it
 as one of our source files.</p><p>To simplify a bit, we will create two tables named <code>income</code> and <code>expense</code>.
-The <code>income</code> table will have <code>source</code> (<code>Text</code>) and <code>amount</code> (<code>Double</code>) while <code>expense</code>
-table will have <code>towhom</code> (<code>Text</code>), and <code>amount</code> (<code>Double</code>)</p><p>In order to accomplish that, we will edit <code>Model.hs</code> as the following</p><pre><code>-- Model.hs
+The <code>income</code> table will have <code>source</code> (<code>Text</code>), <code>amount</code> (<code>Double</code>), and <code>when</code> (<code>UTCTime</code>) while <code>expense</code>
+table will have <code>towhom</code> (<code>Text</code>), <code>amount</code> (<code>Double</code>), and <code>when</code> (<code>UTCTime</code>).</p><p>In order to accomplish that, we will edit <code>Model.hs</code> as the following</p><pre><code>-- Model.hs
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -66,6 +66,7 @@ table will have <code>towhom</code> (<code>Text</code>), and <code>amount</code>
 module Model where
 
 import Data.Text
+import Data.Time
 import Database.Persist.TH
 import Database.Persist.Sql
 
@@ -75,10 +76,12 @@ share
     Income
       source Text
       amount Double
+      when   UTCTime
       deriving Show Eq
     Expense
       towhom Text
       amount Double
+      when   UTCTime
       deriving Show Eq
   |]
 </code></pre><p>At the second glance, I just realized that we use so many language extensions.
@@ -93,7 +96,8 @@ doMigration :: SqlPersistT IO ()
 doMigration = runMigration migrateAll
 </code></pre><p>If you wonder where did <code>migrateAll</code> come from, that value comes from the
 <code>share</code> block above.
-You can see <code>&quot;migrateAll&quot;</code> there. That's the magic of <code>Template Haskell</code>.</p>
+You can see <code>&quot;migrateAll&quot;</code> there. That's the magic of <code>Template Haskell</code>.</p><h4>Read Write</h4><p>Let's start by adding <code>monad-logger</code>, <code>monad-control</code>, and <code>transformers</code> in our
+<code>package.yaml</code> with the reason of satisfying a constraint of one of our functions.</p><p>We then create a source file named <code>ReadWrite.hs</code> on our <code>src</code> dir.</p>
             </section>
         </main>
     </body>

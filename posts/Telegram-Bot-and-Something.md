@@ -55,13 +55,14 @@ We will add a few dependencies on our `package.yaml`.
 - `persistent-template`, it eases our life a bit. Though prolong the compile time.
 - `esqueleto` it's nice to join the tables in a <del>bar</del> database.
 - `text`, I just like `Text`.
+- `time`
 
 Then, we will create a file named `Model.hs` in our `src` directory and include it
 as one of our source files.
 
 To simplify a bit, we will create two tables named `income` and `expense`.
-The `income` table will have `source` (`Text`) and `amount` (`Double`) while `expense`
-table will have `towhom` (`Text`), and `amount` (`Double`)
+The `income` table will have `source` (`Text`), `amount` (`Double`), and `when` (`UTCTime`) while `expense`
+table will have `towhom` (`Text`), `amount` (`Double`), and `when` (`UTCTime`).
 
 In order to accomplish that, we will edit `Model.hs` as the following
 ```
@@ -76,6 +77,7 @@ In order to accomplish that, we will edit `Model.hs` as the following
 module Model where
 
 import Data.Text
+import Data.Time
 import Database.Persist.TH
 import Database.Persist.Sql
 
@@ -85,10 +87,12 @@ share
     Income
       source Text
       amount Double
+      when   UTCTime
       deriving Show Eq
     Expense
       towhom Text
       amount Double
+      when   UTCTime
       deriving Show Eq
   |]
 
@@ -115,3 +119,10 @@ doMigration = runMigration migrateAll
 If you wonder where did `migrateAll` come from, that value comes from the
 `share` block above.
 You can see `"migrateAll"` there. That's the magic of `Template Haskell`.
+
+#### Read Write
+
+Let's start by adding `monad-logger`, `monad-control`, and `transformers` in our
+`package.yaml` with the reason of satisfying a constraint of one of our functions.
+
+We then create a source file named `ReadWrite.hs` on our `src` dir.
