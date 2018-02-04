@@ -126,3 +126,113 @@ Let's start by adding `monad-logger`, `monad-control`, and `transformers` in our
 `package.yaml` with the reason of satisfying a constraint of one of our functions.
 
 We then create a source file named `ReadWrite.hs` on our `src` dir.
+It will be really messy and we will have a lot of duplicated functions.
+For example, a function like this:
+```
+-- ReadWrite.hs
+insertIncome :: Text -> Double -> IO (Key Income)
+insertIncome source amount = do
+  now <- getCurrentTime
+  runDb $ insert $ Income source amount now
+
+insertExpense :: Text -> Double -> IO (Key Expense)
+insertExpense towhom amount = do
+  now <- getCurrentTime
+  runDb $ insert $ Expense towhom amount now
+
+```
+To be honest, I don't really know how to reduce the duplication.
+But that's another homework I have to solve for the next article, I guess.
+
+Okay, let's import library for `ReadWrite.hs`.
+```
+-- ReadWrite.hs
+import Control.Monad.IO.Class
+import Control.Monad.Logger
+import Control.Monad.Trans.Control
+import Control.Monad.Trans.Reader
+
+import Data.Text
+import Data.Time
+import Data.Maybe
+
+import Database.Persist.Postgresql (withPostgresqlConn)
+import Database.Esqueleto
+
+```
+As you've seen, there are a lot of `Control.Monad` libraries.
+Those libraries are used as the wrapper in our functions.
+And the reason is the program we write communicates with `RealWorld(tm)` and
+thus the data from/to our functions is safe.
+
+And don't forget to sprinkel some extensions so GHC can decide what kind of data
+we are using in the program.
+```
+-- ReadWrite.hs
+{-# LANGUAGE AllowAmbiguousTypes   #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE Rank2Types            #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE TypeFamilies          #-}
+
+```
+As usual, I really suggest you to read through GHC's documentation to get the
+explanations we need (or want) over what those extension do (or don't).
+
+Finally, we come to the simplest part of the program, read write information
+to the database.
+```
+-- ReadWrite.hs
+--| For executing queries.
+runDb ::
+     (MonadIO m, MonadBaseControl IO m)
+  => ReaderT SqlBackend (LoggingT m) a
+  -> m a
+runDb query = do
+  -- Yep, you read that right.
+  -- There's password and username hardcoded for db in here.
+  let con = "host=localhost port=5432 user=ibnu dbname=bot password=jaran"
+  runStderrLoggingT $ withPostgresqlConn con $ \backend -> runReaderT query backend
+
+```
+The function above takes a query, which is a read-only access to the database.
+"Read-only" what I mean here is, in a sense, a paved road built by government.
+You can't modify it, yet you can freely use it.
+Also, we have to use an instance of `LoggingT` for this function (by append `runStderrLoggingT`)
+to satisfy the demands from `withPostgresqlConn` so it can execute the query.
+
+After we wrote the executor, we will write the functions to read and write from/to database.
+The snippet about `insert` above pretty much enough for our need of insert at the moment.
+And for querying, we will create a few functions.
+
+```
+-- ReadWrite.hs
+searchIncomeBySource ::
+  (MonadBaseControl IO m, MonadIO m) => Text -> m [Income]
+searchIncomeBySource source = do
+  incomes <-
+    runDb $
+    select $
+    from $ \inc -> do
+      where_ (inc ^. IncomeSource ==. val source)
+      limit 10
+      orderBy [desc (inc ^. IncomeWhen)]
+      return inc
+  return $ map entityVal incomes
+
+```
+The snippet above queries the database to select from table `income` which satisfy
+the condition (`IncomeSource` equals to its argument) but only takes 10 rows and
+orders it based on `when` column.
+
+As I've complained above, about too many function duplications, we can create
+a function for expense by replacing 4 token.
+Just replace `Income` to `Expense` and presto! we have the function we want.
+
+The same goes for many other functions we need. 
+You can read it [here](https://gitlab.com/ibnuda/Telegram-Bot-Walkthrough/blob/feeb49d60a626047f4689072d29a0b3a06a4558f/src/ReadWrite.hs)
+if you want to read the rest.
+

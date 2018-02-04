@@ -97,7 +97,83 @@ doMigration = runMigration migrateAll
 </code></pre><p>If you wonder where did <code>migrateAll</code> come from, that value comes from the
 <code>share</code> block above.
 You can see <code>&quot;migrateAll&quot;</code> there. That's the magic of <code>Template Haskell</code>.</p><h4>Read Write</h4><p>Let's start by adding <code>monad-logger</code>, <code>monad-control</code>, and <code>transformers</code> in our
-<code>package.yaml</code> with the reason of satisfying a constraint of one of our functions.</p><p>We then create a source file named <code>ReadWrite.hs</code> on our <code>src</code> dir.</p>
+<code>package.yaml</code> with the reason of satisfying a constraint of one of our functions.</p><p>We then create a source file named <code>ReadWrite.hs</code> on our <code>src</code> dir.
+It will be really messy and we will have a lot of duplicated functions.
+For example, a function like this:</p><pre><code>-- ReadWrite.hs
+insertIncome :: Text -&gt; Double -&gt; IO (Key Income)
+insertIncome source amount = do
+  now &lt;- getCurrentTime
+  runDb $ insert $ Income source amount now
+
+insertExpense :: Text -&gt; Double -&gt; IO (Key Expense)
+insertExpense towhom amount = do
+  now &lt;- getCurrentTime
+  runDb $ insert $ Expense towhom amount now
+</code></pre><p>To be honest, I don't really know how to reduce the duplication.
+But that's another homework I have to solve for the next article, I guess.</p><p>Okay, let's import library for <code>ReadWrite.hs</code>.</p><pre><code>-- ReadWrite.hs
+import Control.Monad.IO.Class
+import Control.Monad.Logger
+import Control.Monad.Trans.Control
+import Control.Monad.Trans.Reader
+
+import Data.Text
+import Data.Time
+import Data.Maybe
+
+import Database.Persist.Postgresql (withPostgresqlConn)
+import Database.Esqueleto
+</code></pre><p>As you've seen, there are a lot of <code>Control.Monad</code> libraries.
+Those libraries are used as the wrapper in our functions.
+And the reason is the program we write communicates with <code>RealWorld(tm)</code> and
+thus the data from/to our functions is safe.</p><p>And don't forget to sprinkel some extensions so GHC can decide what kind of data
+we are using in the program.</p><pre><code>-- ReadWrite.hs
+{-# LANGUAGE AllowAmbiguousTypes   #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE Rank2Types            #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE TypeFamilies          #-}
+</code></pre><p>As usual, I really suggest you to read through GHC's documentation to get the
+explanations we need (or want) over what those extension do (or don't).</p><p>Finally, we come to the simplest part of the program, read write information
+to the database.</p><pre><code>-- ReadWrite.hs
+--| For executing queries.
+runDb ::
+     (MonadIO m, MonadBaseControl IO m)
+  =&gt; ReaderT SqlBackend (LoggingT m) a
+  -&gt; m a
+runDb query = do
+  -- Yep, you read that right.
+  -- There's password and username hardcoded for db in here.
+  let con = &quot;host=localhost port=5432 user=ibnu dbname=bot password=jaran&quot;
+  runStderrLoggingT $ withPostgresqlConn con $ \backend -&gt; runReaderT query backend
+</code></pre><p>The function above takes a query, which is a read-only access to the database.
+&quot;Read-only&quot; what I mean here is, in a sense, a paved road built by government.
+You can't modify it, yet you can freely use it.
+Also, we have to use an instance of <code>LoggingT</code> for this function (by append <code>runStderrLoggingT</code>)
+to satisfy the demands from <code>withPostgresqlConn</code> so it can execute the query.</p><p>After we wrote the executor, we will write the functions to read and write from/to database.
+The snippet about <code>insert</code> above pretty much enough for our need of insert at the moment.
+And for querying, we will create a few functions.</p><pre><code>-- ReadWrite.hs
+searchIncomeBySource ::
+  (MonadBaseControl IO m, MonadIO m) =&gt; Text -&gt; m [Income]
+searchIncomeBySource source = do
+  incomes &lt;-
+    runDb $
+    select $
+    from $ \inc -&gt; do
+      where_ (inc ^. IncomeSource ==. val source)
+      limit 10
+      orderBy [desc (inc ^. IncomeWhen)]
+      return inc
+  return $ map entityVal incomes
+</code></pre><p>The snippet above queries the database to select from table <code>income</code> which satisfy
+the condition (<code>IncomeSource</code> equals to its argument) but only takes 10 rows and
+orders it based on <code>when</code> column.</p><p>As I've complained above, about too many function duplications, we can create
+a function for expense by replacing 4 token.
+Just replace <code>Income</code> to <code>Expense</code> and presto! we have the function we want.</p><p>The same goes for many other functions we need. 
+You can read it <a href="https://gitlab.com/ibnuda/Telegram-Bot-Walkthrough/blob/feeb49d60a626047f4689072d29a0b3a06a4558f/src/ReadWrite.hs">here</a>
+if you want to read the rest.</p>
             </section>
         </main>
     </body>
