@@ -232,7 +232,77 @@ As I've complained above, about too many function duplications, we can create
 a function for expense by replacing 4 token.
 Just replace `Income` to `Expense` and presto! we have the function we want.
 
+There's a really rough edge on this file, though.
+```
+totalExpense ::
+     ( BaseBackend backend ~ SqlBackend
+     , PersistUniqueRead backend
+     , PersistQueryRead backend
+     , IsPersistBackend backend
+     , MonadIO m
+     )
+  => ReaderT backend m Double
+totalExpense = do
+  res <- select $ from $ \exp -> return $ joinV $ sum_ (exp ^. ExpenseAmount)
+  return $ head $ map (fromJust . unValue) res
+
+balance :: IO Double
+balance = do
+  inc <- runDb totalIncome
+  exp <- runDb totalExpense
+  return $ inc - exp
+
+```
+The function `totalExpense` above disregards three possibilities:
+
+- The table could be empty, thus the `res` value could be an empty list.
+- Because `res` could be an empty list, the function `head` is not safe at all.
+- And because `sum_`'s return value is `Maybe a`, the usage of `fromJust` is a really bad.
+
 The same goes for many other functions we need. 
 You can read it [here](https://gitlab.com/ibnuda/Telegram-Bot-Walkthrough/blob/feeb49d60a626047f4689072d29a0b3a06a4558f/src/ReadWrite.hs)
 if you want to read the rest.
 
+#### Types and Action
+
+If you read the example from [telegram-bot-simple](https://github.com/fizruk/telegram-bot-simple),
+you will know that the approach of this library is pretty similar to [miso](https://github.com/dmjio/miso)'s
+or Elm's approach on state management.
+And that means we have to define our `model` and `action` where every action on every state (or `model`)
+maybe has a different effects on it.
+
+So, let's define our `model` by open `Lib.hs` file on `src` dir.
+```
+-- Lib.hs
+import Data.Text
+
+import Model
+import ReadWrite
+
+data ChatContent
+  = IncomeOrExpense Text Double
+  | Other Text
+  | EmptyContent
+  deriving (Show, Eq)
+
+data ChatModel =
+  ChatModel ChatContent
+  deriving (Show, Eq)
+
+emptyChatModel = ChatModel EmptyContent
+
+data Action
+  = Empty
+  | ActHelp
+  | ActAddInc
+  | ActAddExp
+  | ActAddMessageText Text
+  | ActAddMessageDouble Double
+  deriving (Show, Eq)
+
+```
+On the snippet above, we defined `ChatContent` as, well, content of the state.
+Or `model` in Elm's lingo.
+We also defined `Action` that limits what could be done on this program.
+For example, `ActHelp` is an action that will be used to tell the program to
+show the user the "help messages."
