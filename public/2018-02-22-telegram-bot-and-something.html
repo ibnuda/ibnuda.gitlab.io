@@ -171,9 +171,43 @@ searchIncomeBySource source = do
 the condition (<code>IncomeSource</code> equals to its argument) but only takes 10 rows and
 orders it based on <code>when</code> column.</p><p>As I've complained above, about too many function duplications, we can create
 a function for expense by replacing 4 token.
-Just replace <code>Income</code> to <code>Expense</code> and presto! we have the function we want.</p><p>The same goes for many other functions we need. 
+Just replace <code>Income</code> to <code>Expense</code> and presto! we have the function we want.</p><p>There's a really rough edge on this file, though.</p><pre><code>totalExpense ::
+     ( BaseBackend backend ~ SqlBackend
+     , PersistUniqueRead backend
+     , PersistQueryRead backend
+     , IsPersistBackend backend
+     , MonadIO m
+     )
+  =&gt; ReaderT backend m Double
+totalExpense = do
+  res &lt;- select $ from $ \exp -&gt; return $ joinV $ sum_ (exp ^. ExpenseAmount)
+  return $ head $ map (fromJust . unValue) res
+
+balance :: IO Double
+balance = do
+  inc &lt;- runDb totalIncome
+  exp &lt;- runDb totalExpense
+  return $ inc - exp
+</code></pre><p>The function <code>totalExpense</code> above disregards three possibilities:</p><ul><li>The table could be empty, thus the <code>res</code> value could be an empty list.</li><li>Because <code>res</code> could be an empty list, the function <code>head</code> is not safe at all.</li><li>And because <code>sum_</code>'s return value is <code>Maybe a</code>, the usage of <code>fromJust</code> is a really bad.</li></ul><p>The same goes for many other functions we need. 
 You can read it <a href="https://gitlab.com/ibnuda/Telegram-Bot-Walkthrough/blob/feeb49d60a626047f4689072d29a0b3a06a4558f/src/ReadWrite.hs">here</a>
-if you want to read the rest.</p>
+if you want to read the rest.</p><h4>Types and Action</h4><p>If you read the example from <a href="https://github.com/fizruk/telegram-bot-simple">telegram-bot-simple</a>,
+you will know that the approach of this library is pretty similar to <a href="https://github.com/dmjio/miso">miso</a>'s
+or Elm's approach on state management.
+And that means we have to define our <code>model</code> and <code>action</code> where every action on every state (or <code>model</code>)
+maybe has a different effects on it.</p><p>So, let's define our <code>model</code> by open <code>Lib.hs</code> file on <code>src</code> dir.</p><pre><code>-- Lib.hs
+import Data.Text
+
+import Model
+import ReadWrite
+
+data ChatContent
+  = IncomeOrExpense Text Double
+  | Other Text
+  deriving (Show, Eq)
+
+data ChatModel = ChatModel
+  { content :: ChatContent
+  } deriving (Show, Eq)</code></pre>
             </section>
         </main>
     </body>
