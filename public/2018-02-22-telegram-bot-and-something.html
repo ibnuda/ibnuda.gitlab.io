@@ -256,7 +256,22 @@ incexpBotApp = BotApp
   , botJobs = []
   }
 </code></pre><p>The defined structure of the <code>BotApp</code> specifies what could be done when given a specific <code>Update</code>.
-Oh, forgot to tell, the message we (and bot) send is called <code>Update</code> in this package.</p>
+Oh, forgot to tell, the message we (and bot) send is called <code>Update</code> in this package.</p><p>At the moment, <code>updateToAction</code> and <code>updateHandler</code> haven't been defined yet.
+So take a moment to define those functions.</p><pre><code>-- Lib.hs
+updateToAction :: ChatModel -&gt; Update -&gt; Maybe Action
+updateToAction _ = parseUpdate $
+  ActHelp &lt;$ command (pack &quot;help&quot;) &lt;|&gt;
+  ActBalance &lt;$ command (pack &quot;balance&quot;) &lt;|&gt;
+  ActAddInc &lt;$ command (pack &quot;income&quot;) &lt;|&gt;
+  ActAddExp &lt;$ command (pack &quot;expense&quot;) &lt;|&gt;
+  ActSearchIncomes &lt;$  command (pack &quot;incomes&quot;) &lt;|&gt;
+  ActSearchExpenses &lt;$ command (pack &quot;expense&quot;) &lt;|&gt;
+  ActMessage &lt;$ plainText &lt;|&gt;
+  callbackQueryDataRead
+</code></pre><p>This <code>updateAction</code> function basically takes any kind of chat models and parses any update it has given to
+by read the message's text (<code>Update</code> has a lot of data in it).
+If the message's text starts with a slash (<code>/</code>) then it will return the appropriate action.
+But when the message's text does'nt start with a slash, it should regard the message's text as <code>ActMessage</code>.</p>
             </section>
         </main>
     </body>

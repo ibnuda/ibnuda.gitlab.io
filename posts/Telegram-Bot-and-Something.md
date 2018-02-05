@@ -357,3 +357,24 @@ incexpBotApp = BotApp
 The defined structure of the `BotApp` specifies what could be done when given a specific `Update`.
 Oh, forgot to tell, the message we (and bot) send is called `Update` in this package.
 
+At the moment, `updateToAction` and `updateHandler` haven't been defined yet.
+So take a moment to define those functions.
+
+```
+-- Lib.hs
+updateToAction :: ChatModel -> Update -> Maybe Action
+updateToAction _ = parseUpdate $
+  ActHelp <$ command (pack "help") <|>
+  ActBalance <$ command (pack "balance") <|>
+  ActAddInc <$ command (pack "income") <|>
+  ActAddExp <$ command (pack "expense") <|>
+  ActSearchIncomes <$  command (pack "incomes") <|>
+  ActSearchExpenses <$ command (pack "expense") <|>
+  ActMessage <$ plainText <|>
+  callbackQueryDataRead
+
+```
+This `updateAction` function basically takes any kind of chat models and parses any update it has given to
+by read the message's text (`Update` has a lot of data in it).
+If the message's text starts with a slash (`/`) then it will return the appropriate action.
+But when the message's text does'nt start with a slash, it should regard the message's text as `ActMessage`.
