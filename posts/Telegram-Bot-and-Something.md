@@ -292,8 +292,10 @@ Nothing particularly interesting here.
 -- Lib.hs
 data ChatState
   = IncomeOrExpense Text Double
-  | InsertingIncome Text
-  | InsertingExpense Text
+  | InsertingIncome
+  | InsertingIncomeSavedSource Text
+  | InsertingExpense
+  | InsertingExpenseSavedToWhom Text
   | SearchingIncome
   | SearchingExpense
   | CheckingBalance
@@ -303,12 +305,22 @@ data ChatState
 
 ```
 We defined a sumtype named `ChatState` to model the state of the application.
-As you have noted, there are a few types that's basically the same.
-For example, `InsertingIncome` and `InsertingExpense` which is "only" a wrapped `Text`.
-We do that because in order to insert an `Income` or `Expense`, based on the functions
-that has defined in`ReadWrite.hs` takes two parameters, namely `towhom` (or `source`)
-and `amount`, which `Text` and `Double` respectively, we only have to "hold" a `Text`
-value before we take another `Double` value and then calling the `insert` function.
+Because we can't really know the intention of the user when inserting, ah screw it.
+Let me show you an example.
+```
+		You: /income
+Bot: Who gave you the money?
+		You: Mom
+Bot: How much is it?
+		You: 420
+Bot: Okay, saved!
+
+```
+Because the nature of the conversation, we can't really rely on the program's "inteligence".
+It's a hard problem in NLP, isn't it?
+And we don't even use that.
+So, the easiest approach is we hold the state and saved input in the program itself as
+the `state`.
 
 Same goes for the other functions, we only need to take `n - 1` arguments, if any, before
 we call the corresponding query functions. 
