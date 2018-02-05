@@ -120,7 +120,7 @@ import Data.Text
 import Data.Time
 import Data.Maybe
 
-import Database.Persist.Postgresql (withPostgresqlConn)
+import Database.Persist.Postgresql (withPostgresqlConn, createPostgresqlPool)
 import Database.Esqueleto
 </code></pre><p>As you've seen, there are a lot of <code>Control.Monad</code> imports.
 Those libraries are used as the wrapper of computed data in our functions.
@@ -148,6 +148,12 @@ runDb query = do
   -- There's password and username hardcoded for db in here.
   let con = &quot;host=localhost port=5432 user=ibnu dbname=bot password=jaran&quot;
   runStderrLoggingT $ withPostgresqlConn con $ \backend -&gt; runReaderT query backend
+
+doingMigration :: (MonadIO m, MonadBaseControl IO m, MonadLogger m) =&gt; m ()
+doingMigration = do
+  let con = &quot;host=localhost port=5432 user=ibnu dbname=bot password=jaran&quot;
+  pool &lt;- createPostgresqlPool con 10
+  liftIO $ runSqlPool doMigration pool
 </code></pre><p>The function above takes a query, which is a read-only access to the database.
 &quot;Read-only&quot; what I mean here is, in a sense, a paved road built by government.
 You can't modify it, yet you can freely use it.
@@ -377,7 +383,7 @@ All of that will be followed by returning an <code>EmptyContent</code> as the st
             _ &lt;- liftIO $ insertIncome source amount
             replyString &quot;Ok, saved!&quot;
             pure Empty
-            </code></pre><p>The story that used for the above cases basically the same thing as the previous
+</code></pre><p>The story that used for the above cases basically the same thing as the previous
 explanation.</p><pre><code>    ChatModel SearchingExpense -&gt;
       ChatModel EmptyContent &lt;# do
         expenses &lt;- liftIO $ searchExpenseBySource message
@@ -388,16 +394,61 @@ explanation.</p><pre><code>    ChatModel SearchingExpense -&gt;
         incomes &lt;- liftIO $ searchIncomeBySource message
         mapM_ (replyString . show) incomes
         pure Empty
-    ChatModel CheckingBalance -&gt;
-      ChatModel EmptyContent &lt;# do
-        b &lt;- liftIO balance
-        replyString . show $ b
-        pure Empty
-    otherwise -&gt;
+</code></pre><p>Both the functions above indicate that we had an intention to query the database
+about what kind of income/expense from/to a certain entity.
+What makes differences here is the <code>mapM_ (replystring . show) expenses</code> (or <code>incomes</code>).
+<code>mapM_</code> is a function that iterates a list and then apply each and every element
+of the previous list to a function while discards the returned value of the computation.
+Pretty neat, ennit? Just like your usual <code>for</code> or <code>while</code>.</p><pre><code>    otherwise -&gt;
       model &lt;# do
         reply . toReplyMessage $ helpMessage
         pure Empty
-</code></pre>
+</code></pre><p>And the rest of pattern matching scheme, we will show the <code>helpMessage</code>.
+Like this.</p><pre><code>helpMessage :: Text
+helpMessage =
+  (intercalate $ pack &quot;\n&quot;) $
+  map
+    pack
+    [ &quot;/help to show this message.&quot;
+    , &quot;/balance to show balance.&quot;
+    , &quot;/income to insert income.&quot;
+    , &quot;/expense to insert expense.&quot;
+    , &quot;/incomes to show incomes from a source.&quot;
+    , &quot;/expenses to show expenses to an entity.&quot;
+    ]</code></pre><h4>Main Function and Telegram Preparation</h4><p>For the main function, we will have a really simple function.</p><pre><code>-- Lib.hs
+someFunc :: IO ()
+someFunc = do
+  runStderrLoggingT doingMigration
+  token &lt;- Token . pack &lt;$&gt; getEnv &quot;TOKEN_TELEGRAM&quot;
+  env &lt;- defaultTelegramClientEnv token
+  startBot_ (conversationBot updateChatId incexpBotApp) env
+</code></pre><p>Which basically creating tables, reading an env. variable, and then start the bot.</p><p>And now, we will create a new token for our bot.
+I will not screenshot the conversation between my account and @BotFather.</p><pre><code>                          me: /newbot
+BotFather: What's the name?
+                          me: SomethingBot
+BotFather: Ok. Here's your token. $TOKEN_TELEGRAM
+</code></pre><h4>Deployment</h4><p>All right, now you've got your token.
+Now, you have to set an public IP facing web server plus tls connection thingy.
+I've already set one before using <a href="2018-02-01-ssl-on-ip-address.html">my own</a> guide.</p><p>Let's try to save a few records.</p><pre><code>                                      Ibnu Aji: /income
+Expendable_Bot: Who gave you the money?
+                                      Ibnu Aji: Mom
+Expendable_Bot: How much is it?
+                                      Ibnu Aji: 420
+Expendable_Bot: Ok, saved!
+                                      Ibnu Aji: /expense
+Expendable_Bot: Who did you give it to?
+                                      Ibnu Aji: Little Sister
+Expendable_Bot: How much is it?
+                                      Ibnu Aji: 100
+Expendable_Bot: Ok, saved!
+                                      Ibnu Aji: /balance
+Expendable_Bot: 320.0
+</code></pre><p>Okay, we're finished here.
+It was a nice experience for me to show one of my friend about how easy it is
+to create a telegram bot.</p><h4>Exercises, If You Want</h4><p>That bot assumes only one account who uses it.
+You can see that in the table as there's no <code>account</code> or anything that can
+be recognized as one.
+So, if you want to flex your finger a bit, you can.</p><ol><li>Default value in <code>balance</code>.</li><li>User management.</li></ol>
             </section>
         </main>
     </body>

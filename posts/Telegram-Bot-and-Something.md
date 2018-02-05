@@ -155,7 +155,7 @@ import Data.Text
 import Data.Time
 import Data.Maybe
 
-import Database.Persist.Postgresql (withPostgresqlConn)
+import Database.Persist.Postgresql (withPostgresqlConn, createPostgresqlPool)
 import Database.Esqueleto
 
 ```
@@ -195,6 +195,12 @@ runDb query = do
   -- There's password and username hardcoded for db in here.
   let con = "host=localhost port=5432 user=ibnu dbname=bot password=jaran"
   runStderrLoggingT $ withPostgresqlConn con $ \backend -> runReaderT query backend
+
+doingMigration :: (MonadIO m, MonadBaseControl IO m, MonadLogger m) => m ()
+doingMigration = do
+  let con = "host=localhost port=5432 user=ibnu dbname=bot password=jaran"
+  pool <- createPostgresqlPool con 10
+  liftIO $ runSqlPool doMigration pool
 
 ```
 The function above takes a query, which is a read-only access to the database.
@@ -565,16 +571,89 @@ What makes differences here is the `mapM_ (replystring . show) expenses` (or `in
 `mapM_` is a function that iterates a list and then apply each and every element
 of the previous list to a function while discards the returned value of the computation.
 Pretty neat, ennit? Just like your usual `for` or `while`.
-
 ```
-    ChatModel CheckingBalance ->
-      ChatModel EmptyContent <# do
-        b <- liftIO balance
-        replyString . show $ b
-        pure Empty
     otherwise ->
       model <# do
         reply . toReplyMessage $ helpMessage
         pure Empty
 
 ```
+And the rest of pattern matching scheme, we will show the `helpMessage`.
+Like this.
+
+```
+helpMessage :: Text
+helpMessage =
+  (intercalate $ pack "\n") $
+  map
+    pack
+    [ "/help to show this message."
+    , "/balance to show balance."
+    , "/income to insert income."
+    , "/expense to insert expense."
+    , "/incomes to show incomes from a source."
+    , "/expenses to show expenses to an entity."
+    ]
+```
+#### Main Function and Telegram Preparation
+
+For the main function, we will have a really simple function.
+```
+-- Lib.hs
+someFunc :: IO ()
+someFunc = do
+  runStderrLoggingT doingMigration
+  token <- Token . pack <$> getEnv "TOKEN_TELEGRAM"
+  env <- defaultTelegramClientEnv token
+  startBot_ (conversationBot updateChatId incexpBotApp) env
+
+```
+Which basically creating tables, reading an env. variable, and then start the bot.
+
+And now, we will create a new token for our bot.
+I will not screenshot the conversation between my account and @BotFather.
+```
+                          me: /newbot
+BotFather: What's the name?
+                          me: SomethingBot
+BotFather: Ok. Here's your token. $TOKEN_TELEGRAM
+
+```
+#### Deployment
+
+All right, now you've got your token.
+Now, you have to set an public IP facing web server plus tls connection thingy.
+I've already set one before using [my own](2018-02-01-ssl-on-ip-address.html) guide.
+
+Let's try to save a few records.
+```
+                                      Ibnu Aji: /income
+Expendable_Bot: Who gave you the money?
+                                      Ibnu Aji: Mom
+Expendable_Bot: How much is it?
+                                      Ibnu Aji: 420
+Expendable_Bot: Ok, saved!
+                                      Ibnu Aji: /expense
+Expendable_Bot: Who did you give it to?
+                                      Ibnu Aji: Little Sister
+Expendable_Bot: How much is it?
+                                      Ibnu Aji: 100
+Expendable_Bot: Ok, saved!
+                                      Ibnu Aji: /balance
+Expendable_Bot: 320.0
+
+```
+
+Okay, we're finished here.
+It was a nice experience for me to show one of my friend about how easy it is
+to create a telegram bot.
+
+#### Exercises, If You Want
+
+That bot assumes only one account who uses it.
+You can see that in the table as there's no `account` or anything that can
+be recognized as one.
+So, if you want to flex your finger a bit, you can.
+
+1. Default value in `balance`.
+2. User management.
