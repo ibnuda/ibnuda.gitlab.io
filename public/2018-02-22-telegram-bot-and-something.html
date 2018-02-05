@@ -208,8 +208,10 @@ import Telegram.Bot.Simple.UpdateParser
 Nothing particularly interesting here.</p><pre><code>-- Lib.hs
 data ChatState
   = IncomeOrExpense Text Double
-  | InsertingIncome Text
-  | InsertingExpense Text
+  | InsertingIncome
+  | InsertingIncomeSavedSource Text
+  | InsertingExpense
+  | InsertingExpenseSavedToWhom Text
   | SearchingIncome
   | SearchingExpense
   | CheckingBalance
@@ -217,12 +219,18 @@ data ChatState
   | EmptyContent
   deriving (Show, Eq)
 </code></pre><p>We defined a sumtype named <code>ChatState</code> to model the state of the application.
-As you have noted, there are a few types that's basically the same.
-For example, <code>InsertingIncome</code> and <code>InsertingExpense</code> which is &quot;only&quot; a wrapped <code>Text</code>.
-We do that because in order to insert an <code>Income</code> or <code>Expense</code>, based on the functions
-that has defined in<code>ReadWrite.hs</code> takes two parameters, namely <code>towhom</code> (or <code>source</code>)
-and <code>amount</code>, which <code>Text</code> and <code>Double</code> respectively, we only have to &quot;hold&quot; a <code>Text</code>
-value before we take another <code>Double</code> value and then calling the <code>insert</code> function.</p><p>Same goes for the other functions, we only need to take <code>n - 1</code> arguments, if any, before
+Because we can't really know the intention of the user when inserting, ah screw it.
+Let me show you an example.</p><pre><code>        You: /income
+Bot: Who gave you the money?
+        You: Mom
+Bot: How much is it?
+        You: 420
+Bot: Okay, saved!
+</code></pre><p>Because the nature of the conversation, we can't really rely on the program's &quot;inteligence&quot;.
+It's a hard problem in NLP, isn't it?
+And we don't even use that.
+So, the easiest approach is we hold the state and saved input in the program itself as
+the <code>state</code>.</p><p>Same goes for the other functions, we only need to take <code>n - 1</code> arguments, if any, before
 we call the corresponding query functions.</p><pre><code>-- Lib.hs
 data ChatModel =
   ChatModel ChatState
