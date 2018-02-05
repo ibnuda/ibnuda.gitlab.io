@@ -52,7 +52,7 @@ We will add a few dependencies in our `package.yaml`.
 
 - `persistent` for talking to database.
 - `persistent-postgresql` for talking to postgresql, specifically.
-- `persistent-template`, it eases our life a bit. Though prolong the compile time.
+- `persistent-template`, it eases our life a bit. Though prolongs the compile time.
 - `esqueleto` it's nice to join the tables in a <del>bar</del> database.
 - `text`, I just like `Text`.
 - `time`
@@ -97,7 +97,6 @@ share
   |]
 
 ```
-
 On a second glance, I just realized that we use so many language extensions.
 As for the reasons, apart from `QuasiQuotes` and `TemplateHaskell`, I don't really
 know and just accept that GHC will fail to compile without them.
@@ -123,7 +122,7 @@ You can see `"migrateAll"` there. That's the magic of `Template Haskell`.
 #### Read Write
 
 Let's start by adding `monad-logger`, `monad-control`, and `transformers` in our
-`package.yaml` with the reason of satisfying a constraint of one of our functions.
+`package.yaml` with the reason of satisfying constraints of one of our functions.
 
 We then create a source file named `ReadWrite.hs` on our `src` dir.
 It will be really messy and we will have a lot of duplicated functions.
@@ -160,12 +159,12 @@ import Database.Persist.Postgresql (withPostgresqlConn)
 import Database.Esqueleto
 
 ```
-As you've seen, there are a lot of `Control.Monad` libraries.
-Those libraries are used as the wrapper in our functions.
+As you've seen, there are a lot of `Control.Monad` imports.
+Those libraries are used as the wrapper of computed data in our functions.
 And the reason is the program we write communicates with `RealWorld(tm)` and
-thus the data from/to our functions is safe.
+thus the data from/to our functions is safe and sound. Heheh.
 
-And don't forget to sprinkle some extensions so GHC can decide what kind of data
+Plus, don't forget to sprinkle some extensions so GHC can decide what kind of data
 we are using in the program.
 ```
 -- ReadWrite.hs
@@ -259,6 +258,9 @@ The function `totalExpense` above disregards three possibilities:
 - Because `res` could be an empty list, the function `head` is not safe at all.
 - And because `sum_`'s return value is `Maybe a`, the usage of `fromJust` is a really bad.
 
+Or if you love challange, you can modify that function so it returns a default value.
+0.0, for example.
+
 The same goes for many other functions we need. 
 You can read it [here](https://gitlab.com/ibnuda/Telegram-Bot-Walkthrough/blob/feeb49d60a626047f4689072d29a0b3a06a4558f/src/ReadWrite.hs)
 if you want to read the rest.
@@ -291,8 +293,7 @@ Nothing particularly interesting here.
 ```
 -- Lib.hs
 data ChatState
-  = IncomeOrExpense Text Double
-  | InsertingIncome
+  = InsertingIncome
   | InsertingIncomeSavedSource Text
   | InsertingExpense
   | InsertingExpenseSavedToWhom Text
@@ -308,11 +309,11 @@ We defined a sumtype named `ChatState` to model the state of the application.
 Because we can't really know the intention of the user when inserting, ah screw it.
 Let me show you an example.
 ```
-		You: /income
+                            You: /income
 Bot: Who gave you the money?
-		You: Mom
+                            You: Mom
 Bot: How much is it?
-		You: 420
+                            You: 420
 Bot: Okay, saved!
 
 ```
@@ -320,39 +321,43 @@ Because the nature of the conversation, we can't really rely on the program's "i
 It's a hard problem in NLP, isn't it?
 And we don't even use that.
 So, the easiest approach is we hold the state and saved input in the program itself as
-the `state`.
+part of the `state`.
 
-Same goes for the other functions, we only need to take `n - 1` arguments, if any, before
+Same goes for the other functions, we only need to take 1 argument tops, if any, before
 we call the corresponding query functions. 
- 
 ```
 -- Lib.hs
 data ChatModel =
   ChatModel ChatState
   deriving (Show, Eq)
 
+emptyChatModel :: ChatModel
 emptyChatModel = ChatModel EmptyContent
 
 data Action
   = Empty
   | ActHelp
+  | ActBalance
   | ActAddInc
   | ActAddExp
   | ActSearchIncome
   | ActSearchExpense
-  | ActAddExp
-  | ActAddMessageText Text
-  | ActAddMessageDouble Double
+  | ActAddMessage Text
   deriving (Show, Read)
 
 ```
 On the snippet above, we defined `ChatState` as, well, the the state of the application
 plus its content; or `model` in Elm's lingo.
 We also defined `Action` that limits what could be done on this program.
-For example, `ActHelp` is an action that will be used to tell the program to
-show the user the "help messages."
 And let the `Action` derives from `Show` and `Read` because we need them to be "show-able"
 and "read-able".
+Perhaps you're guessing where do we get `Action` from.
+It comes from the parsed or "read" value of message's text (`Update` data type).
+For example, `ActHelp` is an action that will be used to tell the program to
+show the user the "help messages" is a parsed from "/help" command which we will
+define in a moment.
+
+#### Inner Part of the Program
 
 Next, we will create an "app representation" of our session by adding the following lines.
 ```
@@ -371,7 +376,6 @@ Oh, forgot to tell, the message we (and bot) send is called `Update` in this pac
 
 At the moment, `updateToAction` and `updateHandler` haven't been defined yet.
 So take a moment to define those functions.
-
 ```
 -- Lib.hs
 updateToAction :: ChatModel -> Update -> Maybe Action
@@ -382,11 +386,195 @@ updateToAction _ = parseUpdate $
   ActAddExp <$ command (pack "expense") <|>
   ActSearchIncomes <$  command (pack "incomes") <|>
   ActSearchExpenses <$ command (pack "expense") <|>
-  ActMessage <$ plainText <|>
+  ActMessage <$> plainText <|>
   callbackQueryDataRead
 
 ```
-This `updateAction` function basically takes any kind of chat models and parses any update it has given to
-by read the message's text (`Update` has a lot of data in it).
-If the message's text starts with a slash (`/`) then it will return the appropriate action.
-But when the message's text does'nt start with a slash, it should regard the message's text as `ActMessage`.
+This `updateAction` function basically takes any kind of chat models and parses
+any update it has given to by reading the message's text (`Update` has a lot of data in it).
+If the message's text starts with a slash (`/`) then it will return the appropriate action
+after "choosing" (symbolized by `<|>` operator) between the `pack`ed strings.
+But when the message's text doesn't start with a slash, the function should regards
+the message's text as wrapped `Text` in `ActMessage`.
+
+Next, we will defined `updateHandler`.
+In short, it's a function to modify a state when given an action.
+But we will create a helper function first.
+The function above will send a `String` to the other side by transforming the `String`
+to a `Text` then transform it into `ReplyMessage` and then send it using `reply`
+```
+-- Lib.hs
+replyString :: String -> BotM ()
+replyString str = reply . toReplyMessage . pack $ str
+
+```
+And then create the function in the following snippets.
+```
+updateHandler :: Action -> Model -> Eff Action ChatModel
+updateHandler action model =
+  case action of
+    Empty -> pure model
+
+```
+Whenever a state applied by an `Empty` action, it will return the state unmodified.
+And basically a final destination so we will not receive an endless chat message from
+this program.
+```
+    ActHelp ->
+      emptyChatModel <# do
+        replyString "Help messages"
+        pure Empty
+
+```
+But when an `ActHelp` action being applied to any state, we will modify the state
+to `emptyChatModel` and send "Help messages." to the other side and then returning
+an `Empty` action.
+
+Oh, and what that `<#` operator does is, basically, after you send a reply or
+do whatever to the other scope of this system, you can return the left side of
+this operator.
+```
+    ActBalance ->
+      emptyChatModel <# do
+        liftIO balance >>= replyString . show
+        pure Empty
+
+```
+And when `ActBalance` being applied to any state, we still return an `emptyChatModel`
+and then returning an `Empty` action after sending a message of the returned value
+of `balance` (the function which returns your balance from database).
+About `liftIO`, you can basically say that it is a magic function which makes
+some wrapper into another wrapper.
+```
+    ActAddInc ->
+      ChatModel InsertingIncome <# do
+        replyString "Who gave you the money?"
+        pure Empty
+
+```
+When `ActAddInc` being applied to any state, we will return a `ChatModel InsertingIncome`
+while replying "Who gave you the money?" to the user which followed by returning
+an `Empty` action.
+
+We will continue the "conversation" in a few minutes.
+Please bear with me for a few more cases.
+```
+    ActAddExp ->
+      ChatModel InsertingExpense <# do
+        replyString "Who did you give it to?"
+        pure Empty
+
+```
+Basically still the same function as the previous case, actually.
+```
+    ActSearchIncome ->
+      ChatModel SearchingIncome <# do
+        replyString "Who are you looking for?"
+        pure Empty
+    ActSearchExpense ->
+      ChatModel SearchingExpense <# do
+        replyString "Who are you looking for?"
+        pure Empty
+
+```
+Still the same functions.
+But the state indicates the intention that the state itself is used for looking
+expenses.
+```
+    ActMessage msg -> messageHandler msg model
+
+```
+This case specializes when the message which the user has sent doesn't have a leading
+slash.
+So we will create a specialized function to pattern-match the state with the message
+content.
+```
+messageHandler :: Text -> ChatModel -> Eff Action ChatModel
+messageHandler message model =
+  case model of
+
+```
+To fill the gap between the previous case (`ActMessage msg`) and the return type
+of the function (`Eff Action ChatModel`), we created a function that takes a `Text`
+(from the `msg` in previous function) and `ChatModel` (which passed by the previous function)
+and returns an `Eff Action ChatModel`.
+
+And we pattern-matched the passed `model` with the following cases.
+```
+    ChatModel InsertingExpense ->
+      ChatModel (InsertingExpenseSavedSource message) <# do
+        replyString "How much is it?"
+        pure Empty
+
+```
+When the model indicates we had an intention to insert an expense before, we will
+modify the model to have `ChatModel (InsertingExpenseSavedSource message)` and then
+return it after we reply to the user while returning an `Empty` action.
+```
+    ChatModel (InsertingExpenseSavedSource source) ->
+      case (readMaybe $ unpack message :: Maybe Double) of
+        Nothing -> reasking model
+        Just amount ->
+          ChatModel EmptyContent <# do
+            _ <- liftIO $ insertExpense source amount
+            replyString "Ok, saved!"
+            pure Empty
+
+```
+On the other hand, when the program already has `ChatModel (InsertingExpenseSavedSource source)`
+as its state, we will try to read the message as a `Double`.
+If we failed to parse the message, we will call a function to ask the user to re-input
+the message.
+Otherwise, the parsed input will be used, together with `source`, as the input values
+for `insertExpense`.
+Which followed by sending "Ok, saved!" to the user and returning an `Empty` action.
+All of that will be followed by returning an `EmptyContent` as the state of the chat.
+```
+    ChatModel InsertingIncome ->
+      ChatModel (InsertingExpenseSavedSource message) <# do
+        replyString "How much is it?"
+        pure Empty
+    ChatModel (InsertingIncomeSavedSource source) ->
+      case (readMaybe $ unpack message :: Maybe Double) of
+        Nothing -> reasking model
+        Just amount ->
+          ChatModel EmptyContent <# do
+            _ <- liftIO $ insertIncome source amount
+            replyString "Ok, saved!"
+            pure Empty
+
+```
+The story that used for the above cases basically the same thing as the previous
+explanation.
+```
+    ChatModel SearchingExpense ->
+      ChatModel EmptyContent <# do
+        expenses <- liftIO $ searchExpenseBySource message
+        mapM_ (replyString . show) expenses
+        pure Empty
+    ChatModel SearchingIncome ->
+      ChatModel EmptyContent <# do
+        incomes <- liftIO $ searchIncomeBySource message
+        mapM_ (replyString . show) incomes
+        pure Empty
+
+```
+Both the functions above indicate that we had an intention to query the database
+about what kind of income/expense from/to a certain entity.
+What makes differences here is the `mapM_ (replystring . show) expenses` (or `incomes`).
+`mapM_` is a function that iterates a list and then apply each and every element
+of the previous list to a function while discards the returned value of the computation.
+Pretty neat, ennit? Just like your usual `for` or `while`.
+
+```
+    ChatModel CheckingBalance ->
+      ChatModel EmptyContent <# do
+        b <- liftIO balance
+        replyString . show $ b
+        pure Empty
+    otherwise ->
+      model <# do
+        reply . toReplyMessage $ helpMessage
+        pure Empty
+
+```
