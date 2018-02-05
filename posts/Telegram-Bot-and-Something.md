@@ -7,7 +7,7 @@ Though this time from a different person and on different problem.
 We are going to build a bot for Telegram instant messenger service which talks to database.
 For the sake of giving an example, let's say that we will create a telegram bot which
 records the income and expense.
-Trust me, it's really hairy and ugly.
+Words of caution: trust me, it's really hairy and ugly.
 
 Okay, let's start the mess.
 
@@ -26,10 +26,10 @@ packages:
 
 ```
 Which means that we will use that git repo (on that specified commit) on our program.
-As for the reason, I've failed to compile [`telegram-api`](https://hackage.haskell.org/package/telegram-api)
+As for the reason, I failed to compile [`telegram-api`](https://hackage.haskell.org/package/telegram-api)
 in the server I'm deploying to. 
 
-And then we will modify `package.yaml` to include the repo above as our dependency.
+And then we will modify `package.yaml` to include the repo above as one of our dependencies.
 
 ```
 # package.yaml
@@ -48,7 +48,7 @@ Next, we will create our domain model.
 
 ### Database Thingy
 
-We will add a few dependencies on our `package.yaml`.
+We will add a few dependencies in our `package.yaml`.
 
 - `persistent` for talking to database.
 - `persistent-postgresql` for talking to postgresql, specifically.
@@ -98,9 +98,9 @@ share
 
 ```
 
-At the second glance, I just realized that we use so many language extensions.
+On a second glance, I just realized that we use so many language extensions.
 As for the reasons, apart from `QuasiQuotes` and `TemplateHaskell`, I don't really
-know and just accept that GHC will complain without them.
+know and just accept that GHC will fail to compile without them.
 But if you insist, you can look at the [docs](http://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html)
 about them.
 
@@ -165,7 +165,7 @@ Those libraries are used as the wrapper in our functions.
 And the reason is the program we write communicates with `RealWorld(tm)` and
 thus the data from/to our functions is safe.
 
-And don't forget to sprinkel some extensions so GHC can decide what kind of data
+And don't forget to sprinkle some extensions so GHC can decide what kind of data
 we are using in the program.
 ```
 -- ReadWrite.hs
@@ -201,8 +201,8 @@ runDb query = do
 The function above takes a query, which is a read-only access to the database.
 "Read-only" what I mean here is, in a sense, a paved road built by government.
 You can't modify it, yet you can freely use it.
-Also, we have to use an instance of `LoggingT` for this function (by append `runStderrLoggingT`)
-to satisfy the demands from `withPostgresqlConn` so it can execute the query.
+Also, we have to use an instance of `LoggingT` for this function (by appending `runStderrLoggingT`)
+to satisfy the demands from `withPostgresqlConn` so it can execute the query properly.
 
 After we wrote the executor, we will write the functions to read and write from/to database.
 The snippet about `insert` above pretty much enough for our need of insert at the moment.
@@ -274,19 +274,49 @@ maybe has a different effects on it.
 So, let's define our `model` by open `Lib.hs` file on `src` dir.
 ```
 -- Lib.hs
-import Data.Text
-
 import Model
 import ReadWrite
 
-data ChatContent
+import Control.Applicative ((<|>))
+import Data.Maybe
+import Data.Text
+import Telegram.Bot.API
+import Telegram.Bot.Simple
+import Telegram.Bot.Simple.UpdateParser
+
+```
+Just standard imports.
+Nothing particularly interesting here.
+
+```
+-- Lib.hs
+data ChatState
   = IncomeOrExpense Text Double
+  | InsertingIncome Text
+  | InsertingExpense Text
+  | SearchingIncome
+  | SearchingExpense
+  | CheckingBalance
   | Other Text
   | EmptyContent
   deriving (Show, Eq)
 
+```
+We defined a sumtype named `ChatState` to model the state of the application.
+As you have noted, there are a few types that's basically the same.
+For example, `InsertingIncome` and `InsertingExpense` which is "only" a wrapped `Text`.
+We do that because in order to insert an `Income` or `Expense`, based on the functions
+that has defined in`ReadWrite.hs` takes two parameters, namely `towhom` (or `source`)
+and `amount`, which `Text` and `Double` respectively, we only have to "hold" a `Text`
+value before we take another `Double` value and then calling the `insert` function.
+
+Same goes for the other functions, we only need to take `n - 1` arguments, if any, before
+we call the corresponding query functions. 
+ 
+```
+-- Lib.hs
 data ChatModel =
-  ChatModel ChatContent
+  ChatModel ChatState
   deriving (Show, Eq)
 
 emptyChatModel = ChatModel EmptyContent
@@ -296,13 +326,34 @@ data Action
   | ActHelp
   | ActAddInc
   | ActAddExp
+  | ActSearchIncome
+  | ActSearchExpense
+  | ActAddExp
   | ActAddMessageText Text
   | ActAddMessageDouble Double
-  deriving (Show, Eq)
+  deriving (Show, Read)
 
 ```
-On the snippet above, we defined `ChatContent` as, well, content of the state.
-Or `model` in Elm's lingo.
+On the snippet above, we defined `ChatState` as, well, the the state of the application
+plus its content; or `model` in Elm's lingo.
 We also defined `Action` that limits what could be done on this program.
 For example, `ActHelp` is an action that will be used to tell the program to
 show the user the "help messages."
+And let the `Action` derives from `Show` and `Read` because we need them to be "show-able"
+and "read-able".
+
+Next, we will create an "app representation" of our session by adding the following lines.
+```
+-- Lib.hs
+incexpBotApp :: BotApp ChatModel Action
+incexpBotApp = BotApp
+  { botInitialModel = emptyChatModel
+  , botAction = flip updateToAction
+  , botHandler = updateHandler
+  , botJobs = []
+  }
+
+```
+The defined structure of the `BotApp` specifies what could be done when given a specific `Update`.
+Oh, forgot to tell, the message we (and bot) send is called `Update` in this package.
+

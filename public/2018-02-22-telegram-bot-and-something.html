@@ -36,7 +36,7 @@ Though this time from a different person and on different problem.
 We are going to build a bot for Telegram instant messenger service which talks to database.
 For the sake of giving an example, let's say that we will create a telegram bot which
 records the income and expense.
-Trust me, it's really hairy and ugly.</p><p>Okay, let's start the mess.</p><h3>Preparation</h3><p>Just type <code>stack new OurBot new-template</code> into your terminal and then modify <code>stack.yaml</code>.
+Words of caution: trust me, it's really hairy and ugly.</p><p>Okay, let's start the mess.</p><h3>Preparation</h3><p>Just type <code>stack new OurBot new-template</code> into your terminal and then modify <code>stack.yaml</code>.
 Insert the following lines in it</p><pre><code># stack.yaml
 packages:
 - .
@@ -45,14 +45,14 @@ packages:
     commit: c1cc6bbba14ca79c897586e2de28433193c0b9fd
   extra-dep: true
 </code></pre><p>Which means that we will use that git repo (on that specified commit) on our program.
-As for the reason, I've failed to compile <a href="https://hackage.haskell.org/package/telegram-api"><code>telegram-api</code></a>
-in the server I'm deploying to.</p><p>And then we will modify <code>package.yaml</code> to include the repo above as our dependency.</p><pre><code># package.yaml
+As for the reason, I failed to compile <a href="https://hackage.haskell.org/package/telegram-api"><code>telegram-api</code></a>
+in the server I'm deploying to.</p><p>And then we will modify <code>package.yaml</code> to include the repo above as one of our dependencies.</p><pre><code># package.yaml
 dependencies:
 - base &gt;= 4.7 &amp;&amp; &lt; 5
 - telegram-bot-simple
 </code></pre><p>Where <code>telegram-bot-simple</code> is the name of the library which we previously included
 in our <code>stack.yaml</code>.</p><p>Let's build it for a giggle by issuing <code>stack build</code> at the project's root directory.
-It should compile just fine, I guess.</p><p>Next, we will create our domain model.</p><h3>Database Thingy</h3><p>We will add a few dependencies on our <code>package.yaml</code>.</p><ul><li><code>persistent</code> for talking to database.</li><li><code>persistent-postgresql</code> for talking to postgresql, specifically.</li><li><code>persistent-template</code>, it eases our life a bit. Though prolong the compile time.</li><li><code>esqueleto</code> it's nice to join the tables in a <del>bar</del> database.</li><li><code>text</code>, I just like <code>Text</code>.</li><li><code>time</code></li></ul><p>Then, we will create a file named <code>Model.hs</code> in our <code>src</code> directory and include it
+It should compile just fine, I guess.</p><p>Next, we will create our domain model.</p><h3>Database Thingy</h3><p>We will add a few dependencies in our <code>package.yaml</code>.</p><ul><li><code>persistent</code> for talking to database.</li><li><code>persistent-postgresql</code> for talking to postgresql, specifically.</li><li><code>persistent-template</code>, it eases our life a bit. Though prolong the compile time.</li><li><code>esqueleto</code> it's nice to join the tables in a <del>bar</del> database.</li><li><code>text</code>, I just like <code>Text</code>.</li><li><code>time</code></li></ul><p>Then, we will create a file named <code>Model.hs</code> in our <code>src</code> directory and include it
 as one of our source files.</p><p>To simplify a bit, we will create two tables named <code>income</code> and <code>expense</code>.
 The <code>income</code> table will have <code>source</code> (<code>Text</code>), <code>amount</code> (<code>Double</code>), and <code>when</code> (<code>UTCTime</code>) while <code>expense</code>
 table will have <code>towhom</code> (<code>Text</code>), <code>amount</code> (<code>Double</code>), and <code>when</code> (<code>UTCTime</code>).</p><p>In order to accomplish that, we will edit <code>Model.hs</code> as the following</p><pre><code>-- Model.hs
@@ -84,9 +84,9 @@ share
       when   UTCTime
       deriving Show Eq
   |]
-</code></pre><p>At the second glance, I just realized that we use so many language extensions.
+</code></pre><p>On a second glance, I just realized that we use so many language extensions.
 As for the reasons, apart from <code>QuasiQuotes</code> and <code>TemplateHaskell</code>, I don't really
-know and just accept that GHC will complain without them.
+know and just accept that GHC will fail to compile without them.
 But if you insist, you can look at the <a href="http://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html">docs</a>
 about them.</p><p>Anyway, the snippet above, especially the <code>share</code> block, defines that we will
 create tables name <code>income</code> and <code>expense</code>, which we have specified before the snippet.</p><p>And for the &quot;migration plan&quot;, just a fancy way to say about creating and/or dropping
@@ -125,7 +125,7 @@ import Database.Esqueleto
 </code></pre><p>As you've seen, there are a lot of <code>Control.Monad</code> libraries.
 Those libraries are used as the wrapper in our functions.
 And the reason is the program we write communicates with <code>RealWorld(tm)</code> and
-thus the data from/to our functions is safe.</p><p>And don't forget to sprinkel some extensions so GHC can decide what kind of data
+thus the data from/to our functions is safe.</p><p>And don't forget to sprinkle some extensions so GHC can decide what kind of data
 we are using in the program.</p><pre><code>-- ReadWrite.hs
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -151,8 +151,8 @@ runDb query = do
 </code></pre><p>The function above takes a query, which is a read-only access to the database.
 &quot;Read-only&quot; what I mean here is, in a sense, a paved road built by government.
 You can't modify it, yet you can freely use it.
-Also, we have to use an instance of <code>LoggingT</code> for this function (by append <code>runStderrLoggingT</code>)
-to satisfy the demands from <code>withPostgresqlConn</code> so it can execute the query.</p><p>After we wrote the executor, we will write the functions to read and write from/to database.
+Also, we have to use an instance of <code>LoggingT</code> for this function (by appending <code>runStderrLoggingT</code>)
+to satisfy the demands from <code>withPostgresqlConn</code> so it can execute the query properly.</p><p>After we wrote the executor, we will write the functions to read and write from/to database.
 The snippet about <code>insert</code> above pretty much enough for our need of insert at the moment.
 And for querying, we will create a few functions.</p><pre><code>-- ReadWrite.hs
 searchIncomeBySource ::
@@ -195,19 +195,68 @@ you will know that the approach of this library is pretty similar to <a href="ht
 or Elm's approach on state management.
 And that means we have to define our <code>model</code> and <code>action</code> where every action on every state (or <code>model</code>)
 maybe has a different effects on it.</p><p>So, let's define our <code>model</code> by open <code>Lib.hs</code> file on <code>src</code> dir.</p><pre><code>-- Lib.hs
-import Data.Text
-
 import Model
 import ReadWrite
 
-data ChatContent
+import Control.Applicative ((&lt;|&gt;))
+import Data.Maybe
+import Data.Text
+import Telegram.Bot.API
+import Telegram.Bot.Simple
+import Telegram.Bot.Simple.UpdateParser
+</code></pre><p>Just standard imports.
+Nothing particularly interesting here.</p><pre><code>-- Lib.hs
+data ChatState
   = IncomeOrExpense Text Double
+  | InsertingIncome Text
+  | InsertingExpense Text
+  | SearchingIncome
+  | SearchingExpense
+  | CheckingBalance
   | Other Text
+  | EmptyContent
+  deriving (Show, Eq)
+</code></pre><p>We defined a sumtype named <code>ChatState</code> to model the state of the application.
+As you have noted, there are a few types that's basically the same.
+For example, <code>InsertingIncome</code> and <code>InsertingExpense</code> which is &quot;only&quot; a wrapped <code>Text</code>.
+We do that because in order to insert an <code>Income</code> or <code>Expense</code>, based on the functions
+that has defined in<code>ReadWrite.hs</code> takes two parameters, namely <code>towhom</code> (or <code>source</code>)
+and <code>amount</code>, which <code>Text</code> and <code>Double</code> respectively, we only have to &quot;hold&quot; a <code>Text</code>
+value before we take another <code>Double</code> value and then calling the <code>insert</code> function.</p><p>Same goes for the other functions, we only need to take <code>n - 1</code> arguments, if any, before
+we call the corresponding query functions.</p><pre><code>-- Lib.hs
+data ChatModel =
+  ChatModel ChatState
   deriving (Show, Eq)
 
-data ChatModel = ChatModel
-  { content :: ChatContent
-  } deriving (Show, Eq)</code></pre>
+emptyChatModel = ChatModel EmptyContent
+
+data Action
+  = Empty
+  | ActHelp
+  | ActAddInc
+  | ActAddExp
+  | ActSearchIncome
+  | ActSearchExpense
+  | ActAddExp
+  | ActAddMessageText Text
+  | ActAddMessageDouble Double
+  deriving (Show, Read)
+</code></pre><p>On the snippet above, we defined <code>ChatState</code> as, well, the the state of the application
+plus its content; or <code>model</code> in Elm's lingo.
+We also defined <code>Action</code> that limits what could be done on this program.
+For example, <code>ActHelp</code> is an action that will be used to tell the program to
+show the user the &quot;help messages.&quot;
+And let the <code>Action</code> derives from <code>Show</code> and <code>Read</code> because we need them to be &quot;show-able&quot;
+and &quot;read-able&quot;.</p><p>Next, we will create an &quot;app representation&quot; of our session by adding the following lines.</p><pre><code>-- Lib.hs
+incexpBotApp :: BotApp ChatModel Action
+incexpBotApp = BotApp
+  { botInitialModel = emptyChatModel
+  , botAction = flip updateToAction
+  , botHandler = updateHandler
+  , botJobs = []
+  }
+</code></pre><p>The defined structure of the <code>BotApp</code> specifies what could be done when given a specific <code>Update</code>.
+Oh, forgot to tell, the message we (and bot) send is called <code>Update</code> in this package.</p>
             </section>
         </main>
     </body>
