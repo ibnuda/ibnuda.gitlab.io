@@ -1,6 +1,6 @@
 *,*:after,*:before{box-sizing:inherit}
 html{box-sizing:border-box;font-size:75%;position:relative;min-height:100%}
-body{color:#606c76;font-family:'Roboto','Helvetica Neue','Helvetica','Arial',sans-serif;font-size:1.6em;font-weight:300;letter-spacing:.01em;line-height:1.6}
+body{color:#000000;font-family:'Roboto','Helvetica Neue','Helvetica','Arial',sans-serif;font-size:1.6em;font-weight:300;letter-spacing:.01em;line-height:1.6}
 blockquote{border-left:0.3rem solid #d1d1d1;margin-left:0;margin-right:0;padding:1rem 1.5rem}
 blockquote *:last-child{margin-bottom:0}
 code{background:#f4f5f6;border-radius:.4rem;margin:0 .2rem;padding:.2rem .5rem;white-space:nowrap}
@@ -10,7 +10,7 @@ hr{border:0;border-top:0.1rem solid #f4f5f6;margin:3.0rem 0}
 label,legend{display:block;font-size:1.6rem;font-weight:700;margin-bottom:.5rem}
 fieldset{border-width:0;padding:0}
 .label-inline{display:inline-block;font-weight:normal;margin-left:.5rem}
-.container{margin:0 auto;max-width:112.0rem;padding:0 2.0rem;position:relative;width:100%}
+.container{margin:0 auto;max-width:120.0rem;padding:0 2.0rem;position:relative;width:100%}
 .row{display:flex;flex-direction:column;padding:0;width:100%}
 .row.row-no-padding{padding:0}
 .row.row-no-padding>.column{padding:0}
@@ -47,8 +47,8 @@ fieldset{border-width:0;padding:0}
 @media (min-width:40rem){.row{flex-direction:row;margin-left:-1.0rem;width:calc(100% + 2.0rem)}
 .row .column{margin-bottom:inherit;padding:0 1.0rem}
 }
-a{color:#1a0370;text-decoration:none}
-a:focus,a:hover{color:#606c76}
+a{color:#2800b8;text-decoration:none}
+a:focus,a:hover{color:#136eb8}
 dl,ol,ul{list-style:none;margin-top:0;padding-left:0}
 dl dl,dl ol,dl ul,ol dl,ol ol,ol ul,ul dl,ul ol,ul ul{font-size:90%;margin:1.5rem 0 1.5rem 3.0rem}
 ol{list-style:decimal inside}
@@ -77,7 +77,7 @@ img{max-width:100%}
 .wrapper .container{max-width:80rem}
 .wrapper>.container{padding-bottom:7.5rem;padding-top:7.5rem}
 .header{background-color:#f4f5f6;padding-top:1rem}
-footer{float:right;position:absolute;bottom:0;right:2rem;font-size:70%;overflow:hidden}
+footer{float:right;position:absolute;bottom:0;right:2rem;font-size:80%;overflow:hidden}
 @media (min-width:40rem){.header{padding-top:5rem}
 }
 .header+section{border-top:0}
@@ -92,6 +92,6 @@ footer{float:right;position:absolute;bottom:0;right:2rem;font-size:70%;overflow:
 @media (min-width:80rem){.navigation .navigation-list{margin-right:0}
 }
 .navigation .img{fill:#330152;height:2rem;position:relative;top:.3rem}
-.navigation .navigation-title,.navigation .title{color:#6a747c;font-family:Gotham Rounded A,Gotham Rounded B,Helvetica Neue,Arial,sans-serif;position:relative}
+.navigation .navigation-title,.navigation .title{color:#000000;font-family:Gotham Rounded A,Gotham Rounded B,Helvetica Neue,Arial,sans-serif;position:relative}
 .navigation .navigation-link,.navigation .navigation-title,.navigation .title{display:inline;font-size:1.6rem;line-height:5.2rem;padding:0;text-decoration:none}
-.navigation .navigation-link.active{color:#606c76}
+.navigation .navigation-link.active{color:#920000}
