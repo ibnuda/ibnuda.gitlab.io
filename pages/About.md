@@ -8,4 +8,4 @@ I dabble in F#, Haskal, and stuff like that. Just for shit and giggle, mostly.
 
 I don't really comfortable putting my info in the internet.
 
-But if you really really really want to contact me, just throw some emails to wearenota at horsefucker dot org. (which I rarely open. perhaps once in a month.)
+But if you really really really want to contact me, just throw some emails to ibnudaruaji at outlook dot co dot id.
