@@ -9,7 +9,6 @@ module Lib.ReadWrite
   ) where
 
 import           Data.Text
-import           Data.Text.IO     hiding (putStrLn)
 import           Data.Time
 import           System.Directory
 import qualified Text.Read        as TR

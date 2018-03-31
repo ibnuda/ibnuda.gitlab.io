@@ -14,8 +14,8 @@ main = do
       fullFledgedHtmlGeneration defaultConfig
     ["clean"] -> deleteOnlyFiles $ pathGenerated defaultConfig
     _ -> do
-      putStrLn ("should be one of the following:" :: Text)
-      putStrLn ("new post title_of_post" :: Text)
-      putStrLn ("new page title_of_page" :: Text)
-      putStrLn ("compile" :: Text)
-      putStrLn ("clean" :: Text)
+      putText "should be one of the following:"
+      putText "new post title_of_post"
+      putText "new page title_of_page"
+      putText "compile"
+      putText "clean"
