@@ -4,8 +4,6 @@ About
 # About Me
 My name is Ibnu D. Aji. I don't know what am I doing most of the time.
 
-I dabble in F#, Haskal, and stuff like that. Just for shit and giggle, mostly.
+This blog is where I write (mostly) technical stuff that I (rarely) have the will to do so.
 
-I don't really comfortable putting my info in the internet.
-
-But if you really really really want to contact me, just throw some emails to ibnudaruaji at outlook dot co dot id.
+If you really really really want to contact me, just throw some emails to ibnudaruaji at outlook dot co dot id.
