@@ -4,10 +4,11 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" value="width=device-width, initial-scale=1.0, user-scalable=yes">
-        <meta name="description" value="# Cloning FluxBB (NOT FINISHED YET)
-
-Writing a forum software is one of a few things that I-wished-I-have-but-haven&#39;t in the last of couple of years.
-For example, among a gazillion abandoned repos on ">
+        <meta name="description" value="# Cloning FluxBB (In Progress)
+ 
+Writing a forum software is one of a few things that I-wished-I-have-but-haven&#39;t
+in the last of couple of years.
+For example, among a gazillion abandoned repos on this">
         <meta name="author" value="Ibnu D. Aji">
         <link rel="stylesheet" type="text/css" href="static/css/milligram.min.css">
         <title>
@@ -40,10 +41,70 @@ For example, among a gazillion abandoned repos on ">
                 </section>
             </nav>
             <section class="container">
-                <h1>Cloning FluxBB (NOT FINISHED YET)</h1><p>Writing a forum software is one of a few things that I-wished-I-have-but-haven't in the last of couple of years.
-For example, among a gazillion abandoned repos on this GitLab account, <a href="https://gitlab.com/ibnuda/Forum"><code>Forum</code></a> is one of them.
-If you take a glance on it, you will see -- obviously -- that it's an unfinished forum software.</p><p>So, I decided to take a different approach to finally do it, no matter what it takes.
-I will use the following tech:</p><ul><li>FluxBB's database structure. Though in this case, it will be mutilated gruesomely.</li><li>Yesod. A great framework with bells and whistles.</li><li>Esqueleto. See, it's nice to join tables in a bar and/or database.</li></ul><h2>Database Design</h2><p>I don't know whether database mutilation breaks 180 KUHP or not.</p><h2>Inner Workings</h2><ul><li>User's story</li><li>Mod's story</li><li>Admin's story</li></ul><h2>Layout and UI</h2><p>No JavaScript, obviously. <small> Because I don't understand it</small></p>
+                <h1>Cloning FluxBB (In Progress)</h1><p>Writing a forum software is one of a few things that I-wished-I-have-but-haven't
+in the last of couple of years.
+For example, among a gazillion abandoned repos on this GitLab account,
+<a href="https://gitlab.com/ibnuda/Forum"><code>Forum</code></a> is one of them.
+If you take a glance on it, you will see -- obviously -- that it's an unfinished
+forum software.</p><p>So, I decided to take a different approach to finally do it, no matter what it takes.
+I will use the following tech:</p><ul><li>FluxBB's database structure. Though in this case, it will be mutilated gruesomely.</li><li>Yesod. A great framework with bells and whistles.</li><li>Esqueleto. See, it's nice to be able to join tables in a bar and/or database.</li></ul><p>Okay, before we start to write this clone, we should ensure a few things.
+For example, the structure of the tables of this program and what one usually
+expects when they use and/or administer a forum software.</p><h3>Database Design</h3><p>Because forum software basically is just a CRUD program, we have to define it first.
+Fortunately, <a href="https://fluxbb.org/docs/v1.5/dbstructure">FluxBB's database structure</a>
+is not really complicated.
+Not only that, a lot of its fields are <code>nullable</code>, so we can be remove them in this
+clone.</p><p>For example, we will not use some of nullables of <code>Users</code>'s columns.
+So, instead of <a href="https://fluxbb.org/docs/v1.5/dbstructure#users">this</a>, we will
+use (in <code>persistent</code>'s fields)</p><pre><code>Users
+  groupId GroupsId
+  username Text
+  email Text
+  password Maybe Text -- we will discuss it later.
+  joinTime UTCTime
+  topicStarted Int default=0
+  repliesPosted Int default=0
+  UniqueUsername username -- we will also discuss it later.
+  UniqueEmail email
+  deriving Show Eq
+</code></pre><p>Furthermore, we will not use a few FluxBB's tables. For example, we won't use
+<code>permissions</code>, <code>forum_subscribtions</code>, and <code>topic_subscribtions</code>.</p><h3>Inner Workings</h3><p>In real FluxBB's use case, an administator could set a set of permissions for
+a certain groups (<code>moderator</code>, for example) to do something peculiar like capable
+of banning users, but not editing users' profiles.
+We will not give the users and administator these kind of features it's too
+complicated for my purpose.</p><p>So, instead of the actual FluxBB's features, we will dumb it down like the following:</p><ul><li><b>Users can</b><ul><li>Read <code>topic</code>s and <code>forum</code>s.</li><li>Create <code>topic</code> (or <code>thread</code> or <code>discussion</code>).</li><li>Reply <code>topic</code>.</li><li>Edit his own <code>reply</code></li><li>Edit information.</li><li>Can <code>report</code> people.</li></ul></li><li><b>Moderators</b><ul><li>User's capabilities plus</li><li>Can lock thread.</li><li>Can ban users.</li><li>Can unban users.</li><li>Can respond to <code>reports</code>.</li></ul></li><li><b>Administrators</b><ul><li>Moderator's capabilities plus</li><li>Can create <code>forum</code>.</li><li>Can create <code>category</code>.</li><li>Can promote user to become a Moderator or Administrator.</li><li>Can demote user.</li></ul></li><li><b>Banneds</b><ul><li>Only logout.</li></ul></li></ul><h3>Layout and UI</h3><p>I'll make a confession, I don't understand CSS and JavaScript.
+So, I will use a small CSS framework, <a href="http://milligram.io/">milligram</a> as helper
+and no JS in this program.
+That means, we will treat this forum's interface (HTML) as purely a document presentation.
+Baring a few buttons and text inputs.
+I really hope you don't mind about it.</p><h3>The Approach</h3><p>We will build up the forum from <code>yesod-minimal</code> template from stack and then slowly
+turn it into <code>yesod-postgres</code> and then to a FluxBB's clone.
+While we're at it, I will try my best to explain why we do what we do.</p><h2>Start Typing</h2><p>First of all, I will assume that you will use stack as your build tool.
+Okay, let's start typing.</p><p>We will create a <code>yesod-minimal</code> project by typing <code>stack new [our-project] yesod-minimal</code>
+in our terminal emulator.
+After that, we will see a few files along these lines:</p><pre><code>.
+├── app
+│   └── Main.hs
+├── Cirkeltrek.cabal
+├── package.yaml
+├── README.md
+├── routes
+├── src
+│   ├── Add.hs
+│   ├── Application.hs
+│   ├── Foundation.hs
+│   └── Home.hs
+└── stack.yaml
+</code></pre><p>First, we will edit <code>stack.yaml</code> file to add an external dependency.
+We will add the following lines</p><pre><code>extra-deps:
+- git: https://github.com/bitemyapp/esqueleto
+  commit: b81e0d951e510ebffca03c5a58658ad884cc6fbd
+</code></pre><p>which means that we will use the library in the repo above with that specific
+commit.
+As for the reason, Mr. Allen says that currently, supporting <code>persistent-2.8.1</code>
+is not his priority and he gives the above lines as the solution of this situation.
+Thanks, Mr. Allen.</p><p>Then, we will remove <code>src/Add.hs</code> file and remove any references to it.
+And that means, we will remove <code>/add/#Int64/#Int64 AddR</code> in <code>./routes</code>,
+<code>import Add</code> in <code>src/Foundation.hs</code>, and <code>&lt;a href=@{AddR }&gt;</code> in <code>src/Home</code></p><p>After that, we will add the following packages to the <code>package.yaml</code></p><ul><li><code>classy-prelude-yesod</code>: just what &quot;the kool kids&quot; use plus some nice <code>yesod</code> helpers.</li><li><code>classy-prelude</code></li><li><code>esqueleto</code>: Who doesn't love joining tables?</li><li><code>yesod-auth-hashdb</code>: We really need authentication.</li><li><code>yesod-auth</code></li><li><code>yesod-core</code>: Core framework.</li><li><code>yesod-form</code>: We will use forms extensively here.</li><li><code>yesod</code></li></ul><p>Now, let's push it to our repo.</p>
             </section>
         </main>
     </body>
