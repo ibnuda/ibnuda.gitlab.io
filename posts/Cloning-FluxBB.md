@@ -105,6 +105,8 @@ While we're at it, I will try my best to explain why we do what we do.
 
 ## Start Typing
 
+### Project Setup
+
 First of all, I will assume that you will use stack as your build tool.
 Okay, let's start typing.
 
@@ -156,4 +158,170 @@ After that, we will add the following packages to the `package.yaml`
 - `yesod-form`: We will use forms extensively here.
 - `yesod`
 
-Now, let's push it to our repo.
+Now, let's push it to our repo. (our current progress is saved
+[here](https://gitlab.com/ibnuda/Cirkeltrek/commit/fdd5220cce105a2f75fa9d9403b892b4da18c534))
+
+### Foundation Building
+
+In the scaffolded templates, you will see a lot of stuff going, on which baffled
+me a couple months ago, from settings, database, and templating.
+Surely, the yesod-book and the templates' comments helped me a lot but it was 
+not enough for to grasp the reasoning of the decisions made by the author of the
+templates.
+That and my hot-headed temper combined, resulted a few abandoned projects in my
+GitLab account.
+I'm sorry for ranting.
+
+Okay, so we will continue the this little toy.
+In yesod, when one wants to create an instance of `Yesod` he should start by defining
+the routes.
+As you can see in the `Yesod.Core`'s haddock, `Yesod site` is an instance of `RenderRoute site`.
+Which in turn, `RenderRoute site` itself is an instance of `Eq (Route site)`.
+
+So, in order to make a `Yesod App`, we should start by defining the route first.
+Therefore, in `src/Foundation.hs`, we will modify it into the following
+```
+{-# LANGUAGE QuasiQuotes #-} -- needed for parseRoute quotation
+data App = App
+mkYesodData
+  "App"
+  [parseRoutes|
+    / HomeR GET
+  |]
+
+instance Yesod App
+```
+That `App` above is the application we are building.
+We surely can name it anything, given doesn't clash with any other things, if we want.
+And followed by `mkYesodData` which takes a string (which is the name of our site
+application) and a `Q`uasi quotation of our routes.
+Finally, we will make our site application as an instance of `Yesod` so it will
+be able to serve the requests to `http://localhost:3000/`.
+
+Also, because `App` is a record, we can fill it with whatever we need.
+In the scaffolded templates, there are a few wrapped data.
+For example, there is an `AppSettings`, `ConnectionPool`, and a few other data.
+
+Let's start by adding a `ApplicationSettings` and `ConnectionPool` into `App` first.
+```
+data App = App
+  { appSettings::ApplicationSettings
+  , appConnectionPool :: ConnectionPool -- from "persistent", module Database.Persist.Sql
+  , appLogger :: Logger -- from module Yesod.Core.Types
+  }
+
+```
+which begets a need of datatype named `ApplicationSettings`.
+So, we will create a file named `Settings.hs` in the `src` directory and fill it
+with the settings we need for this clone.
+
+```
+data ApplicationSettings = ApplicationSettings
+  { appStaticDir :: String
+  , appRoot :: Maybe Text
+  , appDBConf :: PostgresConf -- from "persistent-postgresql" package, module Database.Persist.Postgresql
+  , appHost :: HostPreferences -- from "warp" package, module Network.Wai.Handler.Warp
+  , appPort :: Int
+  , appReloadTemplate :: Bool
+  , appMutableStatic :: Bool
+  , appSkipCombining :: Bool
+  , appDetailedRequestLogging :: Bool
+  }
+
+```
+At the snippet above, we wrapped a few configurations from database configuration,
+port that we are going to use, and a few other things.
+Do we need it?
+Surely we need it for the ease of development process like in the scaffolded templates. 
+Other than to ease the development process, we surely want to set some configurations
+that meet our needs.
+Example given, we will use `appDBConf` field to create a `ConnectionPool` for our `App`.
+
+Now, let's back to `Foundation.hs` and continue our instantiation of our `Yesod` app.
+First, we have to import our `ApplicationSettings` in `Settings` module.
+Then, we need to customise our `Yesod` instance of `App` by defining `approot`.
+
+```
+instance Yesod App where
+  approot = ApprootRequest $ \app req ->
+    case appRoot $ appSettings app of
+      Nothing -> getApprootText guessApproot app req
+      Just root -> root
+
+```
+It's just our usual function. "If `approot` is not set, set it by guessing approot
+based on the request and application. Else? Great! We'll use that!"
+Unfortunately, when we try to compile it, the compiler will fail to do so because
+"There's no instance of Yesod dispatch" or something like that.
+Basically, `app/Main.hs` cannot be compiled because we have modified `App` to take
+an `ApplicationSettings`.
+Surely we remember that we have wrapped `ApplicationSettings` in an `App`, right?
+
+So, let's fix that.
+As written in yesod-book, we are using `warp` as our web server.
+Among many functions to run `warp` in its hackage page, all of them take `Application`
+(Wai's web application) as one of their inputs.
+Based on our situation, where we have a yesod instance and the need for database,
+we have to transform our `App` into `Application` and then run in using one of `warp`
+runner functions.
+
+Let's head to `src/Application.hs` to define our new `main` function.
+Here, we will run the transformed `App` on warp using our defined settings which
+was defined in `ApplicationSettings` using `runSettings`.
+Why do we use `runSettings`, because we want `warp` to run at our defined port, host,
+etc.
+
+Now, will create a function to create a warp `Settings`  from our `ApplicationSettings`.
+```
+warpSettings :: App -> Settings -- from module Network.Wai.Handler.Warp
+warpSettings app =
+  setPort (appPost $ appSettings app) $ -- 1
+  setHost (appHost $ appSettings app) $ -- 2
+  setOnException
+    (\_req exception -> 
+      when (defaultShouldDisplayException exception) $
+  --- ^ from Control.Monad    ^ from Network.Wai.Handler.Warp
+      messageLoggerSource
+        app
+        (appLogger app) -- 3
+        $(qLocation >>= liftLoc) -- from "template-haskell", module Language.Haskell.TH.Syntax
+        "yesod"
+        LevelError
+        (toLogStr $ "Exception from warp" ++ show e))
+    defaultSettings -- from Network.Wai.Handler.Warp
+
+```
+Basically, the function above creates warp's `Settings` from our `App`.
+As you can see, there are three (1, 2, 3) used settings there. 
+
+Now, let's make a Wai `Application` from our `App`.
+
+```
+makeApplication app = do
+  commonapp <- toWaiApp app
+  return $ defaultMiddlewaresNoLogging commonapp
+
+```
+I guess the function above is pretty clear.
+And now, we have transformed our `App` into a Wai `Application`.
+So let's run Warp server using two snippets above.
+
+```
+newMain = do
+  app ???
+  commonapp <- makeApplication app
+  runSettings (warpSettings app) commonapp
+
+```
+Okay, I forgot where do we get an `App`.
+
+But remember, in order to have an `App`, we have to have:
+
+- a `Logger`, which can be easily had from `Yesod` instantiation.
+- a `ConnuctionPool`, which can be easily had by creating `ConnectionPool` from `PostgresConf`
+- an `ApplicationSettings`. Surely we can hard code it, but I want to read it from
+  an external file. Other than it's easier to remember, I want to make sure
+  that there's a single source of truth.
+
+At this point, our progress can be viewed
+[here](https://gitlab.com/ibnuda/Cirkeltrek/commit/71a094349e2e4a37dc0c698709a161ff33cb0dd9)

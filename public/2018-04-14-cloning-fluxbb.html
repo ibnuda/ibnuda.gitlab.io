@@ -78,7 +78,7 @@ That means, we will treat this forum's interface (HTML) as purely a document pre
 Baring a few buttons and text inputs.
 I really hope you don't mind about it.</p><h3>The Approach</h3><p>We will build up the forum from <code>yesod-minimal</code> template from stack and then slowly
 turn it into <code>yesod-postgres</code> and then to a FluxBB's clone.
-While we're at it, I will try my best to explain why we do what we do.</p><h2>Start Typing</h2><p>First of all, I will assume that you will use stack as your build tool.
+While we're at it, I will try my best to explain why we do what we do.</p><h2>Start Typing</h2><h3>Project Setup</h3><p>First of all, I will assume that you will use stack as your build tool.
 Okay, let's start typing.</p><p>We will create a <code>yesod-minimal</code> project by typing <code>stack new [our-project] yesod-minimal</code>
 in our terminal emulator.
 After that, we will see a few files along these lines:</p><pre><code>.
@@ -104,7 +104,111 @@ As for the reason, Mr. Allen says that currently, supporting <code>persistent-2.
 is not his priority and he gives the above lines as the solution of this situation.
 Thanks, Mr. Allen.</p><p>Then, we will remove <code>src/Add.hs</code> file and remove any references to it.
 And that means, we will remove <code>/add/#Int64/#Int64 AddR</code> in <code>./routes</code>,
-<code>import Add</code> in <code>src/Foundation.hs</code>, and <code>&lt;a href=@{AddR }&gt;</code> in <code>src/Home</code></p><p>After that, we will add the following packages to the <code>package.yaml</code></p><ul><li><code>classy-prelude-yesod</code>: just what &quot;the kool kids&quot; use plus some nice <code>yesod</code> helpers.</li><li><code>classy-prelude</code></li><li><code>esqueleto</code>: Who doesn't love joining tables?</li><li><code>yesod-auth-hashdb</code>: We really need authentication.</li><li><code>yesod-auth</code></li><li><code>yesod-core</code>: Core framework.</li><li><code>yesod-form</code>: We will use forms extensively here.</li><li><code>yesod</code></li></ul><p>Now, let's push it to our repo.</p>
+<code>import Add</code> in <code>src/Foundation.hs</code>, and <code>&lt;a href=@{AddR }&gt;</code> in <code>src/Home</code></p><p>After that, we will add the following packages to the <code>package.yaml</code></p><ul><li><code>classy-prelude-yesod</code>: just what &quot;the kool kids&quot; use plus some nice <code>yesod</code> helpers.</li><li><code>classy-prelude</code></li><li><code>esqueleto</code>: Who doesn't love joining tables?</li><li><code>yesod-auth-hashdb</code>: We really need authentication.</li><li><code>yesod-auth</code></li><li><code>yesod-core</code>: Core framework.</li><li><code>yesod-form</code>: We will use forms extensively here.</li><li><code>yesod</code></li></ul><p>Now, let's push it to our repo. (our current progress is saved
+<a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/fdd5220cce105a2f75fa9d9403b892b4da18c534">here</a>)</p><h3>Foundation Building</h3><p>In the scaffolded templates, you will see a lot of stuff going, on which baffled
+me a couple months ago, from settings, database, and templating.
+Surely, the yesod-book and the templates' comments helped me a lot but it was 
+not enough for to grasp the reasoning of the decisions made by the author of the
+templates.
+That and my hot-headed temper combined, resulted a few abandoned projects in my
+GitLab account.
+I'm sorry for ranting.</p><p>Okay, so we will continue the this little toy.
+In yesod, when one wants to create an instance of <code>Yesod</code> he should start by defining
+the routes.
+As you can see in the <code>Yesod.Core</code>'s haddock, <code>Yesod site</code> is an instance of <code>RenderRoute site</code>.
+Which in turn, <code>RenderRoute site</code> itself is an instance of <code>Eq (Route site)</code>.</p><p>So, in order to make a <code>Yesod App</code>, we should start by defining the route first.
+Therefore, in <code>src/Foundation.hs</code>, we will modify it into the following</p><pre><code>{-# LANGUAGE QuasiQuotes #-} -- needed for parseRoute quotation
+data App = App
+mkYesodData
+  &quot;App&quot;
+  [parseRoutes|
+    / HomeR GET
+  |]
+
+instance Yesod App</code></pre><p>That <code>App</code> above is the application we are building.
+We surely can name it anything, given doesn't clash with any other things, if we want.
+And followed by <code>mkYesodData</code> which takes a string (which is the name of our site
+application) and a <code>Q</code>uasi quotation of our routes.
+Finally, we will make our site application as an instance of <code>Yesod</code> so it will
+be able to serve the requests to <code>http://localhost:3000/</code>.</p><p>Also, because <code>App</code> is a record, we can fill it with whatever we need.
+In the scaffolded templates, there are a few wrapped data.
+For example, there is an <code>AppSettings</code>, <code>ConnectionPool</code>, and a few other data.</p><p>Let's start by adding a <code>ApplicationSettings</code> and <code>ConnectionPool</code> into <code>App</code> first.</p><pre><code>data App = App
+  { appSettings::ApplicationSettings
+  , appConnectionPool :: ConnectionPool -- from &quot;persistent&quot;, module Database.Persist.Sql
+  , appLogger :: Logger -- from module Yesod.Core.Types
+  }
+</code></pre><p>which begets a need of datatype named <code>ApplicationSettings</code>.
+So, we will create a file named <code>Settings.hs</code> in the <code>src</code> directory and fill it
+with the settings we need for this clone.</p><pre><code>data ApplicationSettings = ApplicationSettings
+  { appStaticDir :: String
+  , appRoot :: Maybe Text
+  , appDBConf :: PostgresConf -- from &quot;persistent-postgresql&quot; package, module Database.Persist.Postgresql
+  , appHost :: HostPreferences -- from &quot;warp&quot; package, module Network.Wai.Handler.Warp
+  , appPort :: Int
+  , appReloadTemplate :: Bool
+  , appMutableStatic :: Bool
+  , appSkipCombining :: Bool
+  , appDetailedRequestLogging :: Bool
+  }
+</code></pre><p>At the snippet above, we wrapped a few configurations from database configuration,
+port that we are going to use, and a few other things.
+Do we need it?
+Surely we need it for the ease of development process like in the scaffolded templates. 
+Other than to ease the development process, we surely want to set some configurations
+that meet our needs.
+Example given, we will use <code>appDBConf</code> field to create a <code>ConnectionPool</code> for our <code>App</code>.</p><p>Now, let's back to <code>Foundation.hs</code> and continue our instantiation of our <code>Yesod</code> app.
+First, we have to import our <code>ApplicationSettings</code> in <code>Settings</code> module.
+Then, we need to customise our <code>Yesod</code> instance of <code>App</code> by defining <code>approot</code>.</p><pre><code>instance Yesod App where
+  approot = ApprootRequest $ \app req -&gt;
+    case appRoot $ appSettings app of
+      Nothing -&gt; getApprootText guessApproot app req
+      Just root -&gt; root
+</code></pre><p>It's just our usual function. &quot;If <code>approot</code> is not set, set it by guessing approot
+based on the request and application. Else? Great! We'll use that!&quot;
+Unfortunately, when we try to compile it, the compiler will fail to do so because
+&quot;There's no instance of Yesod dispatch&quot; or something like that.
+Basically, <code>app/Main.hs</code> cannot be compiled because we have modified <code>App</code> to take
+an <code>ApplicationSettings</code>.
+Surely we remember that we have wrapped <code>ApplicationSettings</code> in an <code>App</code>, right?</p><p>So, let's fix that.
+As written in yesod-book, we are using <code>warp</code> as our web server.
+Among many functions to run <code>warp</code> in its hackage page, all of them take <code>Application</code>
+(Wai's web application) as one of their inputs.
+Based on our situation, where we have a yesod instance and the need for database,
+we have to transform our <code>App</code> into <code>Application</code> and then run in using one of <code>warp</code>
+runner functions.</p><p>Let's head to <code>src/Application.hs</code> to define our new <code>main</code> function.
+Here, we will run the transformed <code>App</code> on warp using our defined settings which
+was defined in <code>ApplicationSettings</code> using <code>runSettings</code>.
+Why do we use <code>runSettings</code>, because we want <code>warp</code> to run at our defined port, host,
+etc.</p><p>Now, will create a function to create a warp <code>Settings</code>  from our <code>ApplicationSettings</code>.</p><pre><code>warpSettings :: App -&gt; Settings -- from module Network.Wai.Handler.Warp
+warpSettings app =
+  setPort (appPost $ appSettings app) $ -- 1
+  setHost (appHost $ appSettings app) $ -- 2
+  setOnException
+    (\_req exception -&gt; 
+      when (defaultShouldDisplayException exception) $
+  --- ^ from Control.Monad    ^ from Network.Wai.Handler.Warp
+      messageLoggerSource
+        app
+        (appLogger app) -- 3
+        $(qLocation &gt;&gt;= liftLoc) -- from &quot;template-haskell&quot;, module Language.Haskell.TH.Syntax
+        &quot;yesod&quot;
+        LevelError
+        (toLogStr $ &quot;Exception from warp&quot; ++ show e))
+    defaultSettings -- from Network.Wai.Handler.Warp
+</code></pre><p>Basically, the function above creates warp's <code>Settings</code> from our <code>App</code>.
+As you can see, there are three (1, 2, 3) used settings there.</p><p>Now, let's make a Wai <code>Application</code> from our <code>App</code>.</p><pre><code>makeApplication app = do
+  commonapp &lt;- toWaiApp app
+  return $ defaultMiddlewaresNoLogging commonapp
+</code></pre><p>I guess the function above is pretty clear.
+And now, we have transformed our <code>App</code> into a Wai <code>Application</code>.
+So let's run Warp server using two snippets above.</p><pre><code>newMain = do
+  app ???
+  commonapp &lt;- makeApplication app
+  runSettings (warpSettings app) commonapp
+</code></pre><p>Okay, I forgot where do we get an <code>App</code>.</p><p>But remember, in order to have an <code>App</code>, we have to have:</p><ul><li>a <code>Logger</code>, which can be easily had from <code>Yesod</code> instantiation.</li><li>a <code>ConnuctionPool</code>, which can be easily had by creating <code>ConnectionPool</code> from <code>PostgresConf</code></li><li>an <code>ApplicationSettings</code>. Surely we can hard code it, but I want to read it from
+an external file. Other than it's easier to remember, I want to make sure
+that there's a single source of truth.</li></ul><p>At this point, our progress can be viewed
+<a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/71a094349e2e4a37dc0c698709a161ff33cb0dd9">here</a></p>
             </section>
         </main>
     </body>
