@@ -175,8 +175,18 @@ I'm sorry for ranting.
 Okay, so we will continue the this little toy.
 In yesod, when one wants to create an instance of `Yesod` he should start by defining
 the routes.
-As you can see in the `Yesod.Core`'s haddock, `Yesod site` is an instance of `RenderRoute site`.
-Which in turn, `RenderRoute site` itself is an instance of `Eq (Route site)`.
+As you can see in the `Yesod.Core`'s haddock, `Yesod site` has signature (or something)
+of `class RenderRoute site => Yesod site`.
+Which in turn, `RenderRoute site` has signature of `class Eq (Route site) => RenderRoute site`.
+
+Let's talk about `class`es first.
+In short, there's a thing in Haskell called `typeclass`.
+I'll just give you an analog, let's say that  you have a kid and you want to let
+him join a gifted class.
+There are a few requirements for that, of course.
+For example, he has grades that rise steadily and younger than his peers.
+So, in Haskell, if you want to let your data recognised as one of the classes, you
+have to fulfill the requirements (or "minimal complete definitions") of that class.
 
 So, in order to make a `Yesod App`, we should start by defining the route first.
 Therefore, in `src/Foundation.hs`, we will modify it into the following
@@ -208,6 +218,8 @@ data App = App
   { appSettings::ApplicationSettings
   , appConnectionPool :: ConnectionPool -- from "persistent", module Database.Persist.Sql
   , appLogger :: Logger -- from module Yesod.Core.Types
+  , appStatic :: Static -- from "yesod-static", module Yesod.Static
+  , appHttpManager :: Manager -- from "http-client", module Network.HTTP.Client
   }
 
 ```
@@ -318,10 +330,101 @@ Okay, I forgot where do we get an `App`.
 But remember, in order to have an `App`, we have to have:
 
 - a `Logger`, which can be easily had from `Yesod` instantiation.
-- a `ConnuctionPool`, which can be easily had by creating `ConnectionPool` from `PostgresConf`
+- a `ConnectionPool`, which can be easily had by creating `ConnectionPool` from `PostgresConf`
 - an `ApplicationSettings`. Surely we can hard code it, but I want to read it from
   an external file. Other than it's easier to remember, I want to make sure
   that there's a single source of truth.
 
 At this point, our progress can be viewed
 [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/71a094349e2e4a37dc0c698709a161ff33cb0dd9)
+
+So, let's make an `App` by creating it from an `ApplicationSettings`.
+
+```
+{-# LANGUAGE RecordWildCards #-}
+makeFoundation :: ApplicationSettings -> IO App
+makeFoundation appSettings = do
+  appHttpManager <- getGlobalManager -- from package "http-client-tls", module Network.HTTP.Client.TLS
+  appLogger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger -- from "fast-logger", module System.Log.FastLogger
+  appStatic <-
+    (if appMutableStatic appSettings
+       then staticDevel -- from "yesod-static", module Yesod.Static
+       else static) -- from "yesod-static", module Yesod.Static
+      (appStaticDir appSettings)
+  let mkFoundation appConnectionPool = App {..} -- RecordWildCards
+      tempFoundation =
+        mkFoundation $ error "Connection pool forced in tempFoundation"
+      logFunc = messageLoggerSource tempFoundation appLogger
+  pool <-
+    flip runLoggingT logFunc $
+    createPostgresqlPool -- from "persistent-postgresql", module Database.Persist.Postgresql
+      (pgConnStr $ appDatabaseConf appSettings)
+      (pgPoolSize $ appDatabaseConf appSettings)
+  return $ mkFoundation pool
+
+```
+You see, we can create an `App` by creating its components and using `RecordWildCards`.
+As copied above, first we create a `appHttpManager` by calling `getGlobalManager`.
+It is strongly recommended to use a single keep-alive connections tracker in a web
+application like this.
+And that is why we call the `global` thing.
+Next, just our standard output logger.
+You can change it to a file if that suits your taste.
+For creating `appStatic`, which is used to serve the static files, we can do it by
+checking the `appMutableStatic` from `appSettings`.
+The interesting part is the `ConnectionPool` creation.
+We haven't have a logger, yet, while we need it in order to create a connection pool.
+So, the templates create an `App` without `ConnectionPool`, though I usually choose
+to use `runNoLoggingT` when creating a connection pool.
+
+Now, we have an `App`, but we haven't an `ApplicationSettings` yet. So we will
+create it by reading a config file.
+Before that, we will go back to `src/Settings.hs` to create yaml decoder for our
+settings.
+
+```
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+
+instance FromJSON ApplicationSettings where -- package "aeson", module Data.Aeson
+  parseJSON =
+    withObject "ApplicationSettings" $ \ob -> do
+      let defEnv = True
+      appStaticDir <- ob .: "static-dir"
+      appRoot <- ob .:? "app-root"
+      appHost <- fromString <$> ob .: "app-host"
+      appDatabaseConf <- ob .: "database-conf"
+      appPort <- ob .: "app-port"
+      dev <- ob .: "development" .!= defEnv
+      appReloadTemplate <- ob .:? "reload-template" .!= dev
+      appMutableStatic <- ob .:? "mutable-static" .!= dev
+      appSkipCombining <- ob .:? "skip-combining" .!= dev
+      appDetailedRequestLogging <- ob .:? "detailed-req-log" .!= dev
+      return ApplicationSettings {..}
+
+configSettingsYmlBS :: ByteString
+configSettingsYmlBS = $(embedFile configSettingsYml) -- package "file-embed", module Data.Embed
+
+configSettingsYmlValue :: Value
+configSettingsYmlValue = either Exception.throw id $ decodeEither' configSettingsYmlBS -- package "yaml", module Data.Yaml
+
+```
+You see, `FromJSON` is a class of type that can be converted from JSON to a haskell type.
+So, we created that instance for our `ApplicationSettings` by parsing a few yaml fields.
+Nevermind about `.:` though.
+It's just a fancy way to extract the field value from field name that matches the
+string in the quotes.
+Oh, and `defEnv`, for now we will keep it as `True`.
+
+The other two functions?
+`configSettingsYmlBS` is just a helper function from "file-embed" package that
+reads a file using a magic named `TemplateHaskell` by parsing `configSettingsYaml`
+into filepath `config/settings.yml`. Same with `configSettingsYmlValue`, it is a
+helper function that throws an `Exception` if we can't parse the file at `src/settings.yml`.
+
+Now, when you compile this project and run it, you will get an error about there's
+no file in `config/settings.yml`.
+So, just create it and fill the data.
+And if you don't want to wonder how should you write it, just check the following
+[commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/b5892ef5e474d8baec6cd98d3a7554d0c3de1b8a).
