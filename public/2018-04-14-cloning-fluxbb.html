@@ -105,7 +105,7 @@ is not his priority and he gives the above lines as the solution of this situati
 Thanks, Mr. Allen.</p><p>Then, we will remove <code>src/Add.hs</code> file and remove any references to it.
 And that means, we will remove <code>/add/#Int64/#Int64 AddR</code> in <code>./routes</code>,
 <code>import Add</code> in <code>src/Foundation.hs</code>, and <code>&lt;a href=@{AddR }&gt;</code> in <code>src/Home</code></p><p>After that, we will add the following packages to the <code>package.yaml</code></p><ul><li><code>classy-prelude-yesod</code>: just what &quot;the kool kids&quot; use plus some nice <code>yesod</code> helpers.</li><li><code>classy-prelude</code></li><li><code>esqueleto</code>: Who doesn't love joining tables?</li><li><code>yesod-auth-hashdb</code>: We really need authentication.</li><li><code>yesod-auth</code></li><li><code>yesod-core</code>: Core framework.</li><li><code>yesod-form</code>: We will use forms extensively here.</li><li><code>yesod</code></li></ul><p>Now, let's push it to our repo. (our current progress is saved
-<a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/fdd5220cce105a2f75fa9d9403b892b4da18c534">here</a>)</p><h3>Foundation Building</h3><p>In the scaffolded templates, you will see a lot of stuff going, on which baffled
+<a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/fdd5220cce105a2f75fa9d9403b892b4da18c534">here</a>)</p><h3>Foundation Building</h3><h4>Writing Foundation</h4><p>In the scaffolded templates, you will see a lot of stuff going, on which baffled
 me a couple months ago, from settings, database, and templating.
 Surely, the yesod-book and the templates' comments helped me a lot but it was 
 not enough for to grasp the reasoning of the decisions made by the author of the
@@ -119,12 +119,14 @@ As you can see in the <code>Yesod.Core</code>'s haddock, <code>Yesod site</code>
 of <code>class RenderRoute site =&gt; Yesod site</code>.
 Which in turn, <code>RenderRoute site</code> has signature of <code>class Eq (Route site) =&gt; RenderRoute site</code>.</p><p>Let's talk about <code>class</code>es first.
 In short, there's a thing in Haskell called <code>typeclass</code>.
-I'll just give you an analog, let's say that  you have a kid and you want to let
+I'll just give you an analogue, let's say that you have a kid and you want to let
 him join a gifted class.
 There are a few requirements for that, of course.
 For example, he has grades that rise steadily and younger than his peers.
-So, in Haskell, if you want to let your data recognised as one of the classes, you
-have to fulfill the requirements (or &quot;minimal complete definitions&quot;) of that class.</p><p>So, in order to make a <code>Yesod App</code>, we should start by defining the route first.
+So, in Haskell, if you want to let your data to be recognised as one of the classes,
+you have to fulfill the requirements (or &quot;minimal complete definitions&quot;) of that class.</p><p>In order to make a <code>Yesod App</code>, we should start by defining the route first.
+I mean, how would the web server know what kind of content if it doesn't know
+anything.
 Therefore, in <code>src/Foundation.hs</code>, we will modify it into the following</p><pre><code>{-# LANGUAGE QuasiQuotes #-} -- needed for parseRoute quotation
 data App = App
 mkYesodData
@@ -136,11 +138,12 @@ mkYesodData
 instance Yesod App</code></pre><p>That <code>App</code> above is the application we are building.
 We surely can name it anything, given doesn't clash with any other things, if we want.
 And followed by <code>mkYesodData</code> which takes a string (which is the name of our site
-application) and a <code>Q</code>uasi quotation of our routes.
+application) and a <code>Q</code>uasi-quoted routes.
 Finally, we will make our site application as an instance of <code>Yesod</code> so it will
 be able to serve the requests to <code>http://localhost:3000/</code>.</p><p>Also, because <code>App</code> is a record, we can fill it with whatever we need.
 In the scaffolded templates, there are a few wrapped data.
-For example, there is an <code>AppSettings</code>, <code>ConnectionPool</code>, and a few other data.</p><p>Let's start by adding a <code>ApplicationSettings</code> and <code>ConnectionPool</code> into <code>App</code> first.</p><pre><code>data App = App
+For example, there is an <code>AppSettings</code>, <code>ConnectionPool</code>, and a few other data.</p><p>Let's start by adding a <code>ApplicationSettings</code>, <code>ConnectionPool</code> and a lot of other
+stuff into <code>App</code> first. Don't worry, we will talk about it later.</p><pre><code>data App = App
   { appSettings::ApplicationSettings
   , appConnectionPool :: ConnectionPool -- from &quot;persistent&quot;, module Database.Persist.Sql
   , appLogger :: Logger -- from module Yesod.Core.Types
@@ -291,7 +294,136 @@ helper function that throws an <code>Exception</code> if we can't parse the file
 no file in <code>config/settings.yml</code>.
 So, just create it and fill the data.
 And if you don't want to wonder how should you write it, just check the following
-<a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/b5892ef5e474d8baec6cd98d3a7554d0c3de1b8a">commit</a>.</p>
+<a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/b5892ef5e474d8baec6cd98d3a7554d0c3de1b8a">commit</a>.</p><p>This time, when you run this project and direct your browser to <a href="http://localhost:3000">localhost:3000</a>
+you will get a page with <b>Nice</b> written on it.</p><p>We will continue building our <code>App</code> so it has nice things we need (or want).</p><p>Let's start with creating a shorthand for <code>Form</code>.
+That type usually really mouthful to write.
+So, instead of <code>Html -&gt; MForm (HandlerFor App) (FormResult a, Widget)</code>, we just
+going to use <code>Form a</code>.</p><pre><code>type Form a = Html -&gt; MForm (HandlerFor App) (FormResult a, Widget)
+</code></pre><p>and for database thingy,</p><pre><code>type DB a = forall (m :: * -&gt; *). (MonadIO m) =&gt; ReaderT SqlBackend m a
+</code></pre><p>Ah, yes. There's also a keyword <code>forall</code>.
+Whenever you see a <code>forall</code>, just think that you argument for the argument will
+be used in the signature.
+In this case, <code>m</code>, which is a function that transform anything into any other thing,
+will be used as the value for <code>MonadIO</code>.
+And let's not talk about <code>MonadIO</code>. There are too many shit stirred because of <code>Monad</code>
+and too few articles about building things.</p><p>Now, have aliases and/or shortcuts, so let's continue fulfilling our <code>Yesod</code>
+class requirements.</p><pre><code>{-# LANGUAGE TemplateHaskell #-}
+instance Yesod App where
+  -- cont.
+  yesodMiddleware = defaultYesodMiddleware
+  defaultLayout widget = do
+    master &lt;- getYesod
+    mmessage &lt;- getMessage -- module Yesod.Core
+    mcurrentroute &lt;- getCurrentRoute -- module.Yesod.Core
+    pagecontent &lt;- widgetToPageContent $ do -- module Yesod.Core
+      [whamlet| -- Template haskell.
+        $maybe route &lt;- mcurrentroute
+          &lt;p&gt; You're at #{show route}.
+        $nothing
+          &lt;p&gt; You're lost.
+        ^{widget}
+      |]
+    withUrlRenderer $(hamletFile &quot;templates/wrapper.hamlet&quot;) -- from package `sakespeare`, module Text.Hamlet
+</code></pre><p>Here, we defined two new functions.
+<code>yesodMiddleware</code>, which we didn't actually change it because <code>yesodMiddleware</code>'s
+default is <code>defaultYesodMiddleware</code>.
+Heh, talk about futile endeavor.
+But, if you read the doc, middleware is something like a gatekeeper of requests.
+Each and every request will be checked, modified, or even rejected by the
+middleware if it doesn't exceed middleware's expectation.
+The other function is <code>defaultLayout</code>.
+This function takes a <code>WidgetFor</code> and transform it into <code>HandlerFor App Html</code>.
+Basically, this function will be used as the default layout when you didn't
+specifically define what the web server should use.
+If you don't believe me, run this executable, and direct your browser to
+<a href="http://localhost:3000/youwillnotfindanythinghere">undefined route</a> and you will
+still see <code>You're lost.</code> which was defined above.
+As for how would we write inside of <code>[whamlet| _ |]</code>, pretty much it's
+a simplified html.
+But instead of wrapping things with <code>&lt;element&gt;__&lt;/element&gt;</code>, just give it an
+indentation.
+Yesod book has a detailed explanation about it.
+Oh yeah, don't forget to create a directory named <code>templates</code> and a file in it
+named <code>wrapper.hamlet</code>.</p><p>You can see the progress of this project <a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/ec1bf4968e06f43fe10aacb076a327571a4bceb1">here</a>.</p><h4>Modeling Database</h4><p>Now, we will write the database's representation using <code>persistent</code> package.
+First, we should create a file named <code>Model.hs</code> in <code>src</code> directory.
+Though the actual representation is pretty long for this blog post, we will only
+include two or three tables in this post.</p><pre><code>-- skipped a ton of extensions.
+module Model where
+import ClassyPrelude.Yesod
+import Database.Persist.TH
+
+share
+  [mkPersist sqlSettings, mkDeleteCascade sqlSettings, mkMigrate &quot;migrateAll&quot;]
+  [persistLowerCase|
+    Topics
+      forumId ForumsId
+      poster Text
+      subject Text
+      repliesCount Int default=0
+      startTime UTCTime
+      lastPost UTCTime Maybe
+      lastPostId PostsId Maybe
+      lastPoster Text Maybe
+      isLocked Bool default=false
+      deriving Show Eq
+    Posts
+      topicId TopicsId
+      number Int
+      username Text
+      userId UsersId
+      time UTCTime
+      content Text
+      deriving Show Eq
+    Users
+      groupId GroupsId
+      username Text
+      email Text
+      password Text Maybe
+      joinTime UTCTime
+      topicsStarted Int default=0
+      repliesPosted Int default=0
+      UniqueUsername username
+      UniqueEmail email
+      deriving Show Eq
+  |]
+</code></pre><p>You see, I've written a few basic concepts of <code>persistent</code> in <a href="2017-11-03-authorization-in-servant.html">here</a> you can check it out.
+If you see closely, one of <code>Users</code>'s block, <code>password</code> field is a <code>nullable</code>.
+We let it as a <code>nullable</code> because package <code>yesod-auth-hashdb</code> needs it.
+Don't worry, we'll check it out later.</p><p>If you re-open FluxBB's database structure, you will know how different our
+models and theirs.
+Mostly, FluxBB doesn't use foreign keys and a lot of nullables.
+Here, in our model, we don't use the nullables that much and only when we really
+have to use it.
+Other than to reduce noises, we don't want to write too much, right?</p><p>Now, we have defined the database representation.
+We will continue spending our leisure time by integrating the previous module
+to our <code>Foundation</code>.
+So, let's back to <code>src/Foundation.hs</code>.</p><p>There, we will make sure our <code>App</code> is in <code>YesodPersist</code> class.</p><pre><code>instance YesodPersist App where
+  type YesodPersistBackend App = SqlBackend
+  runDB action = do
+    master &lt;- getYesod
+    runSqlPool action $ appConnectionPool master
+</code></pre><p>By fulfilling <code>YesodPersist</code>'s class qualification, we can talk to the database
+in our web application.
+You see that <code>runSqlPool</code> line?
+That's how the query being executed.
+And executing the query in our web application?
+Easy, just <code>runDB query</code>!
+Though you have to add <code>liftHandler</code> in front of <code>runDB query</code> with the reason
+which will be talked later.
+Promise!</p><p>Now, the nice thing is we will let our web application to create its needed
+tables by itself.
+Let's head to <code>src/Application.hs</code> and add a few lines of function.</p><pre><code>import Model
+makeFoundation = do
+   -- skip
+   pool &lt;- --skip
+   runLogginT (runSqlPool (runMigration migrateAll) pool) logFunc -- added
+   return $ mkFoundation pool</code></pre><p>The added line means that we will run the migration plan <code>migrateAll</code> which was
+defined at the <code>Model.hs</code>, inside the <code>share</code>'s first arguments.
+Now, when you compile this project and run it, you will see something like the
+following</p><pre><code>Migrating: CREATe TABLE &quot;categories&quot;(&quot;id&quot; SERIAL8  PRIMARY KEY UNIQUE,&quot;name&quot; VARCHAR NOT NULL)
+Migrating: CREATe TABLE &quot;forums&quot;(&quot;id&quot; SERIAL8  PRIMARY KEY UNIQUE,&quot;category_id&quot; INT8 NOT NULL,&quot;name&quot; VARCHAR NOT NULL,&quot;descriptions&quot; VARCHAR NULL,&quot;topics_count&quot; INT8 NOT NULL DEFAULT 0,&quot;replies_count&quot; INT8 NOT NULL DEFAULT 0,&quot;last_post&quot; TIMESTAMP WITH TIME ZONE NULL,&quot;last_post_id&quot; INT8 NULL,&quot;last_poster&quot; VARCHAR NULL)
+-- etc.
+</code></pre><p>You can see the progress to this point by looking at this <a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/fe886b3bed75c8089e671d0f4fd2fa17c0ac8d59">commit</a>.</p>
             </section>
         </main>
     </body>

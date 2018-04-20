@@ -163,6 +163,9 @@ Now, let's push it to our repo. (our current progress is saved
 
 ### Foundation Building
 
+
+#### Writing Foundation
+
 In the scaffolded templates, you will see a lot of stuff going, on which baffled
 me a couple months ago, from settings, database, and templating.
 Surely, the yesod-book and the templates' comments helped me a lot but it was 
@@ -181,14 +184,16 @@ Which in turn, `RenderRoute site` has signature of `class Eq (Route site) => Ren
 
 Let's talk about `class`es first.
 In short, there's a thing in Haskell called `typeclass`.
-I'll just give you an analog, let's say that  you have a kid and you want to let
+I'll just give you an analogue, let's say that you have a kid and you want to let
 him join a gifted class.
 There are a few requirements for that, of course.
 For example, he has grades that rise steadily and younger than his peers.
-So, in Haskell, if you want to let your data recognised as one of the classes, you
-have to fulfill the requirements (or "minimal complete definitions") of that class.
+So, in Haskell, if you want to let your data to be recognised as one of the classes,
+you have to fulfill the requirements (or "minimal complete definitions") of that class.
 
-So, in order to make a `Yesod App`, we should start by defining the route first.
+In order to make a `Yesod App`, we should start by defining the route first.
+I mean, how would the web server know what kind of content if it doesn't know
+anything.
 Therefore, in `src/Foundation.hs`, we will modify it into the following
 ```
 {-# LANGUAGE QuasiQuotes #-} -- needed for parseRoute quotation
@@ -204,7 +209,7 @@ instance Yesod App
 That `App` above is the application we are building.
 We surely can name it anything, given doesn't clash with any other things, if we want.
 And followed by `mkYesodData` which takes a string (which is the name of our site
-application) and a `Q`uasi quotation of our routes.
+application) and a `Q`uasi-quoted routes.
 Finally, we will make our site application as an instance of `Yesod` so it will
 be able to serve the requests to `http://localhost:3000/`.
 
@@ -212,7 +217,8 @@ Also, because `App` is a record, we can fill it with whatever we need.
 In the scaffolded templates, there are a few wrapped data.
 For example, there is an `AppSettings`, `ConnectionPool`, and a few other data.
 
-Let's start by adding a `ApplicationSettings` and `ConnectionPool` into `App` first.
+Let's start by adding a `ApplicationSettings`, `ConnectionPool` and a lot of other
+stuff into `App` first. Don't worry, we will talk about it later.
 ```
 data App = App
   { appSettings::ApplicationSettings
@@ -428,3 +434,184 @@ no file in `config/settings.yml`.
 So, just create it and fill the data.
 And if you don't want to wonder how should you write it, just check the following
 [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/b5892ef5e474d8baec6cd98d3a7554d0c3de1b8a).
+
+This time, when you run this project and direct your browser to [localhost:3000](http://localhost:3000)
+you will get a page with **Nice** written on it.
+
+We will continue building our `App` so it has nice things we need (or want).
+
+Let's start with creating a shorthand for `Form`.
+That type usually really mouthful to write.
+So, instead of `Html -> MForm (HandlerFor App) (FormResult a, Widget)`, we just
+going to use `Form a`.
+```
+type Form a = Html -> MForm (HandlerFor App) (FormResult a, Widget)
+
+```
+and for database thingy,
+```
+type DB a = forall (m :: * -> *). (MonadIO m) => ReaderT SqlBackend m a
+
+```
+Ah, yes. There's also a keyword `forall`.
+Whenever you see a `forall`, just think that you argument for the argument will
+be used in the signature.
+In this case, `m`, which is a function that transform anything into any other thing,
+will be used as the value for `MonadIO`.
+And let's not talk about `MonadIO`. There are too many shit stirred because of `Monad`
+and too few articles about building things.
+
+Now, have aliases and/or shortcuts, so let's continue fulfilling our `Yesod`
+class requirements.
+```
+{-# LANGUAGE TemplateHaskell #-}
+instance Yesod App where
+  -- cont.
+  yesodMiddleware = defaultYesodMiddleware
+  defaultLayout widget = do
+    master <- getYesod
+    mmessage <- getMessage -- module Yesod.Core
+    mcurrentroute <- getCurrentRoute -- module.Yesod.Core
+    pagecontent <- widgetToPageContent $ do -- module Yesod.Core
+      [whamlet| -- Template haskell.
+        $maybe route <- mcurrentroute
+          <p> You're at #{show route}.
+        $nothing
+          <p> You're lost.
+        ^{widget}
+      |]
+    withUrlRenderer $(hamletFile "templates/wrapper.hamlet") -- from package `sakespeare`, module Text.Hamlet
+
+```
+Here, we defined two new functions.
+`yesodMiddleware`, which we didn't actually change it because `yesodMiddleware`'s
+default is `defaultYesodMiddleware`.
+Heh, talk about futile endeavor.
+But, if you read the doc, middleware is something like a gatekeeper of requests.
+Each and every request will be checked, modified, or even rejected by the
+middleware if it doesn't exceed middleware's expectation.
+The other function is `defaultLayout`.
+This function takes a `WidgetFor` and transform it into `HandlerFor App Html`.
+Basically, this function will be used as the default layout when you didn't
+specifically define what the web server should use.
+If you don't believe me, run this executable, and direct your browser to
+[undefined route](http://localhost:3000/youwillnotfindanythinghere) and you will
+still see `You're lost.` which was defined above.
+As for how would we write inside of `[whamlet| _ |]`, pretty much it's
+a simplified html.
+But instead of wrapping things with `<element>__</element>`, just give it an
+indentation.
+Yesod book has a detailed explanation about it.
+Oh yeah, don't forget to create a directory named `templates` and a file in it
+named `wrapper.hamlet`.
+
+You can see the progress of this project [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/ec1bf4968e06f43fe10aacb076a327571a4bceb1).
+
+#### Modeling Database
+
+Now, we will write the database's representation using `persistent` package.
+First, we should create a file named `Model.hs` in `src` directory.
+Though the actual representation is pretty long for this blog post, we will only
+include two or three tables in this post.
+```
+-- skipped a ton of extensions.
+module Model where
+import ClassyPrelude.Yesod
+import Database.Persist.TH
+
+share
+  [mkPersist sqlSettings, mkDeleteCascade sqlSettings, mkMigrate "migrateAll"]
+  [persistLowerCase|
+    Topics
+      forumId ForumsId
+      poster Text
+      subject Text
+      repliesCount Int default=0
+      startTime UTCTime
+      lastPost UTCTime Maybe
+      lastPostId PostsId Maybe
+      lastPoster Text Maybe
+      isLocked Bool default=false
+      deriving Show Eq
+    Posts
+      topicId TopicsId
+      number Int
+      username Text
+      userId UsersId
+      time UTCTime
+      content Text
+      deriving Show Eq
+    Users
+      groupId GroupsId
+      username Text
+      email Text
+      password Text Maybe
+      joinTime UTCTime
+      topicsStarted Int default=0
+      repliesPosted Int default=0
+      UniqueUsername username
+      UniqueEmail email
+      deriving Show Eq
+  |]
+
+```
+You see, I've written a few basic concepts of `persistent` in [here](2017-11-03-authorization-in-servant.html) you can check it out.
+If you see closely, one of `Users`'s block, `password` field is a `nullable`.
+We let it as a `nullable` because package `yesod-auth-hashdb` needs it.
+Don't worry, we'll check it out later.
+
+If you re-open FluxBB's database structure, you will know how different our
+models and theirs.
+Mostly, FluxBB doesn't use foreign keys and a lot of nullables.
+Here, in our model, we don't use the nullables that much and only when we really
+have to use it.
+Other than to reduce noises, we don't want to write too much, right?
+
+Now, we have defined the database representation.
+We will continue spending our leisure time by integrating the previous module
+to our `Foundation`.
+So, let's back to `src/Foundation.hs`.
+
+There, we will make sure our `App` is in `YesodPersist` class.
+
+```
+instance YesodPersist App where
+  type YesodPersistBackend App = SqlBackend
+  runDB action = do
+    master <- getYesod
+    runSqlPool action $ appConnectionPool master
+
+```
+By fulfilling `YesodPersist`'s class qualification, we can talk to the database
+in our web application.
+You see that `runSqlPool` line?
+That's how the query being executed.
+And executing the query in our web application?
+Easy, just `runDB query`!
+Though you have to add `liftHandler` in front of `runDB query` with the reason
+which will be talked later.
+Promise!
+
+Now, the nice thing is we will let our web application to create its needed
+tables by itself.
+Let's head to `src/Application.hs` and add a few lines of function.
+
+```
+import Model
+makeFoundation = do
+   -- skip
+   pool <- --skip
+   runLogginT (runSqlPool (runMigration migrateAll) pool) logFunc -- added
+   return $ mkFoundation pool
+```
+The added line means that we will run the migration plan `migrateAll` which was
+defined at the `Model.hs`, inside the `share`'s first arguments.
+Now, when you compile this project and run it, you will see something like the
+following 
+```
+Migrating: CREATe TABLE "categories"("id" SERIAL8  PRIMARY KEY UNIQUE,"name" VARCHAR NOT NULL)
+Migrating: CREATe TABLE "forums"("id" SERIAL8  PRIMARY KEY UNIQUE,"category_id" INT8 NOT NULL,"name" VARCHAR NOT NULL,"descriptions" VARCHAR NULL,"topics_count" INT8 NOT NULL DEFAULT 0,"replies_count" INT8 NOT NULL DEFAULT 0,"last_post" TIMESTAMP WITH TIME ZONE NULL,"last_post_id" INT8 NULL,"last_poster" VARCHAR NULL)
+-- etc.
+
+```
+You can see the progress to this point by looking at this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/fe886b3bed75c8089e671d0f4fd2fa17c0ac8d59).
