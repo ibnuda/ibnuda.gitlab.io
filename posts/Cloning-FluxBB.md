@@ -25,7 +25,7 @@ expects when they use and/or administer a forum software.
 Because forum software basically is just a CRUD program, we have to define it first.
 Fortunately, [FluxBB's database structure](https://fluxbb.org/docs/v1.5/dbstructure)
 is not really complicated.
-Not only that, a lot of its fields are `nullable`, so we can be remove them in this
+Not only that, a lot of its fields are `nullable`, so we can remove them in this
 clone.
 
 For example, we will not use some of nullables of `Users`'s columns.
@@ -51,10 +51,10 @@ Furthermore, we will not use a few FluxBB's tables. For example, we won't use
 
 ### Inner Workings
 
-In real FluxBB's use case, an administator could set a set of permissions for
-a certain groups (`moderator`, for example) to do something peculiar like capable
+In real FluxBB's use case, an administrator could set a set of permissions for
+a certain group (`moderator`, for example) to do something peculiar like capable
 of banning users, but not editing users' profiles.
-We will not give the users and administator these kind of features it's too
+We will not give the users and administrator these kind of features because it's too
 complicated for my purpose.
 
 So, instead of the actual FluxBB's features, we will dumb it down like the following:
@@ -615,3 +615,93 @@ Migrating: CREATe TABLE "forums"("id" SERIAL8  PRIMARY KEY UNIQUE,"category_id" 
 
 ```
 You can see the progress to this point by looking at this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/fe886b3bed75c8089e671d0f4fd2fa17c0ac8d59).
+
+#### Niceties
+
+Well, it's true that stopping `stack exec`, running `stack build`, and then
+running `stack exec` again is tiring.
+So, we will implement scaffolded templates' `stack exec -- yesod devel` at
+`src/Application.hs`
+
+```
+{-# LANGUAGE NoImplicitPrelude #-}
+import ClassyPrelude.Yesod
+import Network.Wai (Middleware)
+
+makeLogware :: App -> IO Middleware
+makeLogware app = do
+  mkRequestLogger
+    def - package classy-prelude-yesod
+    { outputFormat =
+        if appDetailedRequestLogging $ appSettings app
+          then Detailed True
+          else Apache FromFallback
+    , destination = Logger $ loggerSet $ appLogger app
+    }
+
+makeApplication app = do
+  commonapp <- toWaiApp app
+  logware <- makeLogware app
+  return $ logware $ defaultMiddlewaresNoLogging commonapp
+
+```
+Why would we modify this function, you say.
+"Because we want to have nice formatted log request," that's why.
+Anyway, basically the function above checks whether we want a detailed request
+or not and serves accordingly.
+Then, we will feed it into our application.
+Remember, our application is a Warp Application, so we can chain as many
+middleware as we want.
+Provided we can supply it, of course.
+
+Okay, let's continue adding niceties in `Application`.
+Let's start by creating a function that reads settins.
+```
+getAppSettings :: IO ApplicationSettings
+getAppSettings = loadYamlSettings [configSettingsYml] [] useEnv
+```
+That type signature above, that's important because `loadYamlSettings` wants to
+read any yaml file that can be parsed into Haskell object.
+So, we have to add that signature.
+And why `IO`? Because we read it from RealWorld(tm), my friend.
+
+Now, we continue it by writing a function that returns a tuple of Warp `Settings` and our `Application`.
+Simple, actually.
+```
+getAppDev :: IO (Settings, Application)
+getAppDev = do
+  settings <- getAppSettings
+  found <- makeFoundation settings
+  warpsettings <- getDevSettings $ warpSettings found
+  app <- makeApplication found
+  return (warpsettings, app)
+
+develMain = develMainHelper getAppDev
+
+```
+We just do the same as our `newMain`, but instead of returning an `Application`,
+we add another value named `warpsettings`.
+Surely both of the return value will be used by `develMainHelper` to run it as
+long as we want.
+
+After you save all of the modified files, now go to your favorite terminal
+emulator and run `stack exec -- yesod devel`.
+Now, whenever you modify anything under `src/` directory, yesod will recompile
+the modified module and anything that depends on it.
+
+Check our progress [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/f3d72f0a11ec786374a8dc44803cbf49854d5684).
+
+#### Authentication, Prelude
+
+We are, approximately, has 70% our base template, minus handlers.
+So, we will add another few percents of it by adding authentication feature.
+
+First, we will go back to `src/Model.hs` just to add three lines of class
+instantiation of `HashDBUser`.
+It's simple enough, really.
+```
+instance HasDBUser Users where
+  userPasswordHash = userPassword
+  setPasswordHash u h = u {usersPassword = Just h}
+
+```

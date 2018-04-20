@@ -52,7 +52,7 @@ For example, the structure of the tables of this program and what one usually
 expects when they use and/or administer a forum software.</p><h3>Database Design</h3><p>Because forum software basically is just a CRUD program, we have to define it first.
 Fortunately, <a href="https://fluxbb.org/docs/v1.5/dbstructure">FluxBB's database structure</a>
 is not really complicated.
-Not only that, a lot of its fields are <code>nullable</code>, so we can be remove them in this
+Not only that, a lot of its fields are <code>nullable</code>, so we can remove them in this
 clone.</p><p>For example, we will not use some of nullables of <code>Users</code>'s columns.
 So, instead of <a href="https://fluxbb.org/docs/v1.5/dbstructure#users">this</a>, we will
 use (in <code>persistent</code>'s fields)</p><pre><code>Users
@@ -67,10 +67,10 @@ use (in <code>persistent</code>'s fields)</p><pre><code>Users
   UniqueEmail email
   deriving Show Eq
 </code></pre><p>Furthermore, we will not use a few FluxBB's tables. For example, we won't use
-<code>permissions</code>, <code>forum_subscribtions</code>, and <code>topic_subscribtions</code>.</p><h3>Inner Workings</h3><p>In real FluxBB's use case, an administator could set a set of permissions for
-a certain groups (<code>moderator</code>, for example) to do something peculiar like capable
+<code>permissions</code>, <code>forum_subscribtions</code>, and <code>topic_subscribtions</code>.</p><h3>Inner Workings</h3><p>In real FluxBB's use case, an administrator could set a set of permissions for
+a certain group (<code>moderator</code>, for example) to do something peculiar like capable
 of banning users, but not editing users' profiles.
-We will not give the users and administator these kind of features it's too
+We will not give the users and administrator these kind of features because it's too
 complicated for my purpose.</p><p>So, instead of the actual FluxBB's features, we will dumb it down like the following:</p><ul><li><b>Users can</b><ul><li>Read <code>topic</code>s and <code>forum</code>s.</li><li>Create <code>topic</code> (or <code>thread</code> or <code>discussion</code>).</li><li>Reply <code>topic</code>.</li><li>Edit his own <code>reply</code></li><li>Edit information.</li><li>Can <code>report</code> people.</li></ul></li><li><b>Moderators</b><ul><li>User's capabilities plus</li><li>Can lock thread.</li><li>Can ban users.</li><li>Can unban users.</li><li>Can respond to <code>reports</code>.</li></ul></li><li><b>Administrators</b><ul><li>Moderator's capabilities plus</li><li>Can create <code>forum</code>.</li><li>Can create <code>category</code>.</li><li>Can promote user to become a Moderator or Administrator.</li><li>Can demote user.</li></ul></li><li><b>Banneds</b><ul><li>Only logout.</li></ul></li></ul><h3>Layout and UI</h3><p>I'll make a confession, I don't understand CSS and JavaScript.
 So, I will use a small CSS framework, <a href="http://milligram.io/">milligram</a> as helper
 and no JS in this program.
@@ -423,7 +423,58 @@ Now, when you compile this project and run it, you will see something like the
 following</p><pre><code>Migrating: CREATe TABLE &quot;categories&quot;(&quot;id&quot; SERIAL8  PRIMARY KEY UNIQUE,&quot;name&quot; VARCHAR NOT NULL)
 Migrating: CREATe TABLE &quot;forums&quot;(&quot;id&quot; SERIAL8  PRIMARY KEY UNIQUE,&quot;category_id&quot; INT8 NOT NULL,&quot;name&quot; VARCHAR NOT NULL,&quot;descriptions&quot; VARCHAR NULL,&quot;topics_count&quot; INT8 NOT NULL DEFAULT 0,&quot;replies_count&quot; INT8 NOT NULL DEFAULT 0,&quot;last_post&quot; TIMESTAMP WITH TIME ZONE NULL,&quot;last_post_id&quot; INT8 NULL,&quot;last_poster&quot; VARCHAR NULL)
 -- etc.
-</code></pre><p>You can see the progress to this point by looking at this <a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/fe886b3bed75c8089e671d0f4fd2fa17c0ac8d59">commit</a>.</p>
+</code></pre><p>You can see the progress to this point by looking at this <a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/fe886b3bed75c8089e671d0f4fd2fa17c0ac8d59">commit</a>.</p><h4>Niceties</h4><p>Well, it's true that stopping <code>stack exec</code>, running <code>stack build</code>, and then
+running <code>stack exec</code> again is tiring.
+So, we will implement scaffolded templates' <code>stack exec -- yesod devel</code> at
+<code>src/Application.hs</code></p><pre><code>{-# LANGUAGE NoImplicitPrelude #-}
+import ClassyPrelude.Yesod
+import Network.Wai (Middleware)
+
+makeLogware :: App -&gt; IO Middleware
+makeLogware app = do
+  mkRequestLogger
+    def - package classy-prelude-yesod
+    { outputFormat =
+        if appDetailedRequestLogging $ appSettings app
+          then Detailed True
+          else Apache FromFallback
+    , destination = Logger $ loggerSet $ appLogger app
+    }
+
+makeApplication app = do
+  commonapp &lt;- toWaiApp app
+  logware &lt;- makeLogware app
+  return $ logware $ defaultMiddlewaresNoLogging commonapp
+</code></pre><p>Why would we modify this function, you say.
+&quot;Because we want to have nice formatted log request,&quot; that's why.
+Anyway, basically the function above checks whether we want a detailed request
+or not and serves accordingly.
+Then, we will feed it into our application.
+Remember, our application is a Warp Application, so we can chain as many
+middleware as we want.
+Provided we can supply it, of course.</p><p>Okay, let's continue adding niceties in <code>Application</code>.
+Let's start by creating a function that reads settins.</p><pre><code>getAppSettings :: IO ApplicationSettings
+getAppSettings = loadYamlSettings [configSettingsYml] [] useEnv</code></pre><p>That type signature above, that's important because <code>loadYamlSettings</code> wants to
+read any yaml file that can be parsed into Haskell object.
+So, we have to add that signature.
+And why <code>IO</code>? Because we read it from RealWorld(tm), my friend.</p><p>Now, we continue it by writing a function that returns a tuple of Warp <code>Settings</code> and our <code>Application</code>.
+Simple, actually.</p><pre><code>getAppDev :: IO (Settings, Application)
+getAppDev = do
+  settings &lt;- getAppSettings
+  found &lt;- makeFoundation settings
+  warpsettings &lt;- getDevSettings $ warpSettings found
+  app &lt;- makeApplication found
+  return (warpsettings, app)
+
+develMain = develMainHelper getAppDev
+</code></pre><p>We just do the same as our <code>newMain</code>, but instead of returning an <code>Application</code>,
+we add another value named <code>warpsettings</code>.
+Surely both of the return value will be used by <code>develMainHelper</code> to run it as
+long as we want.</p><p>After you save all of the modified files, now go to your favorite terminal
+emulator and run <code>stack exec -- yesod devel</code>.
+Now, whenever you modify anything under <code>src/</code> directory, yesod will recompile
+the modified module and anything that depends on it.</p><p>Check our progress <a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/f3d72f0a11ec786374a8dc44803cbf49854d5684">here</a>.</p><h4>Authentication, Prelude</h4><p>We are, approximately, has 70% our base template, minus handlers.
+So, we will add another few percents of it by adding authentication options</p>
             </section>
         </main>
     </body>

@@ -16,7 +16,7 @@ Not only that, it also helped me to maintain a watchful attitude when handling m
 - PTC Windchill: I maintain PTC Windchill deployments for almost 3 years from version 9 to 10.
 - Functional Programming: I really like what Haskell offers when it comes to correctness.
 - IIOT: From mid-2017, I have responsibilities to write and maintain backend programs for IIOT projects which usually use standard protocols.
-- Soft Skills: I'm capable of writing, reading, and speaking in English at professional level. While I'm still learning Dutch, I'm confident that at the end of 2018, I will be able to read Dutch in professional level. For mother tongue, I speak Indonesian and Javanese for my verbal and written communications.
+- Soft Skills: I'm capable of writing, reading, and speaking in English at professional level. While I'm still learning Dutch, I'm confident that by the end of 2018, I will be able to read Dutch in professional level. For mother tongue, I speak Indonesian and Javanese for my verbal and written communications.
 
 ### Education
 
