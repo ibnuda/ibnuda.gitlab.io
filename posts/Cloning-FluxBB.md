@@ -700,8 +700,58 @@ First, we will go back to `src/Model.hs` just to add three lines of class
 instantiation of `HashDBUser`.
 It's simple enough, really.
 ```
-instance HasDBUser Users where
-  userPasswordHash = userPassword
+instance HashDBUser Users where
+  userPasswordHash = usersPassword
   setPasswordHash u h = u {usersPassword = Just h}
 
 ```
+Basically we just tell that `Users` is an instance of `HashDBUser` by defining
+those two functions.
+First, we tell that `userPasswordHash` should just use `usersPassword`.
+And `setPasswordHash` just a setter for `Users`.
+
+The next part is also a bit simple.
+We will head to `src/Foundation.hs` to make our `App` be able to authenticate
+our users.
+```
+instance RenderMessage App FormMessage where
+  renderMessage _ _ = defaultFormMessage
+
+instance YesodAuth App where
+  type AuthId App = UsersId
+  loginDest _ = HomeR
+  logoutDest _ = LoginR
+  redirectToReferer _ = False
+  authPlugins _ = [authHashDB (Just . UniqueUsername)]
+  authenticate creds = liftHandler $ runDB $ do
+    x <- getBy $ UniqueUsername $ credsIdent creds
+    case x of
+      Nothing             -> return $ UserError InvalidLogin
+      Just (Entity uid _) -> return $ Authenticated uid
+
+instance YesodAuthPersist App
+
+```
+You know why we should define our `App` to has a `RenderMessage` instance?
+Because `YesodAuth` is something like a sub class of `RenderMessage`.
+Just think of `YesodAuth` is "top rankers of 10th graders".
+And in order to be a "top ranker of 10th grader", your kid should be a 10th
+grader in the first place.
+`RenderMessage` is analog to the "10th graders" in this context.
+
+Now, to make our `App` capable of authenticating our users, we defined
+`YesodAuth` instance for our `App` and its requirements.
+`AuthId App` type above was specifically defined to differentiate the session
+of the access to our web by reading `UsersId` in the cookies (or something like that).
+`loginDest` and `logoutDest` handle what should a user see after he logged
+in and logged out to/from his session.
+while `redirectToReferer` determines whether should a user be redirected
+to the `loginDest` or not.
+
+The core of our authentication process lays at these two functions
+ - `authenticate` which basically reads `credsIdent` and compares the result from 
+   our database.
+ - `authPlugins`, just like its name, it defines what should we use in order
+   to authenticate our users.
+   And in this case, we use `authHashDB` from username.
+   Why? because that's what matter.

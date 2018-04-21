@@ -474,7 +474,51 @@ long as we want.</p><p>After you save all of the modified files, now go to your 
 emulator and run <code>stack exec -- yesod devel</code>.
 Now, whenever you modify anything under <code>src/</code> directory, yesod will recompile
 the modified module and anything that depends on it.</p><p>Check our progress <a href="https://gitlab.com/ibnuda/Cirkeltrek/commit/f3d72f0a11ec786374a8dc44803cbf49854d5684">here</a>.</p><h4>Authentication, Prelude</h4><p>We are, approximately, has 70% our base template, minus handlers.
-So, we will add another few percents of it by adding authentication options</p>
+So, we will add another few percents of it by adding authentication feature.</p><p>First, we will go back to <code>src/Model.hs</code> just to add three lines of class
+instantiation of <code>HashDBUser</code>.
+It's simple enough, really.</p><pre><code>instance HashDBUser Users where
+  userPasswordHash = usersPassword
+  setPasswordHash u h = u {usersPassword = Just h}
+</code></pre><p>Basically we just tell that <code>Users</code> is an instance of <code>HashDBUser</code> by defining
+those two functions.
+First, we tell that <code>userPasswordHash</code> should just use <code>usersPassword</code>.
+And <code>setPasswordHash</code> just a setter for <code>Users</code>.</p><p>The next part is also a bit simple.
+We will head to <code>src/Foundation.hs</code> to make our <code>App</code> be able to authenticate
+our users.</p><pre><code>instance RenderMessage App FormMessage where
+  renderMessage _ _ = defaultFormMessage
+
+instance YesodAuth App where
+  type AuthId App = UsersId
+  loginDest _ = HomeR
+  logoutDest _ = LoginR
+  redirectToReferer _ = False
+  authPlugins _ = [authHashDB (Just . UniqueUsername)]
+  authenticate creds = liftHandler $ runDB $ do
+    x &lt;- getBy $ UniqueUsername $ credsIdent creds
+    case x of
+      Nothing             -&gt; return $ UserError InvalidLogin
+      Just (Entity uid _) -&gt; return $ Authenticated uid
+
+instance YesodAuthPersist App
+</code></pre><p>You know why we should define our <code>App</code> to has a <code>RenderMessage</code> instance?
+Because <code>YesodAuth</code> is something like a sub class of <code>RenderMessage</code>.
+Just think of <code>YesodAuth</code> is &quot;top rankers of 10th graders&quot;.
+And in order to be a &quot;top ranker of 10th grader&quot;, your kid should be a 10th
+grader in the first place.
+<code>RenderMessage</code> is analog to the &quot;10th graders&quot; in this context.</p><p>Now, to make our <code>App</code> capable of authenticating our users, we defined
+<code>YesodAuth</code> instance for our <code>App</code> and its requirements.
+<code>AuthId App</code> type above was specifically defined to differentiate the session
+of the access to our web by reading <code>UsersId</code> in the cookies (or something like that).
+<code>loginDest</code> and <code>logoutDest</code> handle what should a user see after he logged
+in and logged out to/from his session.
+while <code>redirectToReferer</code> determines whether should a user be redirected
+to the <code>loginDest</code> or not.</p><p>The core of our authentication process lays at these two functions
+ - <code>authenticate</code> which basically reads <code>credsIdent</code> and compares the result from 
+   our database.
+ - <code>authPlugins</code>, just like its name, it defines what should we use in order
+   to authenticate our users.
+   And in this case, we use <code>authHashDB</code> from username.
+   Why? because that's what matter.</p>
             </section>
         </main>
     </body>
