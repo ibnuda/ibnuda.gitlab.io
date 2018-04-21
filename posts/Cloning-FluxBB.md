@@ -755,3 +755,116 @@ The core of our authentication process lays at these two functions
    to authenticate our users.
    And in this case, we use `authHashDB` from username.
    Why? because that's what matter.
+
+But wait, we can't be sure whether we can really be authenticated or not, right?
+That's pretty disappointing, actually.
+It's time to start writing `Seed` program where it seeds our database population.
+
+Let's create a directory name `seed` and create a file named `Main.hs` and modify
+`package.yaml` to include `seed` as one of our program.
+```
+executables:
+  -- skip
+  Seed:
+    main: Main.hs
+    source-dirs: seed
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - our-project
+
+```
+Which basically tells stack (or is it cabal? or is it hpack?) that there is
+a new entry for the executables named `Seed` with the entry point in `Main.hs`
+which located in `seed` directory.
+
+What left is what should we write for it.
+```
+insertGroup txt = insert $ Groups txt
+
+createAdministrator gid username email password = do
+  now <- liftIO getCurrentTime
+  let usersGroupId = gid
+      usersUsername = username
+      usersEmail = email
+      usersPassword = password
+      usersJoinTime = now
+      usersTopicsStarted = 0
+      usersRepliesPosted = 0
+  insert_ $ Users {..}
+
+main :: IO ()
+main = do
+  settings <- loadYamlSettingsArgs [configSettingsYmlValue] useEnv -- [1]
+  let conn = (pgConnStr $ appDatabaseConf settings) -- [2]
+  username <- getLine -- [3]
+  password <- -- [4]
+    do something <- getLine
+       password <- makePassword (encodeUtf8 something) 17
+       return $ decodeUtf8 password
+  email <- getLine -- [5]
+  runStderrLoggingT . withPostgresqlConn conn $ -- [6]
+    runSqlConn $ do
+      runMigration migrateAll
+      gid <- insertGroup Administrator
+      gin <- insertGroup Moderator
+      gim <- insertGroup Member
+      gib <- insertGroup Banned
+      createAdministrator gid username email (Just password) -- [7]
+
+```
+There are a few functions here.
+
+- `insertGroup` which takes a `Grouping` from `src/Model/Grouping.hs`.
+  It's just a standard `persistent`'s insert function, to be honest.
+  You put a datum as an argument for `insert`, and then when you're ready,
+  you will execute it.
+- `createAdministrator` which takes a few arguments which their datatypes
+  satisfy our `Users`'s fields' datatypes.
+  If you can't remember what are they, you can look up at the `Model.hs`
+  snippet above.
+- `main`, our main program.
+  What it does:
+  
+  1. Reads the config file.
+     You can also the same function usage in `Application.hs`
+  2. Creates a connection settings.
+  3. Reads username from command line input.
+  4. Creates a password, which reads from cli input, make the password
+     out of it, and then returns it.
+  5. Reads email, though the input's validity won't be checked.
+  6. Executes the two previous functions.
+  7. Creates an administrator from our read inputs.
+
+Now, when we compile our project (`stack build`), we will have another binary
+executable named `Seed`.
+When we execute it (`stack exec Seed`), it will ask our needed inputs.
+Just fill it casually.
+When you have run it, look at the database (`select * from users`) and you will
+see that our data inputted there.
+
+Progress til now: [this](https://gitlab.com/ibnuda/Cirkeltrek/commit/8525a8c28475025afbb6566a92df04a6bd2ad61f)
+
+#### Authentication, Login & Logout
+
+Now, since our supporting infrastructure is satisfied, then the next step is to create
+where should the user head to log in, right?
+That's why we will add a route to our application.
+
+```
+mkYesodData "App"
+  [parseRoutes|
+    /        HomeR     GET
+    /auth    SigninR   Auth getAuth
+    /profile ProfileR  GET
+  |]
+instance Yesod App where
+  -- snip
+  authRoute _ = Just $ SigninR LoginR
+  isAuthorized (SigninR _) _ = return Authorized
+  isAuthorized HomeR _       = return Authorized
+  isAuthorized ProfileR _    = isLoggedIn
+
+```
