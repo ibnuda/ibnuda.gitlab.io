@@ -851,20 +851,88 @@ Progress til now: [this](https://gitlab.com/ibnuda/Cirkeltrek/commit/8525a8c2847
 
 Now, since our supporting infrastructure is satisfied, then the next step is to create
 where should the user head to log in, right?
-That's why we will add a route to our application.
+That's why we will add a route to our application and its handler and modify `defaultLayout`.
 
 ```
+-- Foundation.hs
 mkYesodData "App"
   [parseRoutes|
     /        HomeR     GET
     /auth    SigninR   Auth getAuth
     /profile ProfileR  GET
   |]
-instance Yesod App where
-  -- snip
-  authRoute _ = Just $ SigninR LoginR
-  isAuthorized (SigninR _) _ = return Authorized
-  isAuthorized HomeR _       = return Authorized
-  isAuthorized ProfileR _    = isLoggedIn
+  
+```
+You see that `/profile ...` line above?
+That's our new route.
+Don't worry to see it, because the program won't compile because it doesn't have
+the required handle.
+```
+-- Profile.hs
+getProfileR :: Handler Html
+getProfileR = do
+  (Just (Entity userid user)) <- maybeAuth
+  defaultLayout $ do
+    setTitle "Nice"
+    [whamlet|
+      <p> You are: #{usersUsername user}
+      <p> Userid: #{fromSqlKey userid}
+      <p> Your email: #{usersEmail user}
+    |]
 
 ```
+In case you're wondering why would we "extract" `maybeAuth` directly as `Just x`,
+we are going to make `ProfileR` as a protected route where only logged in users
+could see it.
+And in order to do that, we have to modify `Foundation.hs` to be able to "guard"
+the route above.
+
+```
+instance Yesod App where
+    -- snip
+  authRoute _ = Just $ SigninR LoginR -- [1]
+  defaultLayout widget = do
+    master <- getYesod
+    maut <- maybeAuth -- [2]
+    mmessage <- getMessage
+    pagecontent <- widgetToPageContent $ do
+      [whamlet|
+        $maybe aut <- maut
+          <a href=@{SigninR LogoutR}> Logout -- [3]
+        $nothing
+          <a href=@{SigninR LoginR}> Login -- [3]
+        ^{widget}
+      |]
+    withUrlRenderer $(hamletFile "templates/wrapper.hamlet")
+  isAuthorized (SigninR _) _ = return Authorized -- [4]
+  isAuthorized HomeR _       = return Authorized -- [4]
+  isAuthorized ProfileR _    = isLoggedIn -- [4]
+
+isLoggedIn :: Handler AuthResult
+isLoggedIn = do -- [5]
+  maut <- maybeAuth
+  case maut of
+    Nothing -> return $ Unauthorized "login please"
+    Just _  -> return  Authorized
+
+```
+At the snippet the interesting parts are the marked ones.
+
+1. We stated that there is a login / auth route.
+2. We put this line in order to get the "auth status" of the incoming request.
+3. We used the point 2's result to determine whether we should display login link
+   or logout link.
+4. This is where the app guards the routes.
+   We specifically defined that only requests that satisfy `isLoggedIn` to
+   access `ProfileR`.
+5. `isLoggedIn` basically checks the requests whether it has auth in the session cookies
+   or not.
+   If the requests don't have it, then we can just short circuit the process by returning
+   "Unauthorized access".
+   Otherwise, we will continue to process the requests.
+   
+Now, we should add `import Profile` to `src/Application.hs` and then run it.
+We will be able to login and logout to and from our application.
+Nice.
+
+You can check out the our progress [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/2c11ea6404e72e868aea7584c396806c1c5f913f).
