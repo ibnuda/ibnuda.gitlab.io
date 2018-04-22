@@ -913,7 +913,7 @@ isLoggedIn = do -- [5]
   maut <- maybeAuth
   case maut of
     Nothing -> return $ Unauthorized "login please"
-    Just _  -> return  Authorized
+    Just _  -> return Authorized
 
 ```
 At the snippet the interesting parts are the marked ones.
@@ -936,3 +936,97 @@ We will be able to login and logout to and from our application.
 Nice.
 
 You can check out the our progress [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/2c11ea6404e72e868aea7584c396806c1c5f913f).
+
+#### Default Layout
+
+Considering how long HTML is, I think we should separate it from our code.
+What I mean by separation is, the program should just read the hamlet files
+and return the templates.
+
+Now, let's head for `Settings.hs`, where everything related to settings are there.
+
+```
+compileTimeAppSettings :: ApplicationSettings
+compileTimeAppSettings =
+  case fromJSON $ applyEnvValue False mempty configSettingsYmlValue of
+    Error e   -> error e
+    Success s -> s
+
+widgetFile :: String -> Q Exp
+widgetFile =
+  (if appReloadTemplate compileTimeAppSettings
+     then widgetFileReload
+     else widgetFileNoReload)
+    widgetFileSettings
+  where
+    widgetFileSettings :: WidgetFileSettings
+    widgetFileSettings = def
+
+```
+Those two functions above are used in the scaffolded templates to load (and/or reload)
+the template ([hamlet, julius, and casius](https://www.yesodweb.com/book/shakespearean-templates)) files.
+About `compileTimeAppSettings`, it just reads the setting value at the compile time and
+throws an error when there's no valid settings.
+Though it's pretty much impossible to throw error because `configSettingsYmlValue` will
+throw error first if the setting file has invalid values.
+While `widgetFile` just reload (or not) the templates based on the settings.
+
+So, what should we do next is applying `widgetFile` function to our application.
+And it's actually pretty simple.
+```
+instance Yesod App where
+  defaultLayout widget = do
+    ---
+    pagecontent <- widgetToPageContent $ $(widgetFile "def") -- this one.
+    withUrlRenderer $(hamletFile "templates/wrapper.hamlet")
+```
+And if you wonder why do we use `widgetFile` while `hamletFile` does exist,
+if you look at `hamletFile` signature, it returns `Html` while what
+we need is `WidgetFor App ()`
+
+I will hereafter always skip hamlet contents for the sake of cutting the
+word counts down.
+You can still see the commited files at the of sub-sub-sub-section as usual
+though.
+
+And now, when load our site in the browser and see its source, you will
+see the structure of our templates.
+
+Here's current progress [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/f30a18c656a62574ae160445a6c2b093ba8ee607).
+Also, the page looks weird without any css, we will add that by adding
+static route in our app.
+
+```
+-- Foundation.hs
+mkYesodData "App" [parseRoutes|.... /static StaticR Static appStatic ....]
+
+```
+and create a file named `StaticFiles.hs` at a new directory `Settings` which
+contains
+```
+-- skip extensions and imports
+staticFiles (appStaticDir compileTimeAppSettings)
+
+```
+Surely we know what the first snippet does.
+As it just parses new `/static` route.
+But the second snippet, unfortunately, I'm not really sure what it does.
+But surely it relates to GHC and Template Haskell restrictions.
+
+Anyway, let's add css files to `defaultLayout`.
+
+```
+  defaultLayout widget = do
+    -- skip
+    pagecontent <- widgetToPageContent $ do
+      addStylesheet $ StaticR css_main_css
+      addStylesheet $ StaticR css_milligram_min_css
+      addStylesheet $ StaticR css_main_css
+      $(widgetFile "def")
+    withUrlRenderer $(hamletFile "templates/wrapper.hamlet")
+
+```
+And then reload our site and you'll see that our css is applies to the
+layout.
+
+Current progress: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/f21104e9cabd3c52f10c9c0b37bd906b582e9829).
