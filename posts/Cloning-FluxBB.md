@@ -1030,3 +1030,34 @@ And then reload our site and you'll see that our css is applies to the
 layout.
 
 Current progress: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/f21104e9cabd3c52f10c9c0b37bd906b582e9829).
+
+##### Login Layout
+
+I don't know, my friend.
+I dislike the default layout of the login form by `yesod-auth-hashdb`.
+So we will fix that by modifying `YesodAuth` instance, `authPlugins` function to
+```
+  authPlugins _ = [authHashDBWithForm loginform (Just . UniqueUsername)]
+    where
+      loginform :: Route App -> Widget
+      loginform action = $(whamletFile "templates/login.hamlet")
+
+```
+The difference between `authHashDB` and `authHashDBWithForm` is that the later
+receives an addition argument of `Route App -> Widget`.
+And we provided a function that exactly has that kind of signature.
+Don't worry about the content of `templates/login.hamlet`.
+I will include it in the next commit.
+
+#### Completion of Foundation
+
+Now that we have the needed foundation that provides:
+
+- Basic routes, which has protected content, authentication, and public content.
+- Layouts.
+
+The next part is where we clone (most of) the functionalities of FluxBB.
+
+[commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/143696db00a6781cc4081c335c8069b2b5f197d2).
+
+###
