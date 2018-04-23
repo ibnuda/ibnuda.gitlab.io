@@ -4,7 +4,7 @@ Cloning FluxBB
  
 Writing a forum software is one of a few things that I-wished-I-have-but-haven't
 in the last of couple of years.
-For example, among a gazillion abandoned repos on this GitLab account,
+For example, among a gazillion of abandoned repos on this GitLab account,
 [`Forum`](https://gitlab.com/ibnuda/Forum) is one of them.
 If you take a glance on it, you will see -- obviously -- that it's an unfinished
 forum software.
@@ -46,13 +46,13 @@ Users
 
 ```
 
-Furthermore, we will not use a few FluxBB's tables. For example, we won't use
-`permissions`, `forum_subscribtions`, and `topic_subscribtions`.
+Furthermore, we will not use some of FluxBB's tables.
+For example, we won't use `permissions`, `forum_subscribtions`, and `topic_subscribtions`.
 
 ### Inner Workings
 
 In real FluxBB's use case, an administrator could set a set of permissions for
-a certain group (`moderator`, for example) to do something peculiar like capable
+a certain group (`moderator`, for example) to do something peculiar, like capable
 of banning users, but not editing users' profiles.
 We will not give the users and administrator these kind of features because it's too
 complicated for my purpose.
@@ -93,13 +93,13 @@ So, instead of the actual FluxBB's features, we will dumb it down like the follo
 I'll make a confession, I don't understand CSS and JavaScript.
 So, I will use a small CSS framework, [milligram](http://milligram.io/) as helper
 and no JS in this program.
-That means, we will treat this forum's interface (HTML) as purely a document presentation.
+That means, we will treat this forum's interface (HTML) purely as a document presentation.
 Baring a few buttons and text inputs.
 I really hope you don't mind about it.
 
 ### The Approach
 
-We will build up the forum from `yesod-minimal` template from stack and then slowly
+We will build up the forum from `yesod-minimal` template using stack and then slowly
 turn it into `yesod-postgres` and then to a FluxBB's clone.
 While we're at it, I will try my best to explain why we do what we do.
 
@@ -163,10 +163,9 @@ Now, let's push it to our repo. (our current progress is saved
 
 ### Foundation Building
 
-
 #### Writing Foundation
 
-In the scaffolded templates, you will see a lot of stuff going, on which baffled
+In the scaffolded templates, you will see a lot of stuff going on, which baffled
 me a couple months ago, from settings, database, and templating.
 Surely, the yesod-book and the templates' comments helped me a lot but it was 
 not enough for to grasp the reasoning of the decisions made by the author of the
@@ -185,7 +184,7 @@ Which in turn, `RenderRoute site` has signature of `class Eq (Route site) => Ren
 Let's talk about `class`es first.
 In short, there's a thing in Haskell called `typeclass`.
 I'll just give you an analogue, let's say that you have a kid and you want to let
-him join a gifted class.
+him join in a gifted class.
 There are a few requirements for that, of course.
 For example, he has grades that rise steadily and younger than his peers.
 So, in Haskell, if you want to let your data to be recognised as one of the classes,
@@ -221,7 +220,7 @@ Let's start by adding a `ApplicationSettings`, `ConnectionPool` and a lot of oth
 stuff into `App` first. Don't worry, we will talk about it later.
 ```
 data App = App
-  { appSettings::ApplicationSettings
+  { appSettings :: ApplicationSettings
   , appConnectionPool :: ConnectionPool -- from "persistent", module Database.Persist.Sql
   , appLogger :: Logger -- from module Yesod.Core.Types
   , appStatic :: Static -- from "yesod-static", module Yesod.Static
@@ -1060,4 +1059,153 @@ The next part is where we clone (most of) the functionalities of FluxBB.
 
 [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/143696db00a6781cc4081c335c8069b2b5f197d2).
 
-###
+
+### Cloning Things
+
+Here, we will try to copy the functionality of FluxBB.
+Although it won't 100% parity
+
+#### Preparations
+
+Before we do anything, let's start by cleaning up our imports.
+For example, instead of importing `Yesod.Core`, `ClassyPrelude.Yesod`, etc on
+each and every file, we can import a single file that has exported other modules.
+
+```
+-- src/Import/NoFoundation.hs
+module Import.NoFoundation where
+import Yesod.Auth as Import
+import ClassyPrelude.Yesod as Import
+-- import anything that you want to import.
+
+-- src/Import.hs
+module Import where
+import Import.NoFoundation as Import
+import Foundation as Import
+
+```
+
+Now, whenever you see a module that imports, say, `Yesod.Auth`, you can simply
+replace it with `import Import`.
+What we just did was to simplify our imports by "combining" our modules into
+a single module.
+
+And create a directory named `Handler` to contain every handler we have.
+Plus, don't forget to update the name of the module that responsible for handling
+requests (`Home` and `Profile`).
+The purpose of this move is to ensure that we separate our (modules') concerns.
+Other than that, I dislike a disastrous `~/` and any root project is.
+
+Now, we have cleaned our root project directory, let's start.
+
+#### Category Administration
+
+If you're wondering why do we start with administering category, then I will
+confess that I feel I can solve this problem better when I approach it top-down.
+It doesn't mean that you should the same, but, I don't know.
+Just like Sinatra has sung, I will just do it in my way~
+
+Okay, administering category in this context actually just means that we can create
+categories and delete them, if the situation demands us to do so.
+
+Based on the requirements above, we should:
+
+- Ensure that only `Administrator` that could create and/or delete categories.
+- Ensure that the forums of a category should be also deleted when we delete its
+  parent category.
+
+Therefore, we should create functions that satisfy the requirements above.
+
+##### Category Creation: Business Logic and Database Query
+
+First, we should look at the `Categories` entity at `Model.hs`.
+There, it was clear that a `Categories` only have a field named `categoriesName`
+which should be come from our `Administrator`.
+So, we should have a function that takes two parameters, `grouping` and `catname`
+and should return an `OK` when our input pass our requirements and `Permission Denied`
+when it doesn't pass.
+
+So, let's create a directory named `Flux`, a file named `AdmCategory.hs` in it, and
+fill it with
+```
+module Flux.AdmCategory where
+import Import
+
+createCategory Administrator catname = liftHandler $ runDB $ _ catname -- [1]
+createCategory _ _ = permissionDenied "You're not allowed to do it." -- [2]
+
+```
+The function above is just a standard pattern matching function.
+[2] will just throw a permission denied when the one who asks for
+The interesting part is at [1], there's a "holed" parameter.
+When you compile it GHC will scream about `ReaderT (YesodPersistBackend (HandlerSite m)) (HandlerFor (HandlerSite m)) a`.
+That's where we should create the query.
+
+Now, let's create a directory named `DBOp`, a file named `CRUDCategory.hs` in it, and
+fill it with
+```
+module DBOp.CRUDCategory where
+import Import
+
+insertCategory catname = insert $ Categories catname
+
+```
+And modify `Flux.AdmCategory` to import `DBOp.CRUDCategory` and replace the "holed" (`_`) function
+with `insertCategory`.
+
+Surely there are a few complains from GHC.
+Don't worry, if you use intero, just apply the suggestion (C-c C-r C-c C-c) by
+adding `GADTs` extension to it.
+
+And that's it.
+Basically we have completed the logic of this part.
+
+##### Category Creation: Route and UI
+If you were wondering where did we get the `grouping` of a request, we will create that.
+
+First, let's head to `Foundation.hs`, import `Database.Esqueleto`, hiding a few operators,
+and then add a function there.
+```
+getUserAndGrouping :: Handler (Maybe (Key Users, Text, Grouping))
+getUserAndGrouping = do
+  maut <- maybeAuth
+  case maut of
+    Nothing -> return Nothing
+    Just (Entity uid user) -> do
+      [gro] <-
+        liftHandler $
+        runDB $
+        select $
+        from $ \(group, user) -> do
+          where_
+            (user ^. UsersId ==. val uid
+             &&. group ^. GroupsId ==. user ^. UsersGroupId)
+          limit 1
+          return (group ^. GroupsGrouping)
+      return $ Just (uid, usersUsername user, unValue gro)
+
+```
+The function above retrieves from the following columns: `users.id`, `users.username`, and
+`groups.grouping` by doing the following things:
+
+1. Gets the authentication status of a request.
+2. In case of the absence of authenticated status, it returns nothing.
+3. Otherwise, it queries the database what is the `Grouping` of a user
+   with id `uid`.
+4. Returns the group and and wrap them into a triple.
+
+Now, let's create a handler for serving this very matter, creating a category.
+
+```
+-- src/Handler/Adm/Category.hs
+
+```
+
+Current progress: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/be2dd0d1f592a80cf11c36b487d109125038eeb6)
+
+##### Category Deletion: Business Logic and Database Query
+Please wait.
+
+##### Category Deletion: Route and UI
+
+Please wait.
