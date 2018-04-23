@@ -24,14 +24,16 @@ markdownToHtml = toHtml . markdown def . TL.fromStrict
 navigationItem :: Content -> Html
 navigationItem Content {..} = do
   let titleAndDate = htmlFilenameFromTitleAndDate mdTitle mdDate
-  li ! class_ "navigation-item" $ do
-    a ! href (textValue titleAndDate) ! class_ "navigation-link" $ do
-      toHtml mdTitle
+  a ! href (textValue titleAndDate) $ do
+    toHtml mdTitle
 
 navigationItems :: [Content] -> Html
 navigationItems pages = do
-  ul ! class_ "navigation-list float-right" $ do
-    forM_ pages $ navigationItem
+  div ! class_ "navigation-list float-right" $ do
+    div ! class_ "dropdown navigation-link" $ do
+      div ! class_ "dropbutton" $ toHtml ("Info" :: Text)
+      div ! class_ "dropdown-content" $ do
+        forM_ pages $ navigationItem
 
 navigationBar :: [Content] -> Html
 navigationBar pages = do
@@ -39,7 +41,7 @@ navigationBar pages = do
     section ! class_ "container" $ do
       ul ! class_ "navigation-list float-left" $ do
         li ! class_ "navigation-item" $ do
-          a ! href "index.html" ! class_ "navigation-link" $ text "Home"
+          a ! href "index.html" ! class_ "navigation-link" $ text "Index"
       navigationItems pages
 
 mainContent :: Text -> Html
