@@ -1,8 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module Lib.Generate
-  ( fullFledgedHtmlGeneration
-  , defaultConfig
-  ) where
+module Lib.Generate where
 
 import qualified Data.Text                       as T
 import qualified Data.Text.Lazy                  as TL
@@ -17,57 +14,56 @@ import           Lib.Prelude                     hiding (div, head)
 import           Lib.ReadWrite
 import           Lib.Types
 
-
 markdownToHtml :: Text -> Html
 markdownToHtml = toHtml . markdown def . TL.fromStrict
 
 navigationItem :: Content -> Html
 navigationItem Content {..} = do
   let titleAndDate = htmlFilenameFromTitleAndDate mdTitle mdDate
-  a ! href (textValue titleAndDate) $ do
-    toHtml mdTitle
+  li ! class_ "pure-menu-item" $ do
+    a ! class_ "pure-menu-link" ! href (textValue titleAndDate) $ do
+      toHtml mdTitle
 
 navigationItems :: [Content] -> Html
 navigationItems pages = do
-  div ! class_ "navigation-list float-right" $ do
-    div ! class_ "dropdown navigation-link" $ do
-      div ! class_ "dropbutton" $ toHtml ("Info" :: Text)
-      div ! class_ "dropdown-content" $ do
-        forM_ pages $ navigationItem
-
-navigationBar :: [Content] -> Html
-navigationBar pages = do
-  nav ! class_ "navigation" $ do
-    section ! class_ "container" $ do
-      ul ! class_ "navigation-list float-left" $ do
-        li ! class_ "navigation-item" $ do
-          a ! href "index.html" ! class_ "navigation-link" $ text "Index"
-      navigationItems pages
+  div ! id "menu" $ do
+    div ! class_ "pure-menu" $ do
+      a ! href "index.html" ! class_ "pure-menu-heading" $
+        toHtml ("Index" :: Text)
+      ul ! class_ "pure-menu-list" $ do
+        forM_ pages navigationItem
 
 mainContent :: Text -> Html
 mainContent mdContent = do
-  section ! class_ "container" $ do markdownToHtml mdContent
+  div ! class_ "content" $ do markdownToHtml mdContent
 
+bagianTitle :: Text -> Html
+bagianTitle titlecontent = do
+  div ! class_ "header" $ do
+    h1 $ toHtml titlecontent
 
 skeleton :: Configuration -> Html -> Text -> Text -> Html
-skeleton Configuration {..} navbar titleContent markdownContent =
+skeleton Configuration {..} mymenu titleContent markdownContent =
   docTypeHtml $ do
     head $ do
       H.meta ! charset "utf-8"
       H.meta ! name "viewport" ! value "width=device-width, initial-scale=1.0, user-scalable=yes"
-      H.meta ! name "description" !
-        value (textValue $ T.take 200 markdownContent)
       H.meta ! name "author" ! value (textValue author)
-      H.link ! rel "stylesheet" ! type_ "text/css" !
-        href "static/css/milligram.min.css"
+      H.link ! rel "stylesheet" ! type_ "text/css" ! href "static/pure-min.css"
+      H.link ! rel "stylesheet" ! type_ "text/css" ! href "static/side-menu.css"
       H.title $ text $ siteName <> " - " <> titleContent
     body $ do
-      main ! class_ "wrapper" $ do
-        navbar
-        mainContent markdownContent
+      div ! id "layout" $ do
+        a ! href "#menu" ! id "menuLink" ! class_ "menu-link" $ H.span $ toHtml T.empty
+        mymenu
+        div ! id "main" $ do
+          bagianTitle titleContent
+          mainContent markdownContent
+      H.script ! src "static/ui.js" $ ""
     footer $ do
       text "This material is shared under the "
-      a ! href "https://creativecommons.org/licenses/by/4.0" $ text "CC-BY License."
+      a ! href "https://creativecommons.org/licenses/by/4.0" $
+        text "CC-BY License."
 
 createIndexItem :: Content -> Content
 createIndexItem cont =
@@ -95,7 +91,7 @@ fullFledgedHtmlGeneration :: Configuration -> IO ()
 fullFledgedHtmlGeneration conf = do
   cpages <- readDirectory $ pathPages conf
   cposts <- readDirectory $ pathPosts conf
-  let navbar = navigationBar cpages
+  let navbar = navigationItems cpages
       generatedpages = map (mdContentToHtml conf navbar) cpages
       generatedposts = map (mdContentToHtml conf navbar) cposts
       contentindex = map createIndexItem cposts
