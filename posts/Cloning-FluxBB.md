@@ -1161,11 +1161,74 @@ And that's it.
 Basically we have completed the logic of this part.
 
 ##### Category Creation: Route and UI
-If you were wondering where did we get the `grouping` of a request, we will create that.
 
-First, let's head to `Foundation.hs`, import `Database.Esqueleto`, hiding a few operators,
+In this page, a FluxBB administrator would see a page filled with something like the following
+(which was dumbed down a lot):
+```
+├── New Group
+│     Group Name [ input ]
+│       [button create]
+│
+├── Group List
+│     Groups [ dropdown ]
+│       [button delete]
+└──
+
+```
+
+Which means we should have two parts of input group.
+The first part is a form which takes a textfield for a category name and the second one
+is a dropdown (or select?) to display the list of the existing groups (to be deleted).
+
+Now, to simplify a lot of things, we will create the data form for those two forms
+in the same file for the handler function of this route.
+
+```
+-- src/Handler/Adm/Category.hs
+module Handler.Adm.Category where
+-- skip imports (Imports, Database.Esqueleto, Flux.AdmCategory)
+data CreateCategoryForm = CreateCategoryForm { createCategoryFormName :: Text } deriving (Show)
+
+createCategoryForm :: Form CreateCategoryForm
+createCategoryForm = renderDivs $ CreateCategoryForm <$> areq textField "Category Name" Nothing
+
+data SelectCategoryForm = SelectCategoryForm { selectCategoryFormId :: Int64 } deriving (Show)
+
+selectCategoryForm :: [Entity Categories] -> Form SelectCategoryForm
+selectCategoryForm cats = renderDivs $ SelectCategoryForm <$> areq (selectFieldList catlist) "Category" Nothing
+  where
+    catlist = map (\(Entity cid (Categories name)) -> (name, fromSqlKey $ cid)) cats :: [(Text, Int64)]
+
+getAdmCategoryR :: Handler Html
+getAdmCategoryR = do
+  (widc, enctc) <- generateFormPost createCategoryForm
+  defaultLayout
+    [whamlet|
+      <form enctype=#{enctc}>
+        ^{widc}
+        <input .button-primary value=create type=submit>
+    |]
+
+```
+
+Form data above is just our usual yesod's form. Nothing special there.
+But when you see `selectCategoryForm`, you will see that it takes a list of `Entity Category`
+We will use that to create a dropdown list that contains `Groups`' names and `Groups`' ids.
+And then we will use `createCategoryForm` to generate a post-form which also be defined later.
+
+The next step is modifying our `Foundation` to support the route and miscelanii.
+
+If you were wondering where did we get the `grouping` of a request, we will create that.
+Let's head to `Foundation.hs`, import `Database.Esqueleto`, hiding a few operators,
 and then add a function there.
 ```
+mkYesodData
+  "App"
+  [parseRoutes|
+    -- skip
+    /admin/category  AdmCategoryR GET
+  |]
+
 getUserAndGrouping :: Handler (Maybe (Key Users, Text, Grouping))
 getUserAndGrouping = do
   maut <- maybeAuth
@@ -1194,14 +1257,133 @@ The function above retrieves from the following columns: `users.id`, `users.user
    with id `uid`.
 4. Returns the group and and wrap them into a triple.
 
-Now, let's create a handler for serving this very matter, creating a category.
-
-```
--- src/Handler/Adm/Category.hs
-
-```
-
 Current progress: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/be2dd0d1f592a80cf11c36b487d109125038eeb6)
+And I'm sorry for commiting so often.
+I'm afraid commiting mistakes when writing this article.
+Especially about the flow of the software-writing process.
+
+When we load localhost:3000/admin/category in our browser, we will see a page with
+`Permission Denied, login please` written on it.
+And after we login using the user that we have created previously using `Seed` program,
+and head the same page, we will be greeted by textfield with "Group name" written
+on top of it.
+
+Now, let's integrate `getUserAndGrouping` in route admin.
+```
+allowedToAdmin :: Handler (Key Users, Text, Grouping)
+allowedToAdmin = do
+  midnamegroup <- getUserAndGrouping
+  case midnamegroup of
+    Nothing -> permissionDenied "You're not allowed to see this page."
+    (Just (uid, name, Administrator)) -> return (uid, name, Administrator)
+    (Just (uid, name, _)) -> permissionDenied "You're not the admin of this site."
+
+
+-- And insert it at the topmost handler.
+getAdmCategoryR :: Handler Html
+getAdmCategoryR = do
+  (uid, name, group) <- allowedToAdmin
+  -- the rest is still the same.
+
+```
+You see, when there's no session associated by `getUserAndGrouping` we can tell the user
+that he is not allowed to see the page.
+Even we can tell the users who aren't an `Administrator` that they're not allowed to do the same.
+What nice is, because `allowedToAdmin` is a shortcircuiting function, we can be really
+sure to extract `uid`, `name`, and `group` from the previous function.
+
+If you don't believe me, you can create a `Moderator` or `Member` user directly in the database
+and access this route.
+
+```
+cirkeltrek=# select grouping, username, password from users, groups where users.group_id = groups.id;
+   grouping    | username  |                                    password
+---------------+-----------+---------------------------------------------------------------------------------
+ Administrator | iaji      | sha256|17|xxxxxxxxxxxxxxxxx1f9aQ==|2WD50Li/BMLN/nOtw9C7PALXzK4YSPgAcfnRPpRYgfU=
+ Moderator     | moderator | sha256|17|xxxxxxxxxxxxxxxxx1f9aQ==|2WD50Li/BMLN/nOtw9C7PALXzK4YSPgAcfnRPpRYgfU=
+
+```
+
+Login with that new user, open this route, and you will be greeted by "You're not the admin of this site."
+Nice.
+
+The next part is actually do creating the new category.
+
+```
+postAdmCategoryR :: Handler Html
+postAdmCategoryR = do
+  (uid, name, group) <- allowedToAdmin
+  ((res, _), _) <- runFormPost createCategoryForm
+  case res of
+    FormFailure x -> invalidArgs x
+    FormSuccess r -> do
+      _ <- createCategory group (createCategoryFormName r)
+      redirect AdmCategoryR
+    _ -> invalidArgs ["Good job, smarty pants!"]
+
+```
+That function above uses `allowedToAdmin` as a guard to keep the unauthorised users
+stay away.
+Then the `res` is the result of post-form parsing by `runPostForm` using `createCategoryForm`
+as the "template" of input.
+In case of form failure or anything that is not a succesful result, we will let them be.
+Other than that, we will create the group and then redirect back to this route.
+
+Now, try it and look the database. You will see something like the following.
+```
+cirkeltrek=# select * from categories;
+ id |   name
+----+-----------
+  1 | Ayyy lmoa
+
+```
+
+One thing, though.
+We forgot to show the list of the database so let's fix that.
+In order to show all categories, we should query the database.
+So, we should create the function in `DBOp.CRUDCategory`, call it
+in `Flux.AdmCategory` (because of separation of concerns. LOL)
+And then show the result.
+
+```
+-- DBOp/CRUDCategory.hs
+selectAllCategory =
+  select $
+  from $ \category -> do
+    orderBy [asc (category ^. CategoriesName)]
+    return category
+
+-- Flux/AdmCategory.hs
+getAllCategories = liftHandler $ runDB $ selectAllCategory
+
+--  Handler/Adm/Category.hs
+getAdmCategoryR = do
+  -- skip
+  allcategories <- getAllCategories
+  (widl, enctl) <- generateFormPost $ selectCategoryForm allcategories
+  defaultLayout
+    [whamlet|
+      <form method=post enctype=#{enctc}>
+        ^{widc}
+        <input .button-primary value=create type=submit>
+      <hr>
+      <form method=post enctype=#{enctl}>
+        ^{widl}
+        <input .button-primary value=delete type=submit>
+    |]
+
+```
+At the first function, I just want to show a nice DSL.
+At the second function, we just "lift" the execution of the first function (which actually a query).
+At the third function, which we just modified it a little, we add the dropdown for the categories
+which generated from the categories in the database.
+Is short, just check it out at your browser, my dude.
+
+There's a bug, though. When you click "delete" what the system does is it inserts the key of
+the shown category to as a new category.
+We will fix that in the next section.
+
+Current progress: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/a42e7196598b778169c984d966a6720290897687).
 
 ##### Category Deletion: Business Logic and Database Query
 Please wait.
