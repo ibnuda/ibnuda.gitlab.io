@@ -1,6 +1,6 @@
 My Arch Setup
 2018-03-31 09:05:06.08400259 UTC
-# My Arch Setup
+
 
 Just read a blog about setup and things like that.
 So, why not write the same thing?

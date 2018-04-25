@@ -1,7 +1,6 @@
 Chiron 7 Tutorial
 2017-07-11 02:00:00 UTC
-Chiron 7 Tutorial
-=======================
+
 
 Well, [Chiron](https://github.com/xyncro/chiron) is an F# library for (de)serialization of Json. It's really well written.
 If you ever used Elm's json serialization, you will feel at home at no time.

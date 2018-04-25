@@ -1,7 +1,6 @@
 Authorization in Freya using JWT
 2017-07-11 01:00:00 UTC
-Authorization in Freya (WIP)
-============================
+(WIP)
 
 This blog post should be written after a few other guides completed. Or if you want and can stand really bad code, you can read at [Forum.Lock](https://gitlab.com/ibnuda/Forum/blob/master/src/Serv/Api.fs)
 

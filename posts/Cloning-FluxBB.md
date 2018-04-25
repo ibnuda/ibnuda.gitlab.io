@@ -1,6 +1,6 @@
 Cloning FluxBB
 2018-04-14 16:38:19.675105163 UTC
-# Cloning FluxBB (In Progress)
+# (In Progress)
  
 Writing a forum software is one of a few things that I-wished-I-have-but-haven't
 in the last of couple of years.
@@ -20,14 +20,14 @@ Okay, before we start to write this clone, we should ensure a few things.
 For example, the structure of the tables of this program and what one usually
 expects when they use and/or administer a forum software.
 
-### Database Design
+## Database Design
 
 Because forum software basically is just a CRUD program, we have to define the database
 design first.
 Fortunately, [FluxBB's database structure](https://fluxbb.org/docs/v1.5/dbstructure)
 is not really complicated.
 Not only that, a lot of its fields are `nullable`, so we can remove them in this
-clone.
+clone and make use of foreign keys constraints.
 
 For example, we will not use some of nullables of `Users`'s columns.
 So, instead of [this](https://fluxbb.org/docs/v1.5/dbstructure#users), we will
@@ -50,15 +50,15 @@ Users
 Furthermore, we will not use some of FluxBB's tables.
 For example, we won't use `permissions`, `forum_subscribtions`, and `topic_subscribtions`.
 
-### Inner Workings
+## Inner Workings
 
-In real FluxBB's use case, an administrator could set a set of permissions for
+In real FluxBB's use case, an `administrator` could set a set of permissions for
 a certain group (`moderator`, for example) to do something peculiar, like capable
 of banning users, but not editing users' profiles.
 We will not give the users and administrator these kind of features because it's too
 complicated for my purpose.
 
-So, instead of the actual FluxBB's features, we will dumb it down like the following:
+So, instead of actual FluxBB's features, we will dumb it down like the following:
 
 - <b>Users can</b>
 
@@ -89,7 +89,7 @@ So, instead of the actual FluxBB's features, we will dumb it down like the follo
 
   - Only logout.
   
-### Layout and UI
+## Layout and UI
 
 I'll make a confession, I don't understand CSS and JavaScript.
 So, I will use a small CSS framework, [milligram](http://milligram.io/) as helper
@@ -98,15 +98,15 @@ That means, we will treat this forum's interface (HTML) purely as a document pre
 Baring a few buttons and text inputs.
 I really hope you don't mind about it.
 
-### The Approach
+## Approach
 
 We will build up the forum from `yesod-minimal` template using stack and then slowly
-turn it into `yesod-postgres` and then to a FluxBB's clone.
+turn it into something that seems like `yesod-postgres` template and then to a FluxBB's clone.
 While we're at it, I will try my best to explain why we do what we do.
 
-## Start Typing
+# Start Typing
 
-### Project Setup
+## Project Setup
 
 First of all, I will assume that you will use stack as your build tool.
 Okay, let's start typing.
@@ -138,14 +138,14 @@ extra-deps:
   commit: b81e0d951e510ebffca03c5a58658ad884cc6fbd
 
 ```
-which means that we will use the library in the repo above with that specific
-commit.
+which means that we will use the library at the repo url in the snippet above on
+that specific commit.
 As for the reason, Mr. Allen says that currently, supporting `persistent-2.8.1`
 is not his priority and he gives the above lines as the solution of this situation.
 Thanks, Mr. Allen.
 
 Then, we will remove `src/Add.hs` file and remove any references to it.
-And that means, we will remove `/add/#Int64/#Int64 AddR` in `./routes`,
+That means, we will remove `/add/#Int64/#Int64 AddR` in `./routes`,
 `import Add` in `src/Foundation.hs`, and `<a href=@{AddR }>` in `src/Home`
 
 After that, we will add the following packages to the `package.yaml`
@@ -162,9 +162,9 @@ After that, we will add the following packages to the `package.yaml`
 Now, let's push it to our repo. (our current progress is saved
 [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/fdd5220cce105a2f75fa9d9403b892b4da18c534))
 
-### Foundation Building
+## Foundation Building
 
-#### Writing Foundation
+### Writing Foundation
 
 In the scaffolded templates, you will see a lot of stuff going on, which baffled
 me a couple months ago, from settings, database, and templating.
@@ -194,6 +194,7 @@ you have to fulfill the requirements (or "minimal complete definitions") of that
 In order to make a `Yesod App`, we should start by defining the route first.
 I mean, how would the web server know what kind of content if it doesn't know
 anything.
+At best, it will only serve you `404 Not Found`.
 Therefore, in `src/Foundation.hs`, we will modify it into the following
 ```
 {-# LANGUAGE QuasiQuotes #-} -- needed for parseRoute quotation
@@ -205,20 +206,23 @@ mkYesodData
   |]
 
 instance Yesod App
+
 ```
 That `App` above is the application we are building.
-We surely can name it anything, given doesn't clash with any other things, if we want.
+We surely can name it anything, given it doesn't clash with any other things, if
+we want.
 And followed by `mkYesodData` which takes a string (which is the name of our site
 application) and a `Q`uasi-quoted routes.
 Finally, we will make our site application as an instance of `Yesod` so it will
 be able to serve the requests to `http://localhost:3000/`.
 
 Also, because `App` is a record, we can fill it with whatever we need.
-In the scaffolded templates, there are a few wrapped data.
-For example, there is an `AppSettings`, `ConnectionPool`, and a few other data.
+Just like in the scaffolded templates, there are a few wrapped fields.
+As examples, there is an `AppSettings`, `ConnectionPool`, and a few other data.
 
 Let's start by adding a `ApplicationSettings`, `ConnectionPool` and a lot of other
-stuff into `App` first. Don't worry, we will talk about it later.
+stuff into `App` first.
+Don't worry, we will talk about it later.
 ```
 data App = App
   { appSettings :: ApplicationSettings
@@ -232,7 +236,6 @@ data App = App
 which begets a need of datatype named `ApplicationSettings`.
 So, we will create a file named `Settings.hs` in the `src` directory and fill it
 with the settings we need for this clone.
-
 ```
 data ApplicationSettings = ApplicationSettings
   { appStaticDir :: String
@@ -253,7 +256,8 @@ Do we need it?
 Surely we need it for the ease of development process like in the scaffolded templates. 
 Other than to ease the development process, we surely want to set some configurations
 that meet our needs.
-Example given, we will use `appDBConf` field to create a `ConnectionPool` for our `App`.
+Example given, we will use `appDBConf` field to create a `ConnectionPool` for our
+`App`.
 
 Now, let's back to `Foundation.hs` and continue our instantiation of our `Yesod` app.
 First, we have to import our `ApplicationSettings` in `Settings` module.
@@ -272,24 +276,24 @@ based on the request and application. Else? Great! We'll use that!"
 Unfortunately, when we try to compile it, the compiler will fail to do so because
 "There's no instance of Yesod dispatch" or something like that.
 Basically, `app/Main.hs` cannot be compiled because we have modified `App` to take
-an `ApplicationSettings`.
+an `ApplicationSettings` and few other data.
 Surely we remember that we have wrapped `ApplicationSettings` in an `App`, right?
 
 So, let's fix that.
 As written in yesod-book, we are using `warp` as our web server.
 Among many functions to run `warp` in its hackage page, all of them take `Application`
-(Wai's web application) as one of their inputs.
+(Wai's web application) as one of their parameters.
 Based on our situation, where we have a yesod instance and the need for database,
 we have to transform our `App` into `Application` and then run in using one of `warp`
 runner functions.
 
 Let's head to `src/Application.hs` to define our new `main` function.
-Here, we will run the transformed `App` on warp using our defined settings which
-was defined in `ApplicationSettings` using `runSettings`.
+Here, we will run the transformed `App` which runs on top of warp using our predefined
+settings which was defined in `ApplicationSettings` using `runSettings`.
 Why do we use `runSettings`, because we want `warp` to run at our defined port, host,
-etc.
+etc just like what we have defined.
 
-Now, will create a function to create a warp `Settings`  from our `ApplicationSettings`.
+Now, we will create a function to create a warp `Settings`  from our `ApplicationSettings`.
 ```
 warpSettings :: App -> Settings -- from module Network.Wai.Handler.Warp
 warpSettings app =
@@ -305,7 +309,7 @@ warpSettings app =
         $(qLocation >>= liftLoc) -- from "template-haskell", module Language.Haskell.TH.Syntax
         "yesod"
         LevelError
-        (toLogStr $ "Exception from warp" ++ show e))
+        (toLogStr $ "Exception from warp" ++ show exception))
     defaultSettings -- from Network.Wai.Handler.Warp
 
 ```
@@ -332,14 +336,15 @@ newMain = do
 
 ```
 Okay, I forgot where do we get an `App`.
-
 But remember, in order to have an `App`, we have to have:
 
 - a `Logger`, which can be easily had from `Yesod` instantiation.
-- a `ConnectionPool`, which can be easily had by creating `ConnectionPool` from `PostgresConf`
-- an `ApplicationSettings`. Surely we can hard code it, but I want to read it from
-  an external file. Other than it's easier to remember, I want to make sure
-  that there's a single source of truth.
+- a `ConnectionPool`, which can be easily had by creating `ConnectionPool` from
+  `PostgresConf`
+- an `ApplicationSettings`.
+  Surely we can hard code it, but I want to read it from an external file.
+  Other than it's easier to remember, I want to make sure that there's a single
+  source of truth.
 
 At this point, our progress can be viewed
 [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/71a094349e2e4a37dc0c698709a161ff33cb0dd9)
@@ -379,12 +384,12 @@ You can change it to a file if that suits your taste.
 For creating `appStatic`, which is used to serve the static files, we can do it by
 checking the `appMutableStatic` from `appSettings`.
 The interesting part is the `ConnectionPool` creation.
-We haven't have a logger, yet, while we need it in order to create a connection pool.
+We haven't had a logger yet, we need it in order to create a connection pool.
 So, the templates create an `App` without `ConnectionPool`, though I usually choose
 to use `runNoLoggingT` when creating a connection pool.
 
-Now, we have an `App`, but we haven't an `ApplicationSettings` yet. So we will
-create it by reading a config file.
+Now, we have an `App`, but we haven't an `ApplicationSettings` yet.
+So we will create it by reading a config file.
 Before that, we will go back to `src/Settings.hs` to create yaml decoder for our
 settings.
 
@@ -419,9 +424,10 @@ configSettingsYmlValue = either Exception.throw id $ decodeEither' configSetting
 You see, `FromJSON` is a class of type that can be converted from JSON to a haskell type.
 So, we created that instance for our `ApplicationSettings` by parsing a few yaml fields.
 Nevermind about `.:` though.
-It's just a fancy way to extract the field value from field name that matches the
-string in the quotes.
-Oh, and `defEnv`, for now we will keep it as `True`.
+It's just a fancy way to extract the field value from a field with name that matches
+with the string in the quotes.
+Oh, and `defEnv`, for now we will keep it as `True` because, well, it's true
+that we're in a development mode.
 
 The other two functions?
 `configSettingsYmlBS` is just a helper function from "file-embed" package that
@@ -458,10 +464,11 @@ Whenever you see a `forall`, just think that you argument for the argument will
 be used in the signature.
 In this case, `m`, which is a function that transform anything into any other thing,
 will be used as the value for `MonadIO`.
-And let's not talk about `MonadIO`. There are too many shit stirred because of `Monad`
-and too few articles about building things.
+And let's not talk about `MonadIO`.
+There are too many shit stirred because of `Monad` and too few articles about building
+things.
 
-Now, have aliases and/or shortcuts, so let's continue fulfilling our `Yesod`
+Now, we have aliases and/or shortcuts, so let's continue fulfilling our `Yesod`
 class requirements.
 ```
 {-# LANGUAGE TemplateHaskell #-}
@@ -507,7 +514,7 @@ named `wrapper.hamlet`.
 
 You can see the progress of this project [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/ec1bf4968e06f43fe10aacb076a327571a4bceb1).
 
-#### Modeling Database
+### Modeling Database
 
 Now, we will write the database's representation using `persistent` package.
 First, we should create a file named `Model.hs` in `src` directory.
@@ -555,7 +562,8 @@ share
   |]
 
 ```
-You see, I've written a few basic concepts of `persistent` in [here](2017-11-03-authorization-in-servant.html) you can check it out.
+You see, I've written a few basic concepts of `persistent` [here](2017-11-03-authorization-in-servant.html)
+and if you want, you can check it out first.
 If you see closely, one of `Users`'s block, `password` field is a `nullable`.
 We let it as a `nullable` because package `yesod-auth-hashdb` needs it.
 Don't worry, we'll check it out later.
@@ -616,11 +624,11 @@ Migrating: CREATe TABLE "forums"("id" SERIAL8  PRIMARY KEY UNIQUE,"category_id" 
 ```
 You can see the progress to this point by looking at this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/fe886b3bed75c8089e671d0f4fd2fa17c0ac8d59).
 
-#### Niceties
+### Niceties
 
 Well, it's true that stopping `stack exec`, running `stack build`, and then
 running `stack exec` again is tiring.
-So, we will implement scaffolded templates' `stack exec -- yesod devel` at
+So, we will implement scaffolded templates' `stack exec -- yesod devel` feature at
 `src/Application.hs`
 
 ```
@@ -643,7 +651,7 @@ makeApplication app = do
   commonapp <- toWaiApp app
   logware <- makeLogware app
   return $ logware $ defaultMiddlewaresNoLogging commonapp
-
+  
 ```
 Why would we modify this function, you say.
 "Because we want to have nice formatted log request," that's why.
@@ -659,13 +667,15 @@ Let's start by creating a function that reads settins.
 ```
 getAppSettings :: IO ApplicationSettings
 getAppSettings = loadYamlSettings [configSettingsYml] [] useEnv
+
 ```
-That type signature above, that's important because `loadYamlSettings` wants to
-read any yaml file that can be parsed into Haskell object.
+Please give attention to type signature above, that's important because
+`loadYamlSettings` wants to read any yaml file that can be parsed into Haskell object.
 So, we have to add that signature.
 And why `IO`? Because we read it from RealWorld(tm), my friend.
 
-Now, we continue it by writing a function that returns a tuple of Warp `Settings` and our `Application`.
+Now, we continue it by writing a function that returns a tuple of Warp `Settings`
+and our `Application`.
 Simple, actually.
 ```
 getAppDev :: IO (Settings, Application)
@@ -691,9 +701,10 @@ the modified module and anything that depends on it.
 
 Check our progress [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/f3d72f0a11ec786374a8dc44803cbf49854d5684).
 
-#### Authentication, Prelude
+### Authentication, Prelude
 
-We are, approximately, has 70% our base template, minus handlers.
+For now, we, approximately, have 70% feature parities compared to scaffolded templates,
+minus handlers.
 So, we will add another few percents of it by adding authentication feature.
 
 First, we will go back to `src/Model.hs` just to add three lines of class
@@ -705,10 +716,10 @@ instance HashDBUser Users where
   setPasswordHash u h = u {usersPassword = Just h}
 
 ```
-Basically we just tell that `Users` is an instance of `HashDBUser` by defining
+In short, we just tell that `Users` is an instance of `HashDBUser` by defining
 those two functions.
 First, we tell that `userPasswordHash` should just use `usersPassword`.
-And `setPasswordHash` just a setter for `Users`.
+And `setPasswordHash` just a setter for `Users`' password.
 
 The next part is also a bit simple.
 We will head to `src/Foundation.hs` to make our `App` be able to authenticate
@@ -739,14 +750,14 @@ And in order to be a "top ranker of 10th grader", your kid should be a 10th
 grader in the first place.
 `RenderMessage` is analog to the "10th graders" in this context.
 
-Now, to make our `App` capable of authenticating our users, we defined
+Now, in order to make our `App` capable of authenticating our users, we have defined
 `YesodAuth` instance for our `App` and its requirements.
 `AuthId App` type above was specifically defined to differentiate the session
 of the access to our web by reading `UsersId` in the cookies (or something like that).
 `loginDest` and `logoutDest` handle what should a user see after he logged
 in and logged out to/from his session.
 while `redirectToReferer` determines whether should a user be redirected
-to the `loginDest` or not.
+to the route before he visit `loginDest` or not.
 
 The core of our authentication process lays at these two functions
  - `authenticate` which basically reads `credsIdent` and compares the result from 
@@ -841,13 +852,15 @@ There are a few functions here.
 Now, when we compile our project (`stack build`), we will have another binary
 executable named `Seed`.
 When we execute it (`stack exec Seed`), it will ask our needed inputs.
-Just fill it casually.
+Although the order is fucked up just fill it casually.
+(for further read, please read Mr. Snoyman's post about conduit and console input
+which I can't remember where is it.)
 When you have run it, look at the database (`select * from users`) and you will
-see that our data inputted there.
+see that our data has been inserted there.
 
 Progress til now: [this](https://gitlab.com/ibnuda/Cirkeltrek/commit/8525a8c28475025afbb6566a92df04a6bd2ad61f)
 
-#### Authentication, Login & Logout
+### Authentication, Login & Logout
 
 Now, since our supporting infrastructure is satisfied, then the next step is to create
 where should the user head to log in, right?
@@ -919,11 +932,11 @@ isLoggedIn = do -- [5]
 At the snippet the interesting parts are the marked ones.
 
 1. We stated that there is a login / auth route.
-2. We put this line in order to get the "auth status" of the incoming request.
+2. We put this line in order to get the "auth status" of the incoming requests.
 3. We used the point 2's result to determine whether we should display login link
    or logout link.
 4. This is where the app guards the routes.
-   We specifically defined that only requests that satisfy `isLoggedIn` to
+   We specifically defined that only requests that satisfy `isLoggedIn` be able to
    access `ProfileR`.
 5. `isLoggedIn` basically checks the requests whether it has auth in the session cookies
    or not.
@@ -937,7 +950,7 @@ Nice.
 
 You can check out the our progress [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/2c11ea6404e72e868aea7584c396806c1c5f913f).
 
-#### Default Layout
+### Default Layout
 
 Considering how long HTML is, I think we should separate it from our code.
 What I mean by separation is, the program should just read the hamlet files
@@ -964,7 +977,7 @@ widgetFile =
 
 ```
 Those two functions above are used in the scaffolded templates to load (and/or reload)
-the template ([hamlet, julius, and casius](https://www.yesodweb.com/book/shakespearean-templates)) files.
+the template ([hamlet, julius, and cassius](https://www.yesodweb.com/book/shakespearean-templates)) files.
 About `compileTimeAppSettings`, it just reads the setting value at the compile time and
 throws an error when there's no valid settings.
 Though it's pretty much impossible to throw error because `configSettingsYmlValue` will
@@ -984,13 +997,12 @@ And if you wonder why do we use `widgetFile` while `hamletFile` does exist,
 if you look at `hamletFile` signature, it returns `Html` while what
 we need is `WidgetFor App ()`
 
-I will hereafter always skip hamlet contents for the sake of cutting the
-word counts down.
-You can still see the commited files at the of sub-sub-sub-section as usual
-though.
+I will hereafter always skip hamlet contents for the sake of cutting the word counts
+down.
+You can still see the commited files at the of sub-sub-sub-section as usual though.
 
-And now, when load our site in the browser and see its source, you will
-see the structure of our templates.
+And now, when load our site in the browser and see its source, you will see the
+structure of our templates.
 
 Here's current progress [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/f30a18c656a62574ae160445a6c2b093ba8ee607).
 Also, the page looks weird without any css, we will add that by adding
@@ -1011,10 +1023,9 @@ staticFiles (appStaticDir compileTimeAppSettings)
 Surely we know what the first snippet does.
 As it just parses new `/static` route.
 But the second snippet, unfortunately, I'm not really sure what it does.
-But surely it relates to GHC and Template Haskell restrictions.
+And surely it relates to GHC and Template Haskell restrictions.
 
 Anyway, let's add css files to `defaultLayout`.
-
 ```
   defaultLayout widget = do
     -- skip
@@ -1026,12 +1037,12 @@ Anyway, let's add css files to `defaultLayout`.
     withUrlRenderer $(hamletFile "templates/wrapper.hamlet")
 
 ```
-And then reload our site and you'll see that our css is applies to the
+And then reload our site and you'll see that our css is applied to the
 layout.
 
 Current progress: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/f21104e9cabd3c52f10c9c0b37bd906b582e9829).
 
-##### Login Layout
+#### Login Layout
 
 I don't know, my friend.
 I dislike the default layout of the login form by `yesod-auth-hashdb`.
@@ -1049,7 +1060,7 @@ And we provided a function that exactly has that kind of signature.
 Don't worry about the content of `templates/login.hamlet`.
 I will include it in the next commit.
 
-#### Completion of Foundation
+### Completion of Foundation
 
 Now that we have the needed foundation that provides:
 
@@ -1061,17 +1072,28 @@ The next part is where we clone (most of) the functionalities of FluxBB.
 [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/143696db00a6781cc4081c335c8069b2b5f197d2).
 
 
-### Cloning Things
+## Cloning Things
 
 Here, we will try to copy the functionality of FluxBB.
 Although it won't 100% parity
 
-#### Preparations
+### Preparations and Convention
 
-Before we do anything, let's start by cleaning up our imports.
-For example, instead of importing `Yesod.Core`, `ClassyPrelude.Yesod`, etc on
-each and every file, we can import a single file that has exported other modules.
+Before doing anything, we should create a convention about what the handlers do.
+For me, personally, what handlers should only do are:
 
+- Serve a route for the rightful requests.
+- Determines what should they do with the data they receive.
+- Be as dumb as possible.
+
+And what a handler should not do:
+
+- Talk to the database.
+- Implement business logic in it.
+
+Now, let's start by cleaning up our imports.
+For example, instead of importing `Yesod.Core`, `ClassyPrelude.Yesod`, etc in
+each and every file, we can just import a single file that has exported other modules.
 ```
 -- src/Import/NoFoundation.hs
 module Import.NoFoundation where
@@ -1085,7 +1107,6 @@ import Import.NoFoundation as Import
 import Foundation as Import
 
 ```
-
 Now, whenever you see a module that imports, say, `Yesod.Auth`, you can simply
 replace it with `import Import`.
 What we just did was to simplify our imports by "combining" our modules into
@@ -1099,7 +1120,7 @@ Other than that, I dislike a disastrous `~/` and any root project is.
 
 Now, we have cleaned our root project directory, let's start.
 
-#### Category Administration
+### Category Administration
 
 If you're wondering why do we start with administering category, then I will
 confess that I feel I can solve this problem better when I approach it top-down.
@@ -1117,7 +1138,7 @@ Based on the requirements above, we should:
 
 Therefore, we should create functions that satisfy the requirements above.
 
-##### Category Creation: Business Logic and Database Query
+#### Category Creation: Business Logic and Database Query
 
 First, we should look at the `Categories` entity at `Model.hs`.
 There, it was clear that a `Categories` only have a field named `categoriesName`
@@ -1161,7 +1182,7 @@ adding `GADTs` extension to it.
 And that's it.
 Basically we have completed the logic of this part.
 
-##### Category Creation: Route and UI
+#### Category Creation: Route and UI
 
 In this page, a FluxBB administrator would see a page filled with something like the following
 (which was dumbed down a lot):
@@ -1212,12 +1233,13 @@ getAdmCategoryR = do
 
 ```
 
-Form data above is just our usual yesod's form. Nothing special there.
+Data forms above are just our usual yesod's forms.
+Nothing special there.
 But when you see `selectCategoryForm`, you will see that it takes a list of `Entity Category`
 We will use that to create a dropdown list that contains `Groups`' names and `Groups`' ids.
 And then we will use `createCategoryForm` to generate a post-form which also be defined later.
 
-The next step is modifying our `Foundation` to support the route and miscelanii.
+The next step is modifying our `Foundation` to support the route and miscellanea.
 
 If you were wondering where did we get the `grouping` of a request, we will create that.
 Let's head to `Foundation.hs`, import `Database.Esqueleto`, hiding a few operators,
@@ -1249,8 +1271,8 @@ getUserAndGrouping = do
       return $ Just (uid, usersUsername user, unValue gro)
 
 ```
-The function above retrieves from the following columns: `users.id`, `users.username`, and
-`groups.grouping` by doing the following things:
+The function above retrieves from the following columns from database:
+`users.id`, `users.username`, and `groups.grouping` by doing the following things:
 
 1. Gets the authentication status of a request.
 2. In case of the absence of authenticated status, it returns nothing.
@@ -1299,17 +1321,16 @@ and access this route.
 ```
 cirkeltrek=# select grouping, username, password from users, groups where users.group_id = groups.id;
    grouping    | username  |                                    password
----------------+-----------+---------------------------------------------------------------------------------
+---------------|-----------|---------------------------------------------------------------------------------
  Administrator | iaji      | sha256|17|xxxxxxxxxxxxxxxxx1f9aQ==|2WD50Li/BMLN/nOtw9C7PALXzK4YSPgAcfnRPpRYgfU=
  Moderator     | moderator | sha256|17|xxxxxxxxxxxxxxxxx1f9aQ==|2WD50Li/BMLN/nOtw9C7PALXzK4YSPgAcfnRPpRYgfU=
 
 ```
 
 Login with that new user, open this route, and you will be greeted by "You're not the admin of this site."
-Nice.
+Isn't it nice? It's nice.
 
-The next part is actually do creating the new category.
-
+The next part is where we actually creating the new category.
 ```
 postAdmCategoryR :: Handler Html
 postAdmCategoryR = do
@@ -1324,7 +1345,7 @@ postAdmCategoryR = do
 
 ```
 That function above uses `allowedToAdmin` as a guard to keep the unauthorised users
-stay away.
+away.
 Then the `res` is the result of post-form parsing by `runPostForm` using `createCategoryForm`
 as the "template" of input.
 In case of form failure or anything that is not a succesful result, we will let them be.
@@ -1334,18 +1355,16 @@ Now, try it and look the database. You will see something like the following.
 ```
 cirkeltrek=# select * from categories;
  id |   name
-----+-----------
+----|-----------
   1 | Ayyy lmoa
 
 ```
-
 One thing, though.
 We forgot to show the list of the database so let's fix that.
 In order to show all categories, we should query the database.
 So, we should create the function in `DBOp.CRUDCategory`, call it
 in `Flux.AdmCategory` (because of separation of concerns. LOL)
 And then show the result.
-
 ```
 -- DBOp/CRUDCategory.hs
 selectAllCategory =
@@ -1386,9 +1405,9 @@ We will fix that in the next section.
 
 Current progress: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/a42e7196598b778169c984d966a6720290897687).
 
-##### Category Deletion: Business Logic and Database Query
+#### Category Deletion: Business Logic and Database Query
 Please wait.
 
-##### Category Deletion: Route and UI
+#### Category Deletion: Route and UI
 
 Please wait.

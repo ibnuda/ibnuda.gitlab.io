@@ -1,6 +1,6 @@
 Do I Need Machine Learning?
 2018-03-04 13:57:39.30922123 UTC
-# Do I Need Machine Learning?
+
 
 Truth to be told, I feel nausea when somebody says "It uses machine learning(tm)!"
 Even worse when they say, "Let's build blockchain(c) for this bullshit!" I just,

@@ -1,6 +1,6 @@
 Telegram Bot and Haskell
 2018-02-22 07:08:41.936771686 UTC
-# Telegram Bot and Haskell
+
 
 One of my friend asked for a help.
 Though this time from a different person and on different problem.

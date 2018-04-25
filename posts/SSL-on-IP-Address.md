@@ -1,6 +1,6 @@
 SSL on IP Address
 2018-02-01 08:48:26.315625015 UTC
-# SSL on IP Address
+
 
 You know, because of $WORK and a few other things, I have to set up public facing server which serves SSL thingy.
 Though we only have a single public IP with no domain attached on it, we can still use it.
