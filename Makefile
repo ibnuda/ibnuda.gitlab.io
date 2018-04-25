@@ -15,3 +15,4 @@ compile:
 home:
 	mv public/* ~/siskam.link
 	cp index.html public/
+	cp 404.html public/

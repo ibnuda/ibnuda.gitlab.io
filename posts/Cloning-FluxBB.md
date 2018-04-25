@@ -22,7 +22,8 @@ expects when they use and/or administer a forum software.
 
 ### Database Design
 
-Because forum software basically is just a CRUD program, we have to define it first.
+Because forum software basically is just a CRUD program, we have to define the database
+design first.
 Fortunately, [FluxBB's database structure](https://fluxbb.org/docs/v1.5/dbstructure)
 is not really complicated.
 Not only that, a lot of its fields are `nullable`, so we can remove them in this

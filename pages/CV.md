@@ -1,6 +1,5 @@
 CV
 2018-03-31 09:52:25.467904302 UTC
-# Curriculum Vitae
 
 ### Summary
 
