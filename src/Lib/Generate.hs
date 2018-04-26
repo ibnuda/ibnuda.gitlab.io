@@ -58,11 +58,23 @@ skeleton Configuration {..} mymenu titleContent markdownContent =
         div ! id "main" $ do
           bagianTitle titleContent
           mainContent markdownContent
-      H.script ! src "static/ui.js" $ ""
+      H.script $ toHtml uijs
     footer $ do
       text "This material is shared under the "
       a ! href "https://creativecommons.org/licenses/by/4.0" $
         text "CC-BY License."
+
+uijs :: Text
+uijs =
+  "(function(window,document){var layout=document.getElementById('layout')," <>
+  "menu=document.getElementById('menu'),menuLink=document.getElementById('menuLink')" <>
+  ",content=document.getElementById('main');function toggleClass(element,className)" <>
+  "{var classes=element.className.split(/\\s+/),length=classes.length,i=0;for(;i<length;i+=1)" <>
+  "{if(classes[i]===className){classes.splice(i,1);break}}if(length===classes.length)" <>
+  "{classes.push(className)}element.className=classes.join(' ')}function toggleAll(e)" <>
+  "{var active='active';e.preventDefault();toggleClass(layout,active);toggleClass(menu,active);" <>
+  "toggleClass(menuLink,active)}menuLink.onclick=function(e){toggleAll(e)};" <>
+  "content.onclick=function(e){if(menu.className.indexOf('active')!==-1){toggleAll(e)}}}(this,this.document));"
 
 createIndexItem :: Content -> Content
 createIndexItem cont =
