@@ -1406,8 +1406,167 @@ We will fix that in the next section.
 Current progress: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/a42e7196598b778169c984d966a6720290897687).
 
 #### Category Deletion: Business Logic and Database Query
-Please wait.
 
-#### Category Deletion: Route and UI
+I'm pretty sure you're familiar with HTTP Verbs and RESTful API (lol, "API").
+When we want to create something, we would use `POST`.
+When we want to modify something, we would use `PATCH` or `PUT`.
+When we want to delete something, we would use `POST`.
+When we want to have a giggle, we would use `GET`.
+Unfortunately, in browser, there's no support for this kind of neat interface.
+Apparently, nobody has the time to write the specifications for verbs other than `GET` and `POST`.
+I don't know why, my friend.
 
-Please wait.
+So, why did I write the previous paragraph? Because it relates to the undesired behaviour
+at the previous section.
+In an ideal world, we can just define the method for the forms and create the corresponding yesod handler.
+Unfortunately, there's no such thing as `ideal` in this world.
+So, we will try to fit our program in.
+
+Basically, `Form`s request formats in yesod are determined by, at least, two things.
+
+- `Form`'s field itself.
+- `method` and `submit` input.
+
+It's better to show the code.
+```
+-- src/Handler/Adm/Category.hs
+getAdmCategoryR :: Handler Html
+-- skip
+  defaultLayout [whamlet|
+    -- skip
+    <form method=post enctype=#{enctc}>
+      ^{widc}
+      <input .button-primary name=create value=create type=submit>
+    <hr>
+  |]
+
+```
+Please the name of the `input` element above.
+It has `create` as it's name and `create` as it's value.
+When you press the "Create" button at the previous section, the format of the request will look like something
+```
+curl -d "_token=JdwQprBqre&f1=Ayyy+lmoa&create=create" -H "Content-Type: application/x-www-form-urlencoded" \
+  -X POST http://localhost:3000/admin/category
+
+```
+Basically, the data sent by yesod-generated form in a request could be added by our own
+defined input.
+And using that kind of method, we can shoe horn our route handlers to handle deletion and creation.
+
+Okay, let's modify our `postAdmCategoryR` into something like the following.
+```
+  (uid, name, group) <- allowedToAdmin
+  createparam <- lookupPostParam "create" -- [1]
+  deleteparam <- lookupPostParam "delete" -- [2]
+  case (createparam, deleteparam) of -- [3]
+    (Nothing, Nothing) -> invalidArgs ["At least be sure of what you want."] -- [4]
+    (Just _, Nothing) -> do -- [5]
+      ((res, _), _) <- runFormPost createCategoryForm
+      case res of
+        FormFailure x -> invalidArgs x
+        FormSuccess r -> do
+          _ <- createCategory group (createCategoryFormName r)
+          redirect AdmCategoryR
+        _ -> invalidArgs ["Good job, smarty pants!"]
+    (Nothing, Just _) -> do -- [6]
+      allcategories <- getAllCategories
+      ((res, _), _) <- runFormPost $ selectCategoryForm allcategories
+      case res of
+        FormFailure x -> invalidArgs x
+        FormSuccess r -> do
+          defaultLayout [whamlet|
+            I see, you want to delete #{selectCategoryFormId r}
+          |]
+        _ -> invalidArgs ["Good job, smarty pants!"]
+    (Just _, Just _) -> invalidArgs ["Make up your mind, my dear admin."] -- [7]
+
+```
+There are a few modifications that we use here.
+
+1. We look `create` from the post parameters.
+   It could be `Nothing` when user clicked `delete` button.
+2. Same as the first point.
+   But this time we deal with `delete`.
+3. Our standard pattern matching because both of `createparam` and `deleteparam` are `Maybe Text`
+4. When there's no `create` nor `delete`, we can't do nothing.
+   And `invalidArgs` you go!
+5. When the user decided to press `create` button, we will continue as usual (before
+   creation `delete`).
+6. When the user decided to press `delete` button, we will try to delete the category
+   with `categories.id` at the selected dropdown.
+   We will create this later.
+7. When the user decided to press both of them, which is impossible, or just handcrafted
+   the request to include both of the value, we will just throw `invalidArgs`.
+
+Now, we will continue point 6 above.
+In order to delete we have to have deleteion query and guard thing at the business
+logic.
+
+To the `src/DBOp/CRUDCategory.hs` we go!
+```
+deleteCategory cid = do
+  cat <-
+    select $
+    from $ \category -> do
+      where_ (category ^. CategoriesId ==. val cid)
+      return category
+  forM_ cat (deleteCascade . entityKey)
+
+```
+If you're an astute reader, you will question why did we use `mkDeleteCascade` at
+`src/Model.hs`.
+Here's why we use delete cascade.
+Remember, because `Forums` has a field that references `CategoriesId`, we can't
+just delete it plainly.
+We have to be ruthless by using `cascade` so everything that related to `Categories`
+will also be deleted.
+
+Now, the business logic, `src/Flux/AdmCategory.hs`,
+```
+deleteCategoryCascade Administrator cid = liftHandler $ runDB $ deleteCategory cid
+deleteCategoryCascade _ _ =
+  permissionDenied "You're not allowed to do this (category deletion)."
+
+```
+It's stupidly simple.
+Only `Administrator` could delete it.
+Surely, we have filtered any other user `groups` at the first line of the `postAdmCategoryR`,
+but let's be defensive.
+Trust nobody, not even yourself.
+
+Two previous function additions now followed by `postAdmCategoryR` modification,
+```
+(Nothing, Just _) -> do
+  allcategories <- getAllCategories
+  ((res, _), _) <- runFormPost $ selectCategoryForm allcategories
+  case res of
+    FormFailure x -> invalidArgs x
+    FormSuccess r -> do
+      deleteCategoryCascade group $ toSqlKey $ selectCategoryFormId r
+      redirect AdmCategoryR
+    _ -> invalidArgs ["Good job, smarty pants!"]
+
+```
+It's pretty simple, you see.
+
+- We get the categories.
+- Use it to compare the values for `selectCategoryForm` check the validity (I guess).
+- If the result of the form parsing is a OK, we just delete it.
+- Other than that, well... Just throw `invalidArgs`.
+
+#### Category Deletion: Route
+
+Now, let's modify `src/Foundation.hs` to include `POST` method on `/admin/category`.
+```
+mkYesodData
+  "App"
+  [parseRoutes|
+    -- skip
+    /admin/category  AdmCategoryR GET POST
+  |]
+
+```
+That's it.
+It wraps up this section.
+
+Commit: [this one](https://gitlab.com/ibnuda/Cirkeltrek/commit/de5e9c343b54c99f48fc7d41e8198b3794d2a211)!
