@@ -2,7 +2,7 @@ Cloning FluxBB
 2018-04-14 16:38:19.675105163 UTC
 # (In Progress)
  
-Writing a forum software is one of a few things that I-wished-I-have-but-haven't
+Writing a forum software is one of a few things that I-wish-I-had-but-hadn't
 in the last of couple of years.
 For example, among a gazillion of abandoned repos on this GitLab account,
 [`Forum`](https://gitlab.com/ibnuda/Forum) is one of them.
