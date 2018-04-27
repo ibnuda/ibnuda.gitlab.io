@@ -1650,4 +1650,77 @@ createForumForm cats = renderDivs $
 `data CreateForumForm` above has the same explanation as the previous section.
 But this time, there is a new field with `Maybe Textarea` and an `Int64` for `CategoryId`.
 
+And don't forget to add a route entry at `src/Foundation.hs` and `src/Application.hs`.
+```
+-- src/Foundation.hs
+mkYesodData -- skip
+    /admin/forum     AdmForumR    GET
+
+-- src/Application.hs
+import Handler.Adm.Forum
+
+```
+Now, let's add a `GET` handler for the route above.
+```
+getAdmForumR = do
+  (u, n, g) <- allowedToAdmin
+  allcategories <- getAllCategories
+  (wid, enct) <- generateFormPost $ createForumForm allcategories
+  defaultLayout $ do
+    [whamlet|
+      <h3> Create Forum
+      <form method=post action=@{AdmForumR} enctype=#{enct}>
+        ^{wid}
+        <input .button-primary name=create value=create type=submit>
+    |]
+
+```
+You will see that we're using the same request guard (or something like that) with
+`Handler.Adm.Category.allowedToAdmin`.
+It's better to move them to a single place.
+And I heard that `Foundation` is the right place for it.
+
+Now, let's create the handler for the previous snippet.
+```
+postAdmForumR = do
+  (u, n, g) <- allowedToAdmin -- [1]
+  allcategories <- getAllCategories -- [2]
+  ((res, _), _) <- runFormPost $ createForumForm allcategories -- [3]
+  case res of
+    FormFailure x -> invalidArgs x -- [4]
+    FormSuccess r -> do -- [5]
+      createForum
+        g
+        (toSqlKey $ createForumFormCategory r)
+        (createForumFormName r)
+        (unTextarea <$> createForumFormDesc r)
+      redirect AdmForumR
+    _ -> invalidArgs ["Good job, smarty pants!"] -- [4]
+
+```
+
+Basically the function above does:
+
+1. No admin, get out!
+2. Gets all categories.
+   Please have a look at `src/Flux/AdmCategory.hs`.
+3. Form parsing using "seed" from the previous point.
+4. Standard "get out."
+5. The real meat.
+   We just extract the fields of the result of form parsing above, save it to the
+   database, and then redirect to `AdmForumR`.
+
+And that's it.
+I really suggest you to open `approot/admin/forum`, input your values, and then
+have a look at the database.
+Here's mine.
+```
+cirkeltrek=# select * from forums;
+ id | category_id |   name   | descriptions | topics_count | replies_count | last_post | last_post_id | last_poster
+----|-------------|----------|--------------|--------------|---------------|-----------|--------------|-------------
+  1 |           1 | Frist!!! | Nice, homie! |            0 |             0 |           |              |
+(1 row)
+
+```
+Current progress: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/1a62efe47844582a5ba047827d71e6466aa8a773).
 
