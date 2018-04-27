@@ -1621,12 +1621,20 @@ On this page users (`Administrator`, to be exact) expect that they will see
 │
 ├── Forums
 │     Category Name
-│       Forum Name [ button delete ]
+│       Forum Name [ button delete ] [ button edit ]
 │       ....
-│       Forum Name [ button delete ]
+│       Forum Name [ button delete ] [ button edit ]
 |     ....
 └──
+
 ```
+Let me be honest here because I should have said it at the opening section,
+editing forum will create a cumbersome thing to do.
+In FluxBB, other than editing the existing values, you will see permissions
+and redirect url.
+These two feature, will increase the complexity of this project by 3 knots.
+Yes, I'm pulling that number from my ass, true.
+And it's also true that I'm too lazy to implement it system-wide.
 
 First, we will create a form that satisfy `New Forum`.
 ```
@@ -1724,3 +1732,120 @@ cirkeltrek=# select * from forums;
 ```
 Current progress: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/1a62efe47844582a5ba047827d71e6466aa8a773).
 
+Wait!
+We haven't shown our forum listings!
+In FluxBB, the layout is something like the following:
+```
+├── Forums
+│     Category Name
+│       Forum Name [ button delete ] [ button edit ]
+│       ....
+│       Forum Name [ button delete ] [ button edit ]
+|     ....
+└──
+
+```
+Now, we have to simply query the forums, grouped by their categories.
+Okay, let's create the query.
+```
+selectAllForumsAndCategoryName = do
+  catnameandforums <-
+    select $
+    from $ \(category, forum) -> do
+      where_ (category ^. CategoriesId ==. forum ^. ForumsCategoryId)
+      groupBy (category ^. CategoriesName)
+      return
+        ( category ^. CategoriesName
+        , arrayAgg (forum ^. ForumsName)
+        , arrayAgg (forum ^. ForumsId))
+  return $
+    map (\(a, b, c) -> (unValue a, unValue b, unValue c)) catnameandforums
+
+```
+It's a simple query at `CRUDForum` which basically tell get forums and its category name.
+Nothing interesting, actually.
+
+And for the handlers, we will use standard `liftHandler`.
+```
+getForumsAndItsCategory = do
+  something <- liftHandler $ runDB $ selectAllForumsAndCategoryName
+  return $ map (\(cname, mts, mks) -> (cname, spread mts mks)) something
+  where
+    spread (Just ts) (Just ks) = zip ts ks
+    spread (Just _) Nothing    = []
+    spread Nothing _           = []
+
+```
+And then use it on the handlers.
+
+```
+  defaultLayout $ do
+    [whamlet|
+     -- skip
+      <form method=post action=@{AdmForumR} enctype=#{enct}>
+      $forall (catname, fnamekeys) <- catfnamekeys
+        <h4> Category: #{catname}
+        <table>
+          <thead>
+            <th width="70%"> Name
+            <th> Delete
+          <tbody>
+            $forall (name, key) <- fnamekeys
+              <tr>
+                <td> #{name}
+                <td> <input name=delete-forum-id value=#{fromSqlKey key} type=checkbox>
+      <input .button-primary name=delete value=delete type=submit>
+    |]
+
+```
+Deletion.
+```
+deleteForumById fid = do
+  forums <- select $ from $ \forum -> do
+    where_ (forum ^. ForumsId ==. val fid)
+    return forum
+  forM_ forums (deleteCascade . entityKey)
+
+```
+Logic. LOL.
+```
+deleteForums Administrator fids =
+  liftHandler $
+  runDB $ forM_ fids (deleteForumById . toSqlKey . forceTextToInt64)
+deleteForums _ _ = permissionDenied "You're not allowed to do this (delete forum)"
+
+forceTextToInt64 :: Text -> Int64
+forceTextToInt64 t =
+  case readMay t of
+    Just i  -> i :: Int64
+    Nothing -> 0
+
+```
+Handler.
+```
+postAdmForumR = do
+  (u, n, g) <- allowedToAdmin
+  allcategories <- getAllCategories
+  createparam <- lookupPostParam "create"
+  deleteparam <- lookupPostParam "delete"
+  case (createparam, deleteparam) of
+    (Nothing, Nothing) -> invalidArgs ["What do you want? Create or delete?"]
+    (Just _, Just _) -> invalidArgs ["What do you want? Create or delete?"]
+    (Just _, Nothing) -> do
+      ((res, _), _) <- runFormPost $ createForumForm allcategories
+      case res of
+        FormFailure x -> invalidArgs x
+        FormSuccess r -> do
+          createForum
+            g
+            (toSqlKey $ createForumFormCategory r)
+            (createForumFormName r)
+            (unTextarea <$> createForumFormDesc r)
+          redirect AdmForumR
+        _ -> invalidArgs ["Good job, smarty pants!"]
+    (Nothing, Just _) -> do
+      deletions <- lookupPostParams "delete-forum-id"
+      deleteForums g deletions
+      redirect AdmForumR
+
+```
