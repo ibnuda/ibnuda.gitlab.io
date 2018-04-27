@@ -29,7 +29,7 @@ navigationItems pages = do
   div ! id "menu" $ do
     div ! class_ "pure-menu" $ do
       a ! href "index.html" ! class_ "pure-menu-heading" $
-        toHtml ("Index" :: Text)
+        text "Index"
       ul ! class_ "pure-menu-list" $ do
         forM_ pages navigationItem
 

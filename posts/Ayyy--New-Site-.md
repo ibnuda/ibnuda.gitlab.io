@@ -33,7 +33,7 @@ Oh oh oh, **Let's Encrypt** is supported! Nice!
 
 ### Web Pages
 
-I generate this site using [this](https://gitlab.com/ibnuda/ibnuda.gitlab.com) stupid
+I generate this site using [this](https://gitlab.com/ibnuda/ibnuda.gitlab.io) stupid
 ass blog engine. I've written about it on the other post.
 
 Look, I really do think that in my case, where what I do produce mostly is just text,

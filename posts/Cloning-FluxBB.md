@@ -1091,6 +1091,12 @@ And what a handler should not do:
 - Talk to the database.
 - Implement business logic in it.
 
+My weird code styles:
+
+- DataTypesInCamelCase
+- functionsInCamelCase
+- valuesinlowercase
+
 Now, let's start by cleaning up our imports.
 For example, instead of importing `Yesod.Core`, `ClassyPrelude.Yesod`, etc in
 each and every file, we can just import a single file that has exported other modules.
@@ -1123,9 +1129,10 @@ Now, we have cleaned our root project directory, let's start.
 ### Category Administration
 
 If you're wondering why do we start with administering category, then I will
-confess that I feel I can solve this problem better when I approach it top-down.
+confess that I feel I can solve this problem (writing this article) better when
+I approach it top-down.
 It doesn't mean that you should the same, but, I don't know.
-Just like Sinatra has sung, I will just do it in my way~
+Just like Sinatra has sung, I will just do it my way~
 
 Okay, administering category in this context actually just means that we can create
 categories and delete them, if the situation demands us to do so.
@@ -1187,12 +1194,12 @@ Basically we have completed the logic of this part.
 In this page, a FluxBB administrator would see a page filled with something like the following
 (which was dumbed down a lot):
 ```
-├── New Group
-│     Group Name [ input ]
+├── New Category
+│     Category Name [ input ]
 │       [button create]
 │
-├── Group List
-│     Groups [ dropdown ]
+├── Category List
+│     Categories [ dropdown ]
 │       [button delete]
 └──
 
@@ -1570,3 +1577,77 @@ That's it.
 It wraps up this section.
 
 Commit: [this one](https://gitlab.com/ibnuda/Cirkeltrek/commit/de5e9c343b54c99f48fc7d41e8198b3794d2a211)!
+
+### Forum Administration
+
+This section's requirements are pretty much the same as the previous one.
+
+- Ensure only an `Administrator` that could create and/or delete forums.
+- Ensure that when the forum get deleted, its topics and posts should also be deleted.
+
+#### Forum Creation: Business Logic and Query
+Better look at `src/Model.hs` when we forget the structure of the datatypes, right?
+There, we have `forums.category_id`, `forums.name`, `forums.descriptions`, and 
+some fields which have default values.
+
+Let's create a file in `src/DBOp` and give it `CRUDForum.hs`
+```
+insertForum cid name desc = insert_ $ Forum cid name desc 0 0 Nothing Nothing Nothing
+
+```
+You see that underscore (`_`)? That means we don't care the result.
+We actually should just do the same on the previous section because the result
+will be shown directly when the operation turns out to be succesful.
+
+We will also use the same logic with the previous section, which guards the creation
+to only user with `Administrator` group.
+```
+createForum Administrator cid name desc =
+  liftHandler $ runDB $ insertForum cid name desc
+createForum _ _ _ _ =
+  permissionDenied "You're not allowed to do this (create forum)."
+
+```
+
+#### Forum Administration: Route and UI
+
+On this page users (`Administrator`, to be exact) expect that they will see
+```
+├── New Forum
+│     Forum Name [ input ]
+│     Forum Desc [ input ]
+│     Category   [ dropdown ]
+│       [button create]
+│
+├── Forums
+│     Category Name
+│       Forum Name [ button delete ]
+│       ....
+│       Forum Name [ button delete ]
+|     ....
+└──
+```
+
+First, we will create a form that satisfy `New Forum`.
+```
+data CreateForumForm = CreateForumForm
+  { createForumFormName :: Text
+  , createForumFormDesc :: Maybe Textarea
+  , createForumFormCategory :: Int64
+  } deriving (Show)
+
+createForumForm :: [Entity Categories] -> Form CreateForumForm
+createForumForm cats = renderDivs $
+  CreateForumForm
+  <$> areq textField "Forum Name" Nothing
+  <*> aopt textareaField "Description" Nothing
+  <*> areq (selectFieldList catlist) "Category" Nothing
+  where
+    catlist =
+      map (\(Entity cid (Categories name)) -> (name, fromSqlKey cid)) cats
+
+```
+`data CreateForumForm` above has the same explanation as the previous section.
+But this time, there is a new field with `Maybe Textarea` and an `Int64` for `CategoryId`.
+
+
