@@ -1741,13 +1741,14 @@ In FluxBB, the layout is something like the following:
 │       Forum Name [ button delete ] [ button edit ]
 │       ....
 │       Forum Name [ button delete ] [ button edit ]
-|     ....
+│     ....
 └──
 
 ```
 Now, we have to simply query the forums, grouped by their categories.
 Okay, let's create the query.
 ```
+selectAllForumsAndCategoryName :: ReaderT backen m [(Text, Maybe [Text], Maybe [Key Forums])]
 selectAllForumsAndCategoryName = do
   catnameandforums <-
     select $
@@ -1764,6 +1765,7 @@ selectAllForumsAndCategoryName = do
 ```
 It's a simple query at `CRUDForum` which basically tell get forums and its category name.
 Nothing interesting, actually.
+Apart from `arrayAgg`, which aggregates the result.
 
 And for the handlers, we will use standard `liftHandler`.
 ```
@@ -1776,8 +1778,11 @@ getForumsAndItsCategory = do
     spread Nothing _           = []
 
 ```
-And then use it on the handlers.
+Considering the result of the previous function could contains `Nothing`,
+we should clear 'em a bit using `spread` function above.
+Though the function above could be cleaned a little by skipping `Nothing`.
 
+And then use it on the handlers.
 ```
   defaultLayout $ do
     [whamlet|
@@ -1798,7 +1803,13 @@ And then use it on the handlers.
     |]
 
 ```
-Deletion.
+The snippet above is a part from the `getAdmForumR`.
+I think that snippet is pretty clear. Though it takes too much of space.
+From this commit section on, we will put them in the `templates` directory.
+
+For the deletion query, we will use the same function that looks **really** similar with
+the category deletion above.
+
 ```
 deleteForumById fid = do
   forums <- select $ from $ \forum -> do
@@ -1807,7 +1818,17 @@ deleteForumById fid = do
   forM_ forums (deleteCascade . entityKey)
 
 ```
-Logic. LOL.
+Again, just plain boring query. 
+
+I swear, this part of logic is pretty boring.
+Not even `forceTextToInt64` can save it.
+Even the reason why do we use that is also boring.
+Remember `lookupPostParam`? Its list equivalent returns
+a list of `Text`, while what we need is a list of `Int64`
+Surely we can throw `stupid user try again` or something like that.
+But, let's keep them wondering why their malformed form never work
+as "intended".
+
 ```
 deleteForums Administrator fids =
   liftHandler $
@@ -1821,17 +1842,20 @@ forceTextToInt64 t =
     Nothing -> 0
 
 ```
-Handler.
+
+This is the handler for `POST` request.
+Using the same ugly technique as the previous section,
+we will manage to determine what should be done. 
 ```
 postAdmForumR = do
   (u, n, g) <- allowedToAdmin
   allcategories <- getAllCategories
-  createparam <- lookupPostParam "create"
-  deleteparam <- lookupPostParam "delete"
+  createparam <- lookupPostParam "create" -- [1]
+  deleteparam <- lookupPostParam "delete" -- [1]
   case (createparam, deleteparam) of
-    (Nothing, Nothing) -> invalidArgs ["What do you want? Create or delete?"]
-    (Just _, Just _) -> invalidArgs ["What do you want? Create or delete?"]
-    (Just _, Nothing) -> do
+    (Nothing, Nothing) -> invalidArgs ["What do you want? Create or delete?"] -- [1]
+    (Just _, Just _) -> invalidArgs ["What do you want? Create or delete?"] -- [1]
+    (Just _, Nothing) -> do -- [2]
       ((res, _), _) <- runFormPost $ createForumForm allcategories
       case res of
         FormFailure x -> invalidArgs x
@@ -1844,9 +1868,39 @@ postAdmForumR = do
           redirect AdmForumR
         _ -> invalidArgs ["Good job, smarty pants!"]
     (Nothing, Just _) -> do
-      deletions <- lookupPostParams "delete-forum-id"
-      deleteForums g deletions
+      deletions <- lookupPostParams "delete-forum-id" -- [3]
+      deleteForums g deletions [4]
       redirect AdmForumR
 
 ```
-Commit: [lol](https://gitlab.com/ibnuda/Cirkeltrek/commit/965ae3f0f0e38cc0b2e1241a835097d615fe1ca8).
+
+Again, boring stuff.
+Which is what a boring development like this should be.
+
+1. The same reasoning and explanation with the "Category Management" above.
+2. Our previous function.
+   Which is used to create a category.
+3. This is where we get the list of post parameter which I've talked about above.
+   And it takes a `Text` and returns a `[Text]` and makes us to use `forceTextToInt64`.
+4. Query execution.
+
+Commit: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/965ae3f0f0e38cc0b2e1241a835097d615fe1ca8).
+
+That snippet wraps up this section.
+Next, we should try to get display the Index of the page.
+
+### Index, Categories, Forums, and Topics
+
+#### Index Business Logic
+#### Index View
+#### Forums Business Logic
+#### Forums View
+#### Topics Business Logic
+#### Topics View
+
+### Users Administration
+
+#### Registration
+#### Ban
+#### Promote
+#### Edit
