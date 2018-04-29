@@ -2000,6 +2000,10 @@ Current progress: this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/8fae
 
 #### Forums Business Logic
 #### Forums View
+
+Current progress: this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/e45b6107ac1ec3295f44589a911244f2e2e6604f)
+
+#### Administering Forum
 #### Topics Business Logic
 #### Topics View
 
