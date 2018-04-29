@@ -1,7 +1,7 @@
 .PHONY: all build doc
 
 
-all: compile home
+all: build compile home
 
 clean:
 	stack clean
