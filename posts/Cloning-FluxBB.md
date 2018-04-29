@@ -1889,10 +1889,115 @@ Commit: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/965ae3f0f0e38cc0b2e12
 That snippet wraps up this section.
 Next, we should try to get display the Index of the page.
 
-### Index, Categories, Forums, and Topics
+### Home, Categories, Forums, and Topics
+Here we are, we are going to build this project by building it top down.
+First, we will create the "home" page, where we display the list of the categories
+and their forums.
+After that, we will create the "forum" page, where we display the list of the topics
+in a forum.
+Followed by the the creation of the "topic" page which displays its replies.
 
-#### Index Business Logic
-#### Index View
+Oh, don't forget that from now on, I will skip the snippet from whamlet.
+It's too wordy.
+
+#### Home (or Index)
+
+Usually, when you visit FluxBB site's index, you will see that there are a few categories
+and its forums shown.
+To put simply, FluxBB's index structure is something like this
+```
+├── CategoryA
+│  ├── [forumA name] [forum desc] [forum topics count] [forum replies count] [etc]
+│  ├── ......
+│  ├── [forumB name] [forum desc] [forum topics count] [forum replies count] [etc]
+├── CategoryB
+│  ├── [forumC name] [forum desc] [forum topics count] [forum replies count] [etc]
+│  ├── ......
+│  ├── [forumD name] [forum desc] [forum topics count] [forum replies count] [etc]
+
+```
+It's a tree!
+And I want to emulate that.
+In order to do that, we have should prepare a few things, like the query, logic, and "view" parts.
+
+Let's start with the query part (which is ugly, to be honest).
+```
+-- src/DBOp/CRUDCategory.hs
+selectCategoriesForIndex = do
+  catnameandforums <-
+    select $
+    from $ \(category, forum) -> do
+      where_ (category ^. CategoriesId ==. forum ^. ForumsCategoryId)
+      groupBy (category ^. CategoriesName)
+      return
+        ( category ^. CategoriesName
+        , arrayAgg (forum ^. ForumsId)
+        , arrayAgg (forum ^. ForumsName)
+        , arrayAgg (forum ^. ForumsDescriptions)
+        , arrayAgg (forum ^. ForumsTopicsCount)
+        , arrayAgg (forum ^. ForumsRepliesCount)
+        , arrayAgg (forum ^. ForumsLastPost)
+        , arrayAgg (forum ^. ForumsLastPostId)
+        , arrayAgg (forum ^. ForumsLastPoster))
+  return $
+    map
+      (\(a, b, c, d, e, f, g, h, i) ->
+         ( unValue a
+         , unValue b
+         , unValue c
+         , unValue d
+         , unValue e
+         , unValue f
+         , unValue g
+         , unValue h
+         , unValue i))
+      catnameandforums
+
+```
+Oh God... You see that multiple `arrayAgg`s and `unValue` parts?
+Actually, what we want to `select` is simple, we just want to `select` categories and its forums.
+The limitation is, we can't use `arrayAgg` for table, but only for columns.
+It get worsen byand the fact  I'm not familiar enough with Postgres to effiently write a query that
+returns multiple aggregated rows or something like that.
+So, here we are, we have a function that too wordy.
+And that's not all, we have a more shittier version of it on our logic.
+
+```
+-- src/Flux/Home.hs
+getCategoriesForIndex = do
+  categoriesandforums <- liftHandler $ runDB $ selectCategoriesForIndex
+  return $ map anu categoriesandforums
+  where
+    anu s =
+      case s of
+        (a, Just b, Just c, Just d, Just e, Just f, Just g, Just h, Just i) ->
+          (a, zip8 b c d e f g h i)
+        (a, _, _, _, _, _, _, _, _) -> (a, [])
+
+```
+You see that `zip8` function above?
+There's no such thing in `base` because `base` only has `zip` thru `zip7`.
+That means, we have to create that one by our hand.
+Although it's not hard, as we can see the source of `zip7` in hackage, it's just
+left a bad taste in my mouth.
+And I'm starting to doubt my decision to use "tree" above.
+But whatever, "if it's stupid and it works, it ain't stupid".
+
+Now, let's head to the home handler.
+Because it's pretty simple, we just have to put the previous function as one of
+element and display it.
+```
+getHomeR = do
+  categoriesforindex <- getCategoriesForIndex
+  defaultLayout $ do
+    setTitle "Home"
+    $(widgetFile "home")
+
+```
+That's it, you can see that it actually is not worth mentioning.
+
+Current progress: this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/8faeb84586c57a406cf5fbd00b61715ec1817a2b).
+
 #### Forums Business Logic
 #### Forums View
 #### Topics Business Logic
