@@ -1957,9 +1957,9 @@ selectCategoriesForIndex = do
 Oh God... You see that multiple `arrayAgg`s and `unValue` parts?
 Actually, what we want to `select` is simple, we just want to `select` categories and its forums.
 The limitation is, we can't use `arrayAgg` for table, but only for columns.
-It get worsen byand the fact  I'm not familiar enough with Postgres to effiently write a query that
+It get worsen by the fact  I'm not familiar enough with Postgres to efficiently write a query that
 returns multiple aggregated rows or something like that.
-So, here we are, we have a function that too wordy.
+So, here we are, we have a function that is too wordy.
 And that's not all, we have a more shittier version of it on our logic.
 
 ```
@@ -2005,13 +2005,144 @@ There are a few information that need to be shown.
 For example, `Forum Name`, table (or is it a list?) of topic information, page, etc. 
 ```
  Index >> Forum Name
- ├── [Subject                       ][ Replies ] [               Last Post ]
- ├── [This is a topic               ][    9001 ] [ 2011-02-24 00:46 by tom ]
- ├── [This is not a topic           ][    6969 ] [ 2011-02-24 00:42 by cat ]
+ Pages: [1] 2 3 .. n Next                                        [Post New Topic]
+ ├── [Subject                  ][ Replies ] [  Views ][               Last Post ]
+ ├── [This is a topic          ][    9001 ] [ 200010 ][ 2011-02-24 00:46 by tom ]
+ ├── [This is not a topic      ][    6969 ] [ 100000 ][ 2011-02-24 00:42 by cat ]
+ ├── [This is perhaps a topic  ][       0 ] [      3 ][                   Empty ]
 
 ```
+From that information, at least we need to get data from database
+
+- List of topics in that page.
+  Which in turn each of them demands:
+
+  - Title of topic.
+  - Replies of topic.
+  - Views.
+  - And last post's information.
+- The number of the pages.
+- And "new post" link.
+
+There are a few considerations, though.
+For example, we won't implement pages for now because of I, embarrassingly,
+forgot to put that.
+Sorry.
+We won't implement new post link either and will use a form at the bottom of
+the page for the sake of simplicity (or my laziness?).
+
+Well, it's better not to dwell in the past, right?
 
 #### Forums Business Logic
+
+Yes! We are coming to business logic part of this section!
+This one is simple.
+Or we are trying to dumb it down, I don't know.
+
+- When there's a request to a forum with id `fid`, the program have to check
+  whether it's associated to a certain user or not.
+
+  - When it's not, program have to show the door to the request.
+  - When it's associated to a user, program have to filter the group of the associated user.
+  - When the associated user is a member of `Banned` group, the program will also show the door to the request.
+  - Otherwise, we will show the the user the previous list at the previous section.
+  
+#### Writing the Parts
+Let's start by defining functions that satisfy the first point of the list above.
+
+```
+allowedToPost = do
+  midnamegroup <- getUserAndGrouping
+  case midnamegroup of
+    Nothing -> permissionDenied "You're not allowed to see this page."
+    (Just (uid, name, Banned)) -> permissionDenied "You're banned."
+    (Just (uid, name, _)) -> return (uid, name, Administrator)
+
+```
+Practically, the function above mimics what `allowedToAdmin` does.
+The only difference is, we swap `Administrator` with `Banned` and its
+information.
+
+Perhaps, when the situation arise, we can refactor functions that has the same behaviour
+into a more "generic" function.
+Or composable.
+Or chainable.
+Whatever.
+
+After that, we will define the route for the forum and the forum page.
+Don't forget that we identify forums by it's id, an `Int64`, so we can take
+the parameter as `#Int64` in `mkYesodData`.
+
+```
+-- src/Foundation.hs
+    -- snip
+    /forum/#Int64        ForumR       GET POST
+    /forum/#Int64/#Int64 ForumPageR   GET
+    -- snip
+
+```
+You see that second `/forum`? That's for the page.
+And don't worry about why did we put a `POST` at the higher line while not the bottom.
+
+So, let's move forward to define `getForumR`, `postForumR`, and `getForumPageR`.
+```
+-- src/Handler/Forum.hs
+
+getForumR :: Int64 -> Handler Html
+getForumR fid = redirect $ ForumPageR fid 1 -- [1]
+
+getForumPageR :: Int64 -> Int64 -> Handler Html
+getForumPageR fid page = do
+  forum <- _ (toSqlKey fid) -- [2]
+  topics <- _ (toSqlKey fid ) page -- [33
+  (wid, enct) <- generateFormPost _ -- [4]
+  defaultLayout $ do
+    setTitle "Index"
+    $(widgetFile "forum") -- [5]
+
+```
+There are a few marked points above.
+
+1. Because when one load a forum, what one sees is the first page.
+   Other than that, even when I'm a copy-paster, I hesitate to copy
+   a function that not differ that much.
+2. The first holed function.
+   Based on the result of the left arrow, we can infer that this holed
+   function is a `Handler` which returns a `Forums`.
+3. The second holed function.
+   But this time, we expect that this function returns `[Topics]`.
+4. Remember what I have written above about "instead of inside of a link,
+   we will put the form at the bottom of the page"?
+   Yeah, this is what we're going to put at the bottom of the page.
+5. Widget file.
+   I won't say anything, just look at the commit.
+   
+Well, because the first and second holed functions are related to business logic,
+we should head to the `src/Flux` directory and create a file named `Forum.hs` there.
+(I know, I know... I can't be arsed to give them different names.)
+
+```
+-- first holed function.
+getForumsInformation fid = do
+  forum <- liftHandler $ runDB $ _ fid -- [1]
+  case forum of
+    [x] -> return x
+    _   -> notFound
+
+-- secod holed function.
+getTopicsInForum fid page | page < 0 = invalidArgs ["Yo! You can't look at negative value!"]
+getTopicsInForum fid page = liftHandler $ runDB $ _ fid page -- [2]
+
+```
+At the holed functions snippet above, there are two other holed functions, we'll talk
+about it in a moment.
+But first, we have to talk about the "first holed function"'s return value is an array
+which is expected to have a single element.
+Why would we want that function? Isn't there a function from `persistent` that
+returns the first record it found (or not)?
+Well, we're trying to have a consistent style here, my friend.
+The previous database related functions return 
+
 
 Current progress: this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/e45b6107ac1ec3295f44589a911244f2e2e6604f)
 
