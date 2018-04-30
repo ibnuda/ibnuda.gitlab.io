@@ -44,17 +44,18 @@ bagianTitle titlecontent = do
 
 skeleton :: Configuration -> Html -> Text -> Text -> Html
 skeleton Configuration {..} mymenu titleContent markdownContent =
-  docTypeHtml $ do
+  docTypeHtml ! lang "en" $ do
     head $ do
       H.meta ! charset "utf-8"
       H.meta ! name "viewport" ! content "width=device-width, initial-scale=1.0, user-scalable=yes"
       H.meta ! name "author" ! value (textValue author)
+      H.meta ! name "theme-color" ! content "#333"
       H.link ! rel "stylesheet" ! type_ "text/css" ! href "static/pure-min-side-menu.css"
       H.link ! rel "icon" ! href "favicon.ico"
       H.title $ text $ siteName <> " - " <> titleContent
     body $ do
       div ! id "layout" $ do
-        a ! href "#menu" ! id "menuLink" ! class_ "menu-link" $ H.span $ toHtml T.empty
+        a ! name "menu" ! href "#menu" ! id "menuLink" ! class_ "menu-link" $ H.span $ toHtml T.empty
         mymenu
         div ! id "main" $ do
           bagianTitle titleContent

@@ -1998,8 +1998,20 @@ That's it, you can see that it actually is not worth mentioning.
 
 Current progress: this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/8faeb84586c57a406cf5fbd00b61715ec1817a2b).
 
-#### Forums Business Logic
 #### Forums View
+
+To put simply, here's what we usually see in a FluxBB Forum.
+There are a few information that need to be shown.
+For example, `Forum Name`, table (or is it a list?) of topic information, page, etc. 
+```
+ Index >> Forum Name
+ ├── [Subject                       ][ Replies ] [               Last Post ]
+ ├── [This is a topic               ][    9001 ] [ 2011-02-24 00:46 by tom ]
+ ├── [This is not a topic           ][    6969 ] [ 2011-02-24 00:42 by cat ]
+
+```
+
+#### Forums Business Logic
 
 Current progress: this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/e45b6107ac1ec3295f44589a911244f2e2e6604f)
 
