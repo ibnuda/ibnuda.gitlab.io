@@ -1684,7 +1684,7 @@ getAdmForumR = do
 
 ```
 You will see that we're using the same request guard (or something like that) with
-`Handler.Adm.Category.allowedToAdmin`.
+`allowedToAdmin` in `Handler.Adm.Category`.
 It's better to move them to a single place.
 And I heard that `Foundation` is the right place for it.
 
