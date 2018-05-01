@@ -2046,6 +2046,11 @@ Or we are trying to dumb it down, I don't know.
   - When it's associated to a user, program have to filter the group of the associated user.
   - When the associated user is a member of `Banned` group, the program will also show the door to the request.
   - Otherwise, we will show the the user the previous list at the previous section.
+- When a user wants to create a topic by sending subject, program will
+
+  - Create a topic with subject from user's input.
+  - Insert the post with the post content from the user's input.
+  - Using user's request's context, will complete the previous function's input.
   
 #### Writing the Parts
 Let's start by defining functions that satisfy the first point of the list above.
@@ -2094,7 +2099,7 @@ getForumR fid = redirect $ ForumPageR fid 1 -- [1]
 getForumPageR :: Int64 -> Int64 -> Handler Html
 getForumPageR fid page = do
   forum <- _ (toSqlKey fid) -- [2]
-  topics <- _ (toSqlKey fid ) page -- [33
+  topics <- _ (toSqlKey fid ) page -- [3]
   (wid, enct) <- generateFormPost _ -- [4]
   defaultLayout $ do
     setTitle "Index"
@@ -2141,9 +2146,89 @@ which is expected to have a single element.
 Why would we want that function? Isn't there a function from `persistent` that
 returns the first record it found (or not)?
 Well, we're trying to have a consistent style here, my friend.
-The previous database related functions return 
+The previous database related functions use `select $ from $ etc` and I want
+to continue the trend. 
 
+Now, we will continue this section by writing the query for those holed functions above.
+```
+selectTopicsByForumIdPage fid page = do
+  select $
+    from $ \topic -> do
+      where_ (topic ^. TopicsForumId ==. val fid)
+      offset ((page - 1) * 25)
+      limit 25
+      return topic
 
+selectForumById fid = do
+  select $ from $ \forum -> do
+    where_ (forum ^. ForumsId ==. val fid)
+    limit 1
+    return forum
+
+```
+Those two function should be placed at the holed place at the previous snippet. 
+Both functions are just standard `select` procedure.
+Nothing unusual here.
+And furthermore, I will not put simple snippets anymore.
+Other than "it's obvious", it also wastes space.
+
+For next part, we will create a form for this hole `(wid, enct) <- generateFormPost _`.
+Actually, we want to create a simple "subject" and "content",
+pretty much like the simple `CreateCategoryForm` snippet above.
+
+```
+data CreateTopicForm = CreateTopicForm { createTopicFormSubject :: Text , createTopicFormContent :: Textarea}
+createTopicForm = renderDivs $ CreateTopicForm <$> areq textField "New Subject" Nothing <*> areq textareaField "Opening Post" Nothing
+
+```
+That's it, Pretty simple.
+It's just a text field and a text area.
+And we will put them into their righteous place.
+Oh, right, don't forget to update `src/Application.hs` to import `Handler.Forum`.
+It will complain about `postForumR`, though.
+
+So, we will create that handler.
+```
+postForumR :: Int64 -> Handler Html
+postForumR fid = do
+  (uid, name, group) <- allowedToPost -- [1]
+  ((res, wid), enct) <- runFormPost createTopicForm -- [2]
+  case res of -- [3]
+    FormSuccess r -> do
+      tid <- _ (toSqlKey fid) uid name (createTopicFormSubject r) (unTextarea $ createTopicFormContent r) -- [4]
+      redirect $ ForumR fid -- we will back to it later.
+    _ -> invalidArgs ["Come on..."]
+
+```
+Now, we have a handler for `POST` requests at `/forum/fid`
+You see that number one? That's a nice function to filter the banned users from posting.
+And number two and three? Just the standard procedure for parsing forms.
+One thing, though.
+We still have a holed function at number 4 which should be used to create a
+topic which takes the required input from the context of the `POST` request.
+
+```
+createTopicByPosting fid userid username subject content = do
+  now <- liftIO getCurrentTime
+  tid <- liftHandler $ runDB $ _ fid username subject -- [1]
+  pid <- liftHandler $ runDB $ _ tid 1 username userid content -- [2]
+  return tid
+
+```
+Again, pretty simple function.
+We will create a `Topics` first and then feed the return value as one of the input
+for the `Posts` creation.
+Then, we will return the `TopicsId` so the user can be redirected to the topic which
+he has created in this process.
+Again, I won't post the query snippets because it's too straight forward and too long.
+
+Now, when we load [http://localhost:3000/forum/1], we will be greeted by a list of
+created topics (which is zero, at the moment).
+Go ahead and create that topic.
+
+This wraps up this section.
+For the next section, we will create handlers for administering forum.
+Basically, locking and unlocking topics in a forum.
 Current progress: this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/e45b6107ac1ec3295f44589a911244f2e2e6604f)
 
 #### Administering Forum
