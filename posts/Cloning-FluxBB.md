@@ -2232,6 +2232,42 @@ Basically, locking and unlocking topics in a forum.
 Current progress: this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/e45b6107ac1ec3295f44589a911244f2e2e6604f)
 
 #### Administering Forum
+
+For a `Moderator` or an `Administrator`, from time to time, when the moon is blue enough,
+he wants to lock an unworthy topic.
+Or perhaps when he's wondering how could a top tier topic being locked, he will try to
+make it right, unlock the good shit.
+
+So, when an admin or a mod visits a forum, he will see the list of topic from and their
+lock status.
+When a topic is locked, he will see a column that says "it's locked, mate." at the right
+side of a checkbox.
+Well, it's not that important how we present the document, I think.
+Better we go to handler etc.
+
+```
+postForumR fid = do
+  (uid, name, group) <- allowedToPost
+  lock <- lookupPostParam "lock-topic" -- [1]
+  unlock <- lookupPostParam "unlock-topic" -- [1]
+  create <- lookupPostParam "create-topic" -- [1]
+  topicids <- lookupPostParams "topic-id" -- [2]
+  case (lock, unlock, create) of -- [3]
+    (Just _, Nothing, Nothing) -> undefined [4]
+    (Nothing, Just _, Nothing) -> undefined [5]
+    (Nothing, Nothing, Just _) -> do -- [6]
+    _ -> invalidArgs ["🙄 (it's just an excuse to use an emoji.)"]
+
+```
+If you see that number `[1]`, it's just standard check `POST` parameter with parameter name
+the quoted string and on the left side of the arrows are the results of the checking.
+The results have `Maybe Text` as their datatype, considering that they may or may not
+be used.
+But number `[2]`, it's pretty much the same, but expects multiple occurences of the said
+named parameter.
+
+Checkpoint: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/3dbd396572929ff516bb6b5fc3ad0b69d7965a0d).
+
 #### Topics Business Logic
 #### Topics View
 
