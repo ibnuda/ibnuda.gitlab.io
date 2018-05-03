@@ -50,6 +50,7 @@ skeleton Configuration {..} mymenu titleContent markdownContent =
       H.meta ! name "viewport" ! content "width=device-width, initial-scale=1.0, user-scalable=yes"
       H.meta ! name "author" ! value (textValue author)
       H.meta ! name "theme-color" ! content "#333"
+      H.meta ! name "short_name" ! content "{} Unusual"
       H.link ! rel "stylesheet" ! type_ "text/css" ! href "static/pure-min-side-menu.css"
       H.link ! rel "icon" ! href "favicon.ico"
       H.title $ text $ siteName <> " - " <> titleContent

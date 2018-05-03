@@ -2252,10 +2252,11 @@ postForumR fid = do
   unlock <- lookupPostParam "unlock-topic" -- [1]
   create <- lookupPostParam "create-topic" -- [1]
   topicids <- lookupPostParams "topic-id" -- [2]
-  case (lock, unlock, create) of -- [3]
-    (Just _, Nothing, Nothing) -> undefined [4]
-    (Nothing, Just _, Nothing) -> undefined [5]
-    (Nothing, Nothing, Just _) -> do -- [6]
+  case (lock, unlock, create) of
+    (Just _, Nothing, Nothing) -> undefined [3]
+    (Nothing, Just _, Nothing) -> undefined [3]
+    (Nothing, Nothing, Just _) -> do -- [4]
+      -- the previous section.
     _ -> invalidArgs ["🙄 (it's just an excuse to use an emoji.)"]
 
 ```
@@ -2265,6 +2266,72 @@ The results have `Maybe Text` as their datatype, considering that they may or ma
 be used.
 But number `[2]`, it's pretty much the same, but expects multiple occurences of the said
 named parameter.
+While we didn't modify number `[4]`, we just indent the previous code 2 or 3 tabs because it
+does what it should do.
+And surely, we are going to use this marked `[3]` to lock/unlock the topics, but before that,
+let's write it first.
+
+Actually, locking and unlocking topics is simple, we just swap the value of `topicsIsLocked`
+and that's it.
+Surely we have to make sure that we don't accidentally lock a topic in a row and only Admins
+and Mods who can do it.
+
+```
+lockUnlockTopic lock group tid
+  | group == Administrator || group == Moderator = do
+    topic <- _ . toSqlKey . forceTextToInt64 $ tid
+    if (topicsIsLocked $ entityVal topic) == lock
+      then invalidArgs ["You can only switch the lock of the topic."]
+      else liftHandler $
+           runDB $ _ (toSqlKey . forceTextToInt64 $ tid) lock
+lockUnlockTopic _ lock _ = permissionDenied "You're not allowed to lock this topic."
+
+```
+That's it.
+We filter `group` parameter whenever this function being called.
+Not only that, by comparing `topicsIsLocked` with `lock`, accidentally un/locking
+topic twice shouldn't be happened.
+But wait! There's a holed function which returns a topic while we have no such function!
+No!!!
+
+Okay, don't worry, we will create them in a file named `src/Flux/Topic.hs`.
+```
+getTopicById tid = do
+  topics <- liftHandler $ runDB $ selectTopicById tid -- please see selectTopicById in the commit.
+  case topics of
+    [x] -> return x
+    _   -> notFound
+
+```
+Nice and simple!
+Just like our `getForumsInformation`!
+
+Now, let's update our `postForumR` function to reflect the usage of `lockUnlockTopic`.
+```
+postForumR fid = do
+  -- snip!!!
+  topicids <- lookupPostParams "topic-id"
+  case (lock, unlock, create) of
+    (Just _, Nothing, Nothing) -> do
+      forM_ topicids $ lockUnlockTopic True group -- [1]
+      redirect $ ForumR fid
+    (Nothing, Just _, Nothing) -> do
+      forM_ topicids $ lockUnlockTopic False group -- [2]
+      redirect $ ForumR fid
+
+```
+Well, the only difference between `[1]` and `[2]` is just the first param.
+The `True` one, is being used to lock topic while the `False` one, to unlock.
+Because `topicids` is a list of `Text`, we should iterate that value and
+use that iterated value as the parameter for `lockUnlockTopic`.
+And why do we use `forM_`? Because I miss my first year of uni days.
+Other than that stupid reason, it was caused by the fact `lockUnlockTopic` is
+a function that returns `HandlerFor site a`.
+Surely we can use `forM`, but the result will be `[()]` and we don't want that.
+We want `lockUnlockTopic` returns nothing.
+
+So, go ahead! Try to lock and/or unlock things! 
+And for the next part, we are going to play with Topics!
 
 Checkpoint: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/3dbd396572929ff516bb6b5fc3ad0b69d7965a0d).
 
