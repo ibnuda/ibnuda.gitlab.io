@@ -2,13 +2,14 @@
 module Lib.Rewrite where
 
 import           Data.Char
-import qualified Data.Text        as T
+import qualified Data.Text             as T
 import           Data.Time
 import           System.Directory
-import qualified Text.Read        as TR
-import           Text.Regex       (mkRegex, subRegex)
+import           System.FilePath.Posix
+import qualified Text.Read             as TR
+import           Text.Regex            (mkRegex, subRegex)
 
-import           Lib.Prelude      hiding (intercalate)
+import           Lib.Prelude           hiding (intercalate)
 import           Lib.Types
 
 
@@ -31,7 +32,7 @@ getFiles path =
   withCurrentDirectory path $ getDirectoryContents "." >>= filterM doesFileExist
 
 deleteFiles :: FilePath -> IO ()
-deleteFiles path = getFiles path >>= mapM_ removeFile
+deleteFiles path = getFiles path >>= mapM_ (removeFile . (path </>))
 
 generateMdFilename :: [Char] -> [Char]
 generateMdFilename input =
@@ -41,7 +42,7 @@ generateHtmlFilename :: [Char] -> UTCTime -> [Char]
 generateHtmlFilename title date =
   let fn = generateMdFilename  title
       dt = formatTime defaultTimeLocale "%z%F" $ utctDay date
-  in map toLower $ show dt ++ "-" ++ fn ++ ".html"
+  in map toLower $ dt ++ "-" ++ fn ++ ".html"
 
 writeRawpost :: FilePath -> Rawpost -> IO ()
 writeRawpost siteinfofiles Rawpost {..} =

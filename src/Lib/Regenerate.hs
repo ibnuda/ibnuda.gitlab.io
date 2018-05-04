@@ -7,7 +7,6 @@ import           Data.List                     (partition)
 import qualified Data.Text                     as T
 import qualified Data.Text.Lazy                as TL
 import           Data.Time
-import           Data.Time.Clock.POSIX         (posixSecondsToUTCTime)
 import qualified Text.Blaze.Html.Renderer.Text as BT
 import           Text.Blaze.Html5              as H hiding (map)
 import           Text.Blaze.Html5.Attributes   as A
@@ -16,18 +15,64 @@ import           Text.Markdown
 import           Lib.Rewrite
 import           Lib.Types
 
+defaultSiteInfo :: SiteInfo
+defaultSiteInfo =
+  SiteInfo
+    "https://siskam.link"
+    "Nothing Unusual"
+    "Ibnu D. Aji"
+    "posts"
+    "public"
+
 generateSite :: SiteInfo -> IO ()
 generateSite config@SiteInfo {..} = do
   filenames <- getFiles siteinfoFiles
-  something <- mapM (readRawpost siteinfoFiles) filenames
-  let (posts, pages) = partition (\x -> rawpostType x == Post) something
-      sidemenu =
-        generateSideMenu $
-        map (\pst -> (rawpostTitle pst, rawpostDate pst)) pages
-  putText ""
+  rawposts <- mapM (readRawpost siteinfoFiles) filenames
+  let (posts, pages) = partition (\x -> rawpostType x == Post) rawposts
+  let indexcontent = generateIndex posts
+      mymenu = generateSideMenu pages
+  forM_ rawposts (generateSingleHtml config)
+  writeGenerated siteinfoPublic "index.html" $
+    render $ layout config mymenu "Title" indexcontent
 
-generateSideMenu :: [(Title, UTCTime)] -> Html
-generateSideMenu titledates = do
+render :: Html -> Text
+render = TL.toStrict . BT.renderHtml
+
+generateIndex :: [Rawpost] -> Html
+generateIndex posts =
+  ul $
+  forM_ (reverse . sort $ posts) $ \Rawpost {..} ->
+    generateIndexItem rawpostDate rawpostTitle
+  where
+    generateIndexItem d tit =
+      li $ do
+        a ! href (textValue . T.pack . generateHtmlFilename (T.unpack tit) $ d) $
+          text (formatteddate d <> " - " <> tit)
+    formatteddate d = T.pack $ formatTime defaultTimeLocale "%z%F" $ utctDay d
+
+generateSingleHtml :: SiteInfo -> Rawpost -> IO ()
+generateSingleHtml config@SiteInfo {..} Rawpost {..} = do
+  fns <- getFiles siteinfoFiles
+  rawposts <- mapM (readRawpost siteinfoFiles) fns
+  let pages = filter (\(Rawpost _ _ _ d _) -> d == Page) rawposts
+      mymenu = generateSideMenu pages
+      renderedcontent =
+        render $
+        layout
+          config
+          mymenu
+          rawpostTitle
+          (contentMarkdownToHtml rawpostContent)
+      filename = generateHtmlFilename (T.unpack rawpostTitle) (rawpostDate)
+  writeGenerated siteinfoPublic filename renderedcontent
+
+contentMarkdownToHtml :: Text -> Html
+contentMarkdownToHtml md =
+  div ! class_ "content" $ markdown def . TL.fromStrict $ md
+
+generateSideMenu :: [Rawpost] -> Html
+generateSideMenu rawpages = do
+  let titledates = map (\pst -> (rawpostTitle pst, rawpostDate pst)) rawpages
   div ! id "menu" $ do
     div ! class_ "pure-menu" $ do
       a ! class_ "pure-menu-heading" ! href "index.html" $ text "Index"
@@ -40,21 +85,8 @@ generateSideMenuItem (tit, date) = do
       href (textValue $ T.pack $ generateHtmlFilename (T.unpack tit) date) $
       text tit
 
-generateIndex :: [Rawpost] -> FilePath -> (Filename, Text)
-generateIndex posts public =
-  let indexpage =
-        ul $
-        forM_ (reverse . sort $ posts) $ \Rawpost {..} ->
-          generateIndexItem rawpostFilename rawpostDate rawpostTitle
-      generateIndexItem ln d tit =
-        li $ do
-          a ! href (textValue . T.pack $ ln) $
-            text (formatteddate d <> " - " <> tit)
-      formatteddate d = T.pack $ formatTime defaultTimeLocale "%z%F" $ utctDay d
-  in (public ++ "/index.html", TL.toStrict $ BT.renderHtml indexpage)
-
-frame :: SiteInfo -> Html -> Text -> Text -> Html
-frame SiteInfo {..} mymenu titleContent markdownContent =
+layout :: SiteInfo -> Html -> Title -> Html -> Html
+layout SiteInfo {..} mymenu titlecontent htmlcontent =
   docTypeHtml ! lang "en" $ do
     head $ do
       H.meta ! charset "utf-8"
@@ -64,18 +96,18 @@ frame SiteInfo {..} mymenu titleContent markdownContent =
       H.meta ! name "theme-color" ! content "#333"
       H.meta ! name "short_name" ! content "{} Unusual"
       H.meta ! name "description" !
-        content (textValue (T.take 100 markdownContent))
+        content (textValue (T.take 100 titlecontent))
       H.link ! rel "stylesheet" ! type_ "text/css" !
         href "static/pure-min-side-menu.css"
       H.link ! rel "icon" ! href "favicon.ico"
-      H.title $ text $ siteinfoName <> " - " <> titleContent
+      H.title $ text $ siteinfoName <> " - " <> titlecontent
     body $ do
       div ! id "layout" $ do
-        a ! name "menu" ! href "#menu" ! id "menuLink" ! class_ "menu-link" $
+        a ! name "not-a-menu" ! href "#menu" ! id "menuLink" ! class_ "menu-link" $
           H.span $ text T.empty
         mymenu
-        div ! class_ "header" $ do h1 $ text titleContent
-        div ! class_ "content" $ markdown def . TL.fromStrict $ markdownContent
+        div ! class_ "header" $ do h1 $ text titlecontent
+        htmlcontent
       H.script $ text js
     footer $ do
       text "This material is shared under the "

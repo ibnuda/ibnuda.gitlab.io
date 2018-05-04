@@ -27,6 +27,7 @@ library
                      , blaze-html
                      , HaXml
                      , directory
+                     , filepath
                      , markdown
                      , network
                      , network-uri
