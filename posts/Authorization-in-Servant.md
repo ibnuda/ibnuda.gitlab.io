@@ -1,5 +1,6 @@
 Authorization in Servant
 2017-11-03 00:00:00 UTC
+Post
 
 
 Words of caution: This article is about servant-server 0.11's `experimental-auth` which is still in experimental stage.

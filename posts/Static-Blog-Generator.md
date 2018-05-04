@@ -1,5 +1,6 @@
 Static Blog Generator
 2018-01-19 05:36:34.554073672 UTC
+Post
 
 
 The previous blog engine, which was written in F#, was not really satisfying for me.

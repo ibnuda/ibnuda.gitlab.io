@@ -17,8 +17,6 @@ library
   exposed-modules:     Lib
   other-modules:       Lib.Prelude
                      , Lib.Types
-                     , Lib.ReadWrite
-                     , Lib.Generate
                      , Lib.Regenerate
                      , Lib.Rewrite
                      , Lib.RSS

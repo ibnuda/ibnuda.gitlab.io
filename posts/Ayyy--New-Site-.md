@@ -1,5 +1,6 @@
 Ayyy! New Site!
 2018-04-26 15:19:45.766082521 UTC
+Post
 
 Finally I have my own site.
 Having a personal site is also one of a few things that I-wish-I-had-but-hadn't
