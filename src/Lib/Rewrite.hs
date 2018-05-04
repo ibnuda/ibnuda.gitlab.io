@@ -12,9 +12,9 @@ import           Lib.Prelude      hiding (intercalate)
 import           Lib.Types
 
 
-readRawpost :: [Char] -> IO Rawpost
-readRawpost nameoffile = do
-  content <- readFile nameoffile
+readRawpost :: FilePath -> Filename -> IO Rawpost
+readRawpost path nameoffile = do
+  content <- readFile $ path ++ "/" ++ nameoffile
   case T.lines content of
     title:date:tipe:writing -> do
       return $
@@ -24,7 +24,7 @@ readRawpost nameoffile = do
           (TR.read $ T.unpack date)
           (TR.read $ T.unpack tipe)
           (T.unlines writing)
-    _ -> panic "invalid file."
+    _ -> panic "Invalid file."
 
 getFiles :: FilePath -> IO [FilePath]
 getFiles path =
@@ -41,17 +41,21 @@ generateHtmlFilename :: [Char] -> UTCTime -> [Char]
 generateHtmlFilename title date =
   let fn = generateMdFilename  title
       dt = formatTime defaultTimeLocale "%z%F" $ utctDay date
-  in map toLower $ show dt ++ "-" ++ fn
+  in map toLower $ show dt ++ "-" ++ fn ++ ".html"
 
 writeRawpost :: FilePath -> Rawpost -> IO ()
-writeRawpost siteinfoFiles Rawpost {..} =
+writeRawpost siteinfofiles Rawpost {..} =
   writeFile
-    (siteinfoFiles ++ "/" ++ rawpostFilename)
+    (siteinfofiles ++ "/" ++ rawpostFilename)
     (T.unlines [rawpostTitle, show rawpostDate, show rawpostType, rawpostContent])
+
+writeGenerated :: FilePath -> Filename -> Text -> IO ()
+writeGenerated siteinfopublic filename content =
+  writeFile (siteinfopublic ++ "/" ++ filename) content
 
 createMdFile :: SiteInfo -> [Char] -> Title -> IO ()
 createMdFile SiteInfo {..} ctype title = do
   now <- getCurrentTime
   let fn = generateMdFilename (T.unpack title)
       ct = TR.read ctype :: PostType
-  writeRawpost siteinfoFiles $ Rawpost fn title now ct "Write here."
+  writeRawpost siteinfoFiles $ Rawpost (fn ++ ".md") title now ct "Write here."
