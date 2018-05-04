@@ -1,9 +1,7 @@
 module Lib.Types where
 
-import           Control.Applicative
 import           Data.Time
 import           Data.Time.Clock.POSIX
-import           Data.Yaml
 import           Lib.Prelude
 
 data Configuration = Configuration
@@ -30,13 +28,30 @@ instance Ord Content where
 emptyContent :: Content
 emptyContent = Content "" "" (posixSecondsToUTCTime 0) "" ""
 
-instance FromJSON Configuration where
-  parseJSON (Object o) =
-    Configuration <$>
-    o .: "url" <*>
-    o .: "name" <*>
-    o .: "author" <*>
-    o .: "pages" <*>
-    o .: "posts" <*>
-    o .: "generated"
-  parseJSON _ = undefined
+data SiteInfo = SiteInfo
+  { siteinfoUrl    :: Text
+  , siteinfoName   :: Text
+  , siteinfoAuthor :: Text
+  , siteinfoFiles  :: FilePath
+  , siteinfoPublic :: FilePath
+  } deriving (Show, Eq)
+
+type Title = Text
+type Filename = FilePath
+type MdContent = Text
+data PostType = Post | Page deriving (Eq, Read, Show)
+
+data Rawpost = Rawpost
+  { rawpostFilename :: Filename
+  , rawpostTitle    :: Title
+  , rawpostDate     :: UTCTime
+  , rawpostType     :: PostType
+  , rawpostContent  :: MdContent
+  } deriving (Eq, Show)
+
+defaultRawpost :: Rawpost
+defaultRawpost = Rawpost "" "" (posixSecondsToUTCTime 0) Post ""
+
+instance Ord Rawpost where
+  compare a b = compare (rawpostDate a) (rawpostDate b)
+

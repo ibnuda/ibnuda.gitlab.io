@@ -35,7 +35,7 @@ navigationItems pages = do
 
 mainContent :: Text -> Html
 mainContent mdContent = do
-  div ! class_ "content" $ do markdownToHtml mdContent
+  div ! class_ "content" $ markdownToHtml mdContent
 
 bagianTitle :: Text -> Html
 bagianTitle titlecontent = do
@@ -100,18 +100,16 @@ indexGeneration posts path =
   in Content "index.html" "Index" (posixSecondsToUTCTime 0) path $
      T.pack . BP.renderHtml $ indexpage
 
-
 fullFledgedHtmlGeneration :: Configuration -> IO ()
-fullFledgedHtmlGeneration conf = do
-  cpages <- readDirectory $ pathPages conf
-  cposts <- readDirectory $ pathPosts conf
+fullFledgedHtmlGeneration conf@Configuration {..} = do
+  cpages <- readDirectory pathPages
+  cposts <- readDirectory pathPosts
   let navbar = navigationItems cpages
       generatedpages = map (mdContentToHtml conf navbar) cpages
       generatedposts = map (mdContentToHtml conf navbar) cposts
       contentindex = map createIndexItem cposts
   mapM_ writeHtml generatedposts
-  writeHtml $
-    indexHtml conf navbar $ indexGeneration contentindex (pathGenerated conf)
+  writeHtml $ indexHtml conf navbar $ indexGeneration contentindex pathGenerated
   mapM_ writeHtml generatedpages
   where
     mdContentToHtml :: Configuration -> Html -> Content -> Content
@@ -121,7 +119,7 @@ fullFledgedHtmlGeneration conf = do
       , contentText =
           T.pack . BP.renderHtml $
           skeleton config navbar (mdTitle cont) (contentText cont)
-      , contentType = pathGenerated config
+      , contentType = pathGenerated
       }
     indexHtml :: Configuration -> Html -> Content -> Content
     indexHtml config navbar cont =
@@ -134,9 +132,9 @@ fullFledgedHtmlGeneration conf = do
 defaultConfig :: Configuration
 defaultConfig =
   Configuration
-    "https://ibnuda.gitlab.io"
+    "https://siskam.link"
     "Nothing Unusual"
-    "Ibnu D. Aji"
+    "iaji@siskam.link (Ibnu D. Aji)"
     "pages"
     "posts"
     "public"
