@@ -4,15 +4,19 @@ module Lib.Regenerate where
 import           Lib.Prelude                   hiding (div, head)
 
 import           Data.List                     (partition)
+import           Data.Maybe                    (fromJust)
 import qualified Data.Text                     as T
 import qualified Data.Text.Lazy                as TL
 import           Data.Time
+import           Network.URI
+import           System.FilePath.Posix
 import qualified Text.Blaze.Html.Renderer.Text as BT
 import           Text.Blaze.Html5              as H hiding (map)
 import           Text.Blaze.Html5.Attributes   as A
 import           Text.Markdown
 
 import           Lib.Rewrite
+import           Lib.RSS
 import           Lib.Types
 
 defaultSiteInfo :: SiteInfo
@@ -20,20 +24,58 @@ defaultSiteInfo =
   SiteInfo
     "https://siskam.link"
     "Nothing Unusual"
-    "Ibnu D. Aji"
+    "iaji@siskam.link (Ibnu D. Aji)"
     "posts"
     "public"
 
+getRawposts :: FilePath -> IO [Rawpost]
+getRawposts filepath = getFiles filepath >>= mapM (readRawpost filepath)
+
+generatePakan :: SiteInfo -> IO ()
+generatePakan SiteInfo {..} = do
+  now <- getCurrentTime
+  raws <- getRawposts siteinfoFiles
+  let rawposts = reverse . sort $ filter (\x -> rawpostType x == Post) raws
+  let rssTitle = T.unpack siteinfoName
+      rssLink = fromJust . parseURI . T.unpack $ siteinfoUrl
+      rssDesc = "Nothing Unusual."
+      rssElem =
+        [ Language "en-us"
+        , ManagingEditor (T.unpack siteinfoAuthor)
+        , WebMaster (T.unpack siteinfoAuthor)
+        , ChannelPubDate now
+        , Generator
+            "https://gitlab.com/ibnuda/ibnuda.gitlab.io/blob/master/src/Lib/RSS.hs"
+        ]
+      rssItem = map makeItems rawposts
+  writeGenerated siteinfoPublic "feed.xml" . T.pack . showXML . rssToXML $
+    RSS {..}
+  where
+    makeItems rawp@Rawpost {..} =
+      [ makeTitle rawpostTitle
+      , makeLink rawp
+      , makeAuthor siteinfoAuthor
+      , PubDate rawpostDate
+      , Description
+          (TL.unpack . BT.renderHtml . contentMarkdownToHtml $
+           T.take 1000 rawpostContent)
+      ]
+    makeTitle = Title . T.unpack
+    makeLink Rawpost {..} =
+      Link . fromJust . parseURI $
+      T.unpack siteinfoUrl </>
+      generateHtmlFilename (T.unpack rawpostTitle) (rawpostDate)
+    makeAuthor = Author . T.unpack
+
 generateSite :: SiteInfo -> IO ()
 generateSite config@SiteInfo {..} = do
-  filenames <- getFiles siteinfoFiles
-  rawposts <- mapM (readRawpost siteinfoFiles) filenames
+  rawposts <- getRawposts siteinfoFiles
   let (posts, pages) = partition (\x -> rawpostType x == Post) rawposts
   let indexcontent = generateIndex posts
       mymenu = generateSideMenu pages
   forM_ rawposts (generateSingleHtml config)
   writeGenerated siteinfoPublic "index.html" $
-    render $ layout config mymenu "Title" indexcontent
+    render $ layout config mymenu "Index" indexcontent
 
 render :: Html -> Text
 render = TL.toStrict . BT.renderHtml
@@ -52,8 +94,7 @@ generateIndex posts =
 
 generateSingleHtml :: SiteInfo -> Rawpost -> IO ()
 generateSingleHtml config@SiteInfo {..} Rawpost {..} = do
-  fns <- getFiles siteinfoFiles
-  rawposts <- mapM (readRawpost siteinfoFiles) fns
+  rawposts <- getRawposts siteinfoFiles
   let pages = filter (\(Rawpost _ _ _ d _) -> d == Page) rawposts
       mymenu = generateSideMenu pages
       renderedcontent =
@@ -116,10 +157,12 @@ layout SiteInfo {..} mymenu titlecontent htmlcontent =
 
 js :: Text
 js =
-  "(function(l,t){var g=t.getElementById('layout'),i=t.getElementById('menu')," <>
-  "n=t.getElementById('menuLink'),o=t.getElementById('main');function toggleClass(l,t)" <>
-  "{var g=l.className.split(/\\s+/),i=g.length,n=0;for(;n<i;n+=1){if(g[n]===t){g.splice(n,1); " <>
-  "break}}if(i===g.length){g.push(t)}l.className=g.join(' ')}function toggleAll(l){var t='active';" <>
-  "l.preventDefault();toggleClass(g,t);toggleClass(i,t);toggleClass(n,t)}n.onclick=function(l)" <>
-  "{toggleAll(l)};o.onclick=function(l){if(i.className.indexOf('active')!==-1){toggleAll(l)}}})" <>
-  "(this,this.document);"
+  "(function(window,document){var layout=document.getElementById('layout')," <>
+  "menu=document.getElementById('menu'),menuLink=document.getElementById('menuLink')" <>
+  ",content=document.getElementById('main');function toggleClass(element,className)" <>
+  "{var classes=element.className.split(/\\s+/),length=classes.length,i=0;for(;i<length;i+=1)" <>
+  "{if(classes[i]===className){classes.splice(i,1);break}}if(length===classes.length)" <>
+  "{classes.push(className)}element.className=classes.join(' ')}function toggleAll(e)" <>
+  "{var active='active';e.preventDefault();toggleClass(layout,active);toggleClass(menu,active);" <>
+  "toggleClass(menuLink,active)}menuLink.onclick=function(e){toggleAll(e)};" <>
+  "content.onclick=function(e){if(menu.className.indexOf('active')!==-1){toggleAll(e)}}}(this,this.document));"

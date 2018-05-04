@@ -4,30 +4,6 @@ import           Data.Time
 import           Data.Time.Clock.POSIX
 import           Lib.Prelude
 
-data Configuration = Configuration
-  { siteURL       :: Text
-  , siteName      :: Text
-  , author        :: Text
-  , pathPages     :: Text
-  , pathPosts     :: Text
-  , pathGenerated :: Text
-  } deriving (Show, Eq)
-
-data Content = Content
-  { filename    :: Text
-  , mdTitle     :: Text
-  , mdDate      :: UTCTime
-  , contentType :: Text
-  , contentText :: Text
-  } deriving (Show, Eq)
-
-instance Ord Content where
-  (Content _ _ d1 _ _) `compare` (Content _ _ d2 _ _) =
-    d1 `compare` d2
-
-emptyContent :: Content
-emptyContent = Content "" "" (posixSecondsToUTCTime 0) "" ""
-
 data SiteInfo = SiteInfo
   { siteinfoUrl    :: Text
   , siteinfoName   :: Text

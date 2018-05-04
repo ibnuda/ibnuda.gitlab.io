@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP  #-}
-
 {-# LANGUAGE Safe #-}
 -----------------------------------------------------------------------------
 -- |
@@ -41,56 +40,43 @@
 --
 -- * Add our own @Weekday@ type instead of using the @Day@ type from @old-time@.
 --
+-- Changes by Ibnu D. Aji:
+--
+-- * Delete everything.
 -----------------------------------------------------------------------------
 module Lib.RSS where
 
 import           Lib.Prelude
 
 import           Data.Ix                    (Ix)
-
-import           Network.URI                (URI)
-
+import           Data.Time.Clock            (UTCTime)
 import           Data.Time.Format           (defaultTimeLocale,
                                              rfc822DateFormat)
-
-import           Data.Time.Clock            (UTCTime)
 import           Data.Time.Format           (formatTime)
-
+import           Network.URI                (URI)
 import           Text.XML.HaXml.Combinators (CFilter, cdata, literal, mkElem,
                                              mkElemAttr)
 import           Text.XML.HaXml.Escape      (stdXmlEscaper, xmlEscape)
 import           Text.XML.HaXml.Types       (Content (..), Element)
 import           Text.XML.HaXml.Verbatim    (verbatim)
 
-
-data RSS =
-  RSS Title
-      Link
-      Description
-      [ChannelElem]
-      [Item]
-  deriving (Show)
+data RSS = RSS
+  { rssTitle :: RTitle
+  , rssLink  :: Link
+  , rssDesc  :: Description
+  , rssElem  :: [ChannelElem]
+  , rssItem  :: [Item]
+  } deriving (Show)
 
 type Item = [ItemElem]
 
-type Title = [Char]
+type RTitle = [Char]
 type Link = URI
 type Description = [Char]
-type Width = Int
-type Height = Int
 type Email = [Char]
 type Domain = [Char]
-type MIME_Type = [Char]
-type InputName = [Char]
 type Hour = Int
 type Minutes = Int
-
-type CloudHost = [Char]
-type CloudPort = Int
-type CloudPath = [Char]
-type CloudProcedure = [Char]
-data CloudProtocol = CloudProtocolXmlRpc | CloudProtocolSOAP
-                     deriving Show
 
 data ChannelElem
   = Language [Char]
@@ -99,46 +85,22 @@ data ChannelElem
   | WebMaster Email
   | ChannelPubDate UTCTime
   | LastBuildDate UTCTime
-  | ChannelCategory (Maybe Domain)
-                    [Char]
   | Generator [Char]
-  | Cloud CloudHost
-          CloudPort
-          CloudPath
-          CloudProcedure
-          CloudProtocol
   | TTL Minutes
-  | Image URI
-          Title
-          Link
-          (Maybe Width)
-          (Maybe Height)
-          (Maybe Description)
-  | Rating [Char]
-  | TextInput Title
-              Description
-              InputName
-              Link
   | SkipHours [Hour]
   | SkipDays [Weekday]
   deriving (Show)
 
 data ItemElem
-  = Title Title
+  = Title RTitle
   | Link Link
   | Description Description
   | Author Email
-  | Category (Maybe Domain)
-             [Char]
   | Comments URI
-  | Enclosure URI
-              Int
-              MIME_Type
-  | Guid Bool
-         [Char]
   | PubDate UTCTime
   | Source URI
-           Title
+           RTitle
+  | Guid Bool [Char]
   deriving (Show)
 
 -- | A day of the week.
@@ -178,7 +140,7 @@ cfilterToElem f =
 mkSimple :: [Char] -> [Char] -> CFilter ()
 mkSimple t str = mkElem t [literal str]
 
-mkTitle :: Title -> CFilter ()
+mkTitle :: RTitle -> CFilter ()
 mkTitle = mkSimple "title"
 
 mkLink :: Link -> CFilter ()
@@ -196,11 +158,6 @@ mkPubDate = mkSimple "pubDate" . formatDate
 formatDate :: UTCTime -> [Char]
 formatDate = formatTime defaultTimeLocale rfc822DateFormat
 
-mkCategory :: Maybe Domain -> [Char] -> CFilter ()
-mkCategory md s = mkElemAttr "category" attrs [literal s]
-  where
-    attrs = maybe [] (\d -> [("domain", literal d)]) md
-
 maybeElem :: (a -> CFilter ()) -> Maybe a -> [CFilter ()]
 maybeElem = maybe [] . ((:[]) .)
 
@@ -211,36 +168,10 @@ mkChannelElem (ManagingEditor str) = mkSimple "managingEditor" str
 mkChannelElem (WebMaster str) = mkSimple "webMaster" str
 mkChannelElem (ChannelPubDate date) = mkPubDate date
 mkChannelElem (LastBuildDate date) = mkSimple "lastBuildDate" $ formatDate date
-mkChannelElem (ChannelCategory md str) = mkCategory md str
 mkChannelElem (Generator str) = mkSimple "generator" str
-mkChannelElem (Cloud host port path proc proto) =
-  mkElemAttr
-    "cloud"
-    [ ("domain", literal host)
-    , ("port", literal (show port))
-    , ("path", literal path)
-    , ("registerProcedure", literal proc)
-    , ("protocol", literal (protocolName proto))
-    ]
-    []
 mkChannelElem (TTL minutes) = mkSimple "ttl" $ show minutes
-mkChannelElem (Image uri title l mw mh mdesc) =
-  mkElem
-    "image"
-    ([mkElem "url" [literal (show uri)], mkTitle title, mkLink l] ++
-     maybeElem (mkSimple "width" . show) mw ++
-     maybeElem (mkSimple "height" . show) mh ++ maybeElem mkDescription mdesc)
-mkChannelElem (Rating str) = mkSimple "rating" str
-mkChannelElem (TextInput title desc name l) =
-  mkElem
-    "textInput"
-    [mkTitle title, mkDescription desc, mkSimple "name" name, mkLink l]
 mkChannelElem (SkipHours hs) = mkElem "skipHours" (map (mkSimple "hour" . show) hs)
 mkChannelElem (SkipDays ds) = mkElem "skipDays" (map (mkSimple "day" . show) ds)
-
-protocolName :: CloudProtocol -> [Char]
-protocolName CloudProtocolXmlRpc = "xml-rpc"
-protocolName CloudProtocolSOAP   = "soap"
 
 mkItem :: Item -> CFilter ()
 mkItem itemElems = mkElem "item" (map mkItemElem itemElems)
@@ -250,21 +181,12 @@ mkItemElem (Title t) = mkTitle t
 mkItemElem (Link l) = mkLink l
 mkItemElem (Description d) = mkDescription d
 mkItemElem (Author e) = mkElem "author" [literal e]
-mkItemElem (Category md str) = mkCategory md str
 mkItemElem (Comments uri) = mkSimple "comments" $ show uri
-mkItemElem (Enclosure uri len mtype) =
-  mkElemAttr
-    "enclosure"
-    [ ("url", literal (show uri))
-    , ("length", literal (show len))
-    , ("type", literal (mtype))
-    ]
-    []
 mkItemElem (Guid perm s) = mkElemAttr "guid" attrs [literal s]
   where
     attrs =
       if perm
-        then [("isPermaLink", literal "true")]
+        then [("isPermalik", literal "true")]
         else []
 mkItemElem (PubDate ct) = mkElem "pubDate" [ literal (formatDate ct) ]
 mkItemElem (Source uri t) =
