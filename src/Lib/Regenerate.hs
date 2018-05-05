@@ -27,6 +27,7 @@ defaultSiteInfo =
     "iaji@siskam.link (Ibnu D. Aji)"
     "posts"
     "public"
+    "feed.xml"
 
 getRawposts :: FilePath -> IO [Rawpost]
 getRawposts filepath = getFiles filepath >>= mapM (readRawpost filepath)
@@ -72,7 +73,7 @@ generateSite config@SiteInfo {..} = do
   rawposts <- getRawposts siteinfoFiles
   let (posts, pages) = partition (\x -> rawpostType x == Post) rawposts
   let indexcontent = generateIndex posts
-      mymenu = generateSideMenu pages
+      mymenu = generateSideMenu pages siteinfoRSS
   forM_ rawposts (generateSingleHtml config)
   writeGenerated siteinfoPublic "index.html" $
     render $ layout config mymenu "Index" indexcontent
@@ -96,7 +97,7 @@ generateSingleHtml :: SiteInfo -> Rawpost -> IO ()
 generateSingleHtml config@SiteInfo {..} Rawpost {..} = do
   rawposts <- getRawposts siteinfoFiles
   let pages = filter (\(Rawpost _ _ _ d _) -> d == Page) rawposts
-      mymenu = generateSideMenu pages
+      mymenu = generateSideMenu pages siteinfoRSS
       renderedcontent =
         render $
         layout
@@ -111,13 +112,16 @@ contentMarkdownToHtml :: Text -> Html
 contentMarkdownToHtml md =
   div ! class_ "content" $ markdown def . TL.fromStrict $ md
 
-generateSideMenu :: [Rawpost] -> Html
-generateSideMenu rawpages = do
+generateSideMenu :: [Rawpost] -> Filename -> Html
+generateSideMenu rawpages feed = do
   let titledates = map (\pst -> (rawpostTitle pst, rawpostDate pst)) rawpages
   div ! id "menu" $ do
     div ! class_ "pure-menu" $ do
       a ! class_ "pure-menu-heading" ! href "index.html" $ text "Index"
-      ul ! class_ "pure-menu-list" $ forM_ titledates generateSideMenuItem
+      ul ! class_ "pure-menu-list" $ do
+        forM_ titledates generateSideMenuItem
+    div ! class_ "filler" $ H.span ""
+    a ! class_ "feed" ! href (textValue $ T.pack feed) $ text "Feed"
 
 generateSideMenuItem :: (Text, UTCTime) -> Html
 generateSideMenuItem (tit, date) = do

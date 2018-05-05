@@ -8,8 +8,9 @@ data SiteInfo = SiteInfo
   { siteinfoUrl    :: Text
   , siteinfoName   :: Text
   , siteinfoAuthor :: Text
-  , siteinfoFiles  :: FilePath
-  , siteinfoPublic :: FilePath
+  , siteinfoFiles  :: Filename
+  , siteinfoPublic :: Filename
+  , siteinfoRSS    :: Filename
   } deriving (Show, Eq)
 
 type Title = Text
