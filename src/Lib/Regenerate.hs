@@ -83,9 +83,10 @@ render = TL.toStrict . BT.renderHtml
 
 generateIndex :: [Rawpost] -> Html
 generateIndex posts =
-  ul $
-  forM_ (reverse . sort $ posts) $ \Rawpost {..} ->
-    generateIndexItem rawpostDate rawpostTitle
+  div ! class_ "content" $ do
+    ul $
+      forM_ (reverse . sort $ posts) $ \Rawpost {..} ->
+        generateIndexItem rawpostDate rawpostTitle
   where
     generateIndexItem d tit =
       li $ do
