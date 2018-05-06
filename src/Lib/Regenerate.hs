@@ -152,8 +152,9 @@ layout SiteInfo {..} mymenu titlecontent htmlcontent =
         a ! name "not-a-menu" ! href "#menu" ! id "menuLink" ! class_ "menu-link" $
           H.span $ text T.empty
         mymenu
-        div ! class_ "header" $ do h1 $ text titlecontent
-        htmlcontent
+        div ! id "main" $ do
+          div ! class_ "header" $ do h1 $ text titlecontent
+          htmlcontent
       H.script $ text js
     footer $ do
       text "This material is shared under the "

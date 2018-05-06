@@ -2339,6 +2339,8 @@ Checkpoint: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/3dbd396572929ff51
 #### Topics Business Logic
 #### Topics View
 
+Checkpoint: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/01218ec664ae7d707dfa7bf72e996964897c07f0)
+
 ### Users Administration
 
 #### Registration
