@@ -4,6 +4,8 @@ Page
 
 My name is Ibnu Daru Aji. I don't know what am I doing most of the time.
 This blog is where I write (mostly) technical stuff that I (rarely) have the will to do so.
+And when I write this blog, I'm not sure how sober am I.
+So, I apologise first.
 
 If you really really really want to contact me, just look [here](2018-04-25-contact.html).
 

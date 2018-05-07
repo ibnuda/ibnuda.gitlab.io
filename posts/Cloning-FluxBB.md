@@ -2337,9 +2337,121 @@ And for the next part, we are going to play with Topics!
 Checkpoint: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/3dbd396572929ff516bb6b5fc3ad0b69d7965a0d).
 
 #### Topics Business Logic
-#### Topics View
+
+In this part, we are going to refine our rules above.
+For example, we can't reply nor load a non-existent topic.
+There are a few other little things and we will address them in an orderly manner (I'll try).
+
+But first, we will update our routes first to include
+```
+-- src/Foundation.hs
+mkYesodData
+  -- skip
+  /topic/#Int64        TopicR GET POST
+  /topic/#Int64/#Int64 TopicPageR GET
+
+```
+so we can access that route and followed to create a file for those two new routes
+at `src/Handler/Topic.hs`.
+We defined two routes for the this part, and it makes me realise something at the
+moment of this writing.
+The developer of Yesod favors REST approach when using this framework, based on his
+stackoverflow answer.
+While I personally agree with his stance, I feel conflicted about a few things regarding
+this matter.
+
+1. This program's result is intended to be consumed using browsers and their supported methods.
+Which is only `POST` and `GET`.
+2. About path pieces, I dislike url with parameters, to be quite honest.
+I prefer my urls structured `domain/fist/second/third/path` with no additional parameters.
+3. In a web application (and especially REST "API") which supports those six methods
+(or "verbs"), the second point could be easily achieved.
+Not so much in a web browser, without additional POST parameters or even specialised
+routes which serve the purpose to accept unsupported methods by common browsers, my second point
+(or my taste) is basically a stupid thing.
+
+Okay, that's enough for the ramble.
+
+You see, because there are three defined methods from two routes,
+we have to create their handlers arccordingly.
+First, we have to create a handler for `TopicR GET`.
+```
+getTopicR tid = redirect $ TopicR tid 1
+
+```
+Why do we use redirection?
+Because the logic for these function is basically the same.
+
+- We check the existence of the topic.
+- If there's no such thing, returns `not found`.
+- Else, returns the 25 post on that page by paging the page.
+- Display the page.
+
+That's it.
+And let's see `getTopicPageR`.
+```
+getTopicPageR tid page = do
+  (uid, name, group) <- allowedToPost -- [1]
+  posts <- _ (toSqlKey tid) page -- [2]
+  topic <- getTopicById $ toSqlKey tid -- [3]
+  forum <- getForumsInformation . topicsForumId . entityVal $ topic -- [4]
+  (wid, enct) <- generateFormPost _ -- [5]_
+  defaultLayout $(widgetFile "topic") -- [6]
+
+```
+`[1]` is just our standard guard.
+Only the rightful users who could post their replies to topics in our forums.
+And please wait, actually, `[2]` and `[3]` should be swapped.
+While I did state that we should check the existence of the topic first,
+I wrote the wrong line at this part commit.
+Forgive me, my friend, for I am just a human bean.
+`[3]` is a holed function where it returns the posts of that topic on a certain page.
+While we're doing that, we will ask the forum's information to the database on `[4]`.
+It's just a poorman's breadcrumb's, you know.
+Surely we will address it later (or maybe much much later) about its pros and cons.
+Then, we are going to create form's widget at `[5]`.
+
+Okay, let's address number five first.
+Because basically it's just a textarea, we just wrap it like the following.
+```
+data PostForm = PostForm { postFormContent :: Textarea } deriving (Show)
+postForm :: Form PostForm
+postForm = renderDivs $ PostForm <$> areq textareaField "Reply Discussion" Nothing
+
+```
+That's it.
+Nothing unusual here, let's move along.
+
+The following step is creating the holed function for `[2]` where we get the posts of
+the topic.
+Based on our previous decisions, we should create a file at `src/Flux/` with `Post.hs`
+as its name.
+```
+getPostsInTopic tid page
+  | page < 1 = invalidArgs ["Have you seen something page 0 before?"] -- [1]
+  | otherwise = liftHandler $ runDB $ _ tid page -- [2]
+
+```
+You see the number `[1]`?
+That's right.
+No one should be able to see pages under 1.
+But when the page is more than or equals to 1, we will serve them.
+But there's a holed function!
+We should create it first!
+What should we get? Posts!
+Where should we define how to get it? At `src/DBOp/Post.hs`!
+What are the parameters? Topic id and and page!
+Great!
+It's just a simple query, my friend.
+Don't worry, no choice for them.
+We will include them in the commit.
+And here we are.
+We've finished this part.
 
 Checkpoint: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/01218ec664ae7d707dfa7bf72e996964897c07f0)
+
+Amended by: [this](https://gitlab.com/ibnuda/Cirkeltrek/commit/9e6a5d5e555ed48cef6d35af1211b622dce43d60)
+
 
 ### Users Administration
 
