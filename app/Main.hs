@@ -6,14 +6,15 @@ import           Lib       hiding (intercalate)
 main :: IO ()
 main = do
   args <- getArgs
+  siteinfo <- readSiteinfo
   case args of
     "new":ctype:titles ->
-      createMdFile defaultSiteInfo ctype ( intercalate " " . map pack $  titles )
+      createMdFile siteinfo ctype (intercalate " " . map pack $ titles)
     ["compile"] -> do
-      deleteFiles (siteinfoPublic defaultSiteInfo)
-      generateSite defaultSiteInfo
-    ["clean"] -> deleteFiles (siteinfoPublic defaultSiteInfo)
-    ["atom"] -> generatePakan defaultSiteInfo
+      deleteFiles (siteinfoPublic siteinfo)
+      generateSite siteinfo
+    ["clean"] -> deleteFiles (siteinfoPublic siteinfo)
+    ["atom"] -> generatePakan siteinfo
     _ -> do
       putText "should be one of the following:"
       putText "new Post title_of_post"

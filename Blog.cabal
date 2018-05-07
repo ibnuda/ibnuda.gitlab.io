@@ -22,16 +22,16 @@ library
                      , Lib.RSS
   build-depends:       base >= 4.7 && < 5
                      , protolude >= 0.2
-                     , blaze-html
                      , HaXml
+                     , blaze-html
                      , directory
                      , filepath
                      , markdown
-                     , network
                      , network-uri
                      , regex-compat
                      , text
                      , time
+                     , yaml
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings, NoImplicitPrelude
 
@@ -43,17 +43,6 @@ executable Blog
                      , Blog
                      , protolude >= 0.2
                      , text
-  default-language:    Haskell2010
-  default-extensions:  OverloadedStrings, NoImplicitPrelude
-
-test-suite Blog-test
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
-  main-is:             Spec.hs
-  build-depends:       base
-                     , Blog
-                     , protolude >= 0.2
-  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings, NoImplicitPrelude
 

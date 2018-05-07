@@ -19,16 +19,6 @@ import           Lib.Rewrite
 import           Lib.RSS
 import           Lib.Types
 
-defaultSiteInfo :: SiteInfo
-defaultSiteInfo =
-  SiteInfo
-    "https://siskam.link"
-    "Nothing Unusual"
-    "iaji@siskam.link (Ibnu D. Aji)"
-    "posts"
-    "public"
-    "feed.xml"
-
 getRawposts :: FilePath -> IO [Rawpost]
 getRawposts filepath = getFiles filepath >>= mapM (readRawpost filepath)
 
