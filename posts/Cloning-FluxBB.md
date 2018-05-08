@@ -2452,6 +2452,16 @@ Checkpoint: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/01218ec664ae7d707
 
 Amended by: [this](https://gitlab.com/ibnuda/Cirkeltrek/commit/9e6a5d5e555ed48cef6d35af1211b622dce43d60)
 
+### Post, I Guess
+
+I don't know if this part deserves a section of its own or not.
+But whatever, let's start by defining what we do on a post.
+
+- Create it. We've covered it at `Forum` creation and `Topic` reply. 
+- Edit it. But only by its creator and/or Admin/Mod. I hate this kind of feature, actually.
+- Use it as an "anchor". You know, in the original FluxBB, we can click at the latest post,
+  and then get redirected at the tail of the topic. Or wherever that post might be.
+
 
 ### Users Administration
 
@@ -2459,3 +2469,6 @@ Amended by: [this](https://gitlab.com/ibnuda/Cirkeltrek/commit/9e6a5d5e555ed48ce
 #### Ban
 #### Promote
 #### Edit
+
+### Polishing
+#### Fixing Links
