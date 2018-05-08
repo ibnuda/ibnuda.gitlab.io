@@ -2462,6 +2462,8 @@ But whatever, let's start by defining what we do on a post.
 - Use it as an "anchor". You know, in the original FluxBB, we can click at the latest post,
   and then get redirected at the tail of the topic. Or wherever that post might be.
 
+Checkpoint: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/5cf33497bda57a441b4c7aa6daed375af0d9d8fc)
+Amended by: maybe later.
 
 ### Users Administration
 
