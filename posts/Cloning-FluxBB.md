@@ -2455,15 +2455,166 @@ Amended by: [this](https://gitlab.com/ibnuda/Cirkeltrek/commit/9e6a5d5e555ed48ce
 ### Post, I Guess
 
 I don't know if this part deserves a section of its own or not.
-But whatever, let's start by defining what we do on a post.
+But whatever, let's start by defining what can we do on a post.
 
 - Create it. We've covered it at `Forum` creation and `Topic` reply. 
 - Edit it. But only by its creator and/or Admin/Mod. I hate this kind of feature, actually.
 - Use it as an "anchor". You know, in the original FluxBB, we can click at the latest post,
   and then get redirected at the tail of the topic. Or wherever that post might be.
+  
+#### Editing a Post
+
+As I've written above, only its poster and/or a Mod/Admin who could edit a post.
+Then, when a user wants to edit his post, the program should
+
+1. Get his post, which implies checking the post's existence.
+2. If the post in question doesn't exist, the program should throw a 404 error.
+3. Otherwise, this program will fetch the post and its related information.
+4. Then serve it in a textarea.
+
+Therefore, the handler could be written as the following. 
+```
+getPostEditR pid = do
+  (uid, name, group) <- allowedToPost
+  (Value fname, Value fid, Value tsub, (Entity pid' (Posts tid num name' uid' t content))) <- _ $ toSqlKey pid -- [1]
+  (wid, enct) <- generateFormPost $ editPostForm content -- [2]
+  defaultLayout $ do
+    $(widgetFile "post")
+
+```
+`[1]` above is the holed function that should return `forumsName`, `forumsId`, `topicsSubject`, and `Entity Post`.
+Why do we use that? It's related to breadcrumb, my friend.
+You can see the structure of the breadcrumb's html at the commit below.
+Anyway, `[2]` is just standard form generation.
+But it takes `content` from the retrieved post above.
+Well, you can't edit a post when you don't have the original content, amirite?
+
+Okay, let's write that holed function.
+```
+getPostParentInformation pid = do
+  postandparent <- liftHandler $ runDB $ _ pid -- [1]
+  case postandparent of
+    []  -> notFound
+    x:_ -> return x
+
+```
+You see, the problem is the holed function `[1]`.
+Basically we only have to take a row from SQL query and then return it.
+Although the query itself is just a standard `SELECT` query, I'm feeling eager
+to put it in the snippet below.
+```
+selectPostAndItsParentsInfo pid = do
+  select $
+    from $ \(post `InnerJoin` topic `InnerJoin` forum) -> do
+      on (forum ^. ForumsId ==. topic ^. TopicsForumId)
+      on (topic ^. TopicsId ==. post ^. PostsTopicId)
+      where_ (post ^. PostsId ==. val pid)
+      limit 1
+      return
+        ( forum ^. ForumsName
+        , forum ^. ForumsId
+        , topic ^. TopicsSubject
+        , post)
+
+```
+You see, we are joining tables!
+The query above could be translated to
+```
+select forums.name, forums.id,
+       topics.subject, posts.id,
+       posts.topic_id, posts.number,
+       posts.username, posts.user_id,
+       posts.time, posts.content
+  from posts inner join topics
+  on topics.id = posts.topic_id
+    inner join forums
+    on forums.id = topics.forum_id
+    where posts.id = ?
+
+```
+I will just assume that you're much more capable of reading SQL query than my poor self.
+Now, because we have completed the required parts from `[1]` holed function of `getPostEditR`
+function.
+So, let's `editPostForm` and its datatype.
+```
+data EditPostForm = EditPostForm { editPostFormContent :: Textarea } deriving (Show)
+editPostForm :: Text -> Form EditPostForm
+editPostForm content = renderDivs $ EditPostForm <$> areq textareaField "Post's Content" (Just content)
+
+```
+Standard form, as usual.
+And that's it, we have completed this `GET` section for `/post/#pid/edit` route.
+
+Now, `POST` handler  for `/post/#pid/edit`, basically the program just have to:
+
+1. Again, get the post in question.
+2. Use the retrieved post as the "seed" for the widget. lol, seed.
+3. Check the result of form parsing.
+4. Update the post.
+
+So, let's make it into a reality!
+```
+postPostEditR pid = do
+  (uid, name, group) <- allowedToPost
+  post <- getPostById $ toSqlKey pid
+  ((res, _), _) <- runFormPost . editPostForm . postsContent . entityVal $ post
+  case res of
+    FormSuccess c -> do
+      _ -- [1]
+        uid -- Key Users
+        group -- Grouping
+        (toSqlKey pid ) -- Key Posts
+        (postsUserId $ entityVal post) -- Key Users
+        (unTextarea $ editPostFormContent c) -- Text
+      redirect $ PostR pid
+    _ -> invalidArgs ["Come on..."]
+
+```
+Sure, there is a holed function there with a fuckton of parameters.
+Well, it's actually to ease our things, man. 
+
+```
+editPostByUidGroupAndContent _ group pid _ content
+  | group == Administrator || group == Moderator =
+    liftHandler $ runDB $ _ pid content -- [1]
+editPostByUidGroupAndContent _ Banned _ _ _ =
+  permissionDenied "Bruh... You've been banned. Please..."
+editPostByUidGroupAndContent uid _ pid uid' content
+  | uid /= uid' = permissionDenied "You're not allowed to edit this post."
+  | otherwise = liftHandler $ runDB $ _ pid content -- [1]
+
+```
+You see that snippet function above? Yeah, we "filter" the parameters to satisfy
+our requirements.
+For example, mods and admins can modify any post they want. (I hate it, though)
+Banned users, although it should be impossible to reach this point, they should
+be kept away from accessing database or something.
+And then, when the first and fourth parameters is the same, which means that the editor
+and the author of the post is the same dude, we will let them edit the post.
+Yeah, let's ignore the holed function there.
+It's just a standard update query which you can look at the commit below.
+
+#### Post as "Anchor"
+
+Yeah, I don't know how should I call it.
+In FluxBB, we can just click a link at the "Last post" and then get redirected
+to the corresponding post.
+I guess the implementation is something like this.
+```
+getPostR pid = do
+  (uid, name, group) <- allowedToPost
+  (Entity _ (Posts tid num _ _ _ _)) <- getPostById $ toSqlKey pid
+  let page = floor $ (toRational num - 1) / 25 + 1 :: Int64
+  redirect $ TopicPageR (fromSqlKey tid) page :#: ("post-" <> show num)
+
+```
+We just get the post itself to get the post number and topic id of where that post belongs to.
+Well, the final result is we just redirect the request to the corresponding topic on a certain page,
+specifically.
+
+I guess that's it. I can't think any other kind of action one could do on a post.
 
 Checkpoint: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/5cf33497bda57a441b4c7aa6daed375af0d9d8fc)
-Amended by: maybe later.
 
 ### Users Administration
 

@@ -1,4 +1,4 @@
-Download YouTub, I Guess
+Download YouTube, I Guess
 2018-05-09 06:10:21.3197447 UTC
 Post
 
@@ -49,3 +49,5 @@ Like this.
 ![alt text](images/ytbdlg-03.PNG "Finished")
 
 That's it. You can download any videos you want. As long as you download them at one of [these sites](https://rg3.github.io/youtube-dl/supportedsites.html). 
+
+For Nana.
