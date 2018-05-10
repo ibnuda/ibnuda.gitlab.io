@@ -2618,7 +2618,144 @@ Checkpoint: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/5cf33497bda57a441
 
 ### Users Administration
 
+In this section, we strive to create a thriving forum with a lot of users.
+But we can't have users if we don't have any conventient means to let them in.
+And when we have a handful of users, there will be a lot of shitty dudes on the
+internet who deserve to be banned from our nice forum.
+There are also nice dudes (not that "nice") who help other member who are in needs,
+perhaps they can do much more if we give them better tools by making them Mod or even
+Administrator.
+
 #### Registration
+
+Until now, we only use a single user, `Administrator` without any other user.
+I'm pretty sure you don't want to talk to a wall, correct?
+So let's start by creating a handler for this thing in `src/Profile.hs` (and rename
+it to `User.hs`, it's more fitting, I guess).
+```
+getRegisterR :: Handler Html
+getRegisterR = do
+  _ -- [1]
+  (wid, enct) <- generateFormPost _ -- [2]
+  defaultLayout $(widgetFile "register") -- Please look at the commit at the end of this section.
+
+```
+First, we have to guard this part so nobody is currently loggedin can access this part of site.
+Then, we just generate the form. Simple.
+
+Let's head to `Foundation` and define a function that fits `[1]`
+```
+isNotLoggedIn = do
+  maut <- maybeAuth
+  case maut of
+    Nothing -> return ()
+    Just _  -> redirect $ HomeR
+
+```
+That's it.
+If there's no session associated with the request, we can safely ignore the result.
+But, if there's a session on his name, we will make them go Home`R`.
+
+Now, for the second holed function of `getRegisterR`, we can just simply define it as
+```
+data RegisterForm = RegisterForm
+  { registerFormUsername :: Text
+  , registerFormPassword :: Text
+  , registerFormEmail    :: Text
+  } deriving (Show)
+
+registerForm :: Form RegisterForm
+registerForm =
+  renderDivs $ RegisterForm
+  <$> areq textField "Username" Nothing
+  <*> areq passwordField "Password" Nothing
+  <*> areq emailField "Email" Nothing
+
+```
+I know, I know, there's a section about password confirmation field on "Forms" chapter in yesod-book.
+I'm just lazy to do that.
+And now, we have a nice and simple registration form for our to-be-users.
+
+Let's continue by writing its POST counterpart.
+```
+postRegisterR = do
+  isNotLoggedIn
+  ((res, wid), enct) <- runFormPost registerForm
+  case res of
+    FormSuccess r -> do
+      _ <- _ (registerFormUsername r) (registerFormPassword r) (registerFormEmail r)
+      --   ^ [1]
+      redirect HomeR
+    _ ->
+      invalidArgs
+        [ "Your input doesn't contribute sufficiently" , " for this capitalistic society. Think about it."]
+
+```
+It's even simpler, actually.
+We just "extract" the value of the form, and then check the parsed result, then insert the data
+to our database.
+
+When this program has to process a registration, it should
+
+1. Check the username and email, because we don't want to have a non-unique user, correct?
+2. When the username and/or email already exist in the database, it should throw an error (or whatever HTTP code.)
+3. Otherwise, get `Key` for `Grouping`. A new user should only be a normal `Member`.
+4. It should hash the password
+5. And then save it to the database.
+
+That's pretty simple, correct?
+Let's head to `src/Flux/Profile.hs` and rename it into `src/Flux/User.hs`.
+It's a fitting name, you know.
+```
+registerUser username password email = do
+  _ username email -- [1]
+  now <- liftIO getCurrentTime
+  gids <- liftHandler $ runDB $ _ Member -- [2]
+  case gids of
+    [] -> invalidArgs ["Call the Administrator"]
+    x:_ -> do
+      password' <- liftIO $ makePassword (encodeUtf8 password) 17
+      liftHandler $ runDB $ _ (entityKey x) username (Just $ decodeUtf8 password') email now -- [3]
+
+```
+Just like the step number one, we should use `[1]` to check the "uniqueness" of the username and email.
+And then `[2]` should find the `Key` for `Member`.
+While `[3]` is the function that responsible for inserting the new user's data.
+
+Okay, we should create a function for `[1]` in the same file.
+```
+unusedUser username email = do
+  users <- liftHandler $ runDB $ selectUserByUsernameOrEmail username email
+  case users of
+    [] -> return ()
+    _ -> invalidArgs ["Username and/or email has been used."]
+
+```
+You see, we just throw an invalid args error when `selectUserByUsernameOrEmail` returns non-empty
+list.
+The query itself is simple, actually.
+Even, holed function `[2]` and `[3]` at `registerUser` are just simple queries too.
+So I won't include it here.
+
+Anyway, we have completed the handlers for user registration.
+So, we just simply include the route to our route definitons at `Foundation` module.
+And then replace `import Handler.Profile` with `import Handler.User`.
+
+#### User's Page
+
+After user's registration, we want to see his profile, right?
+That's simple, we just create the route for it and its handler.
+```
+getUserR uid = do
+  (ruid, name, group) <- allowedToPost
+  (Entity uid' user ) <- getUserById $ toSqlKey uid
+  defaultLayout $(widgetFile "profile")
+
+```
+That's it!
+
+Current: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/0ee09cbce1fc61959c294eb1f93e2fff26f8dc04)
+
 #### Ban
 #### Promote
 #### Edit
