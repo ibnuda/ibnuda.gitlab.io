@@ -2756,7 +2756,85 @@ That's it!
 
 Current: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/0ee09cbce1fc61959c294eb1f93e2fff26f8dc04)
 
+PS: I did fuck up, buddy. Since [this](https://gitlab.com/ibnuda/Cirkeltrek/commit/e45b6107ac1ec3295f44589a911244f2e2e6604f)
+commit, it always returns `Administrator` as the third value of the returned triple.
+And the latest commit fixed it.
+
 #### Ban
+
+You know, after we have a few registered users, we have a few users.
+From time to time, a rude dude will appear and throw his tantrum.
+We could talk him to senses or just slam that m.f. ban hammer.
+If we're in a bad mood, we surely will need that hammer.
+So, let's create it.
+
+But firstly, I prefer to keep a bit like FluxBB when it comes to ban maintenance.
+The ban administration page should show a form of username which will be used for
+the next step of ban procedure.
+It should also shows a table of the currently banned dudes.
+
+Other than that, only `Administrator` and `Moderator` who should be capable of
+banning people while they're immune of ban hammer themselves.
+Not only that, an already `Banned` user could not be banned anymore.
+The story's a bit different if their ban hammer has been lifted and they're a normal
+`Member`.
+Pretty simple, right?
+
+What should we do? Of course, the first step is to create the route and put it in `src/Foundation.hs`
+and then create the handler module which goes to `src/Handler/Adm/Ban.hs`.
+
+```
+getAdmBanR :: Handler Html
+getAdmBanR = do
+  (uid, name, gruop) <- _ -- [1]
+  (wid, enct) <- generateFormPost _ -- [2]
+  bans <- _ -- [3]
+  let banneds = map (\(Value uid, b, Value ename) -> (uid, b, ename)) bans
+  defaultLayout $(widgetFile "adm-ban")
+
+```
+
+Surely `[1]` is how we "filter" the request so only the rightful group could access
+this part.
+Oh yeah, I just simplified that part.
+```
+allowedToPost = do
+  muidnamegroup <- getUserAndGrouping
+  case muid of
+    Nothing -> permissionDenied
+    (Just (uid, name, Banned)) -> permissionDenied "You're banned"
+    (Just (uid, name, group)) -> return (uid, name, group)
+
+allowedToMod = do
+  (uid, name, group) <- allowedToPost
+  case group of
+    x | x == Administrator || x == Moderator -> return (uid, name, group)
+    otherwise -> permissionDenied "You are not allowed to moderate this page"
+
+allowedToAdmin = do
+  (uid, name, group) <- allowedToMod
+  case group of
+    Administrator -> return (uid, name, group)
+    _ -> permissionDenied "You are not allowed to administer this page"
+
+```
+See that beauty?
+No, I don't still a repetitive, if I may say.
+But at least, those functions reuse themselves.
+And yes `allowedToMod` could be plugged to `[1]` in `getAdmBanR`.
+
+And the next part, for the `[2]`, let's skip that because it just a form with
+a single text field.
+But `[3]`, deserves a bit of attentions.
+Although it only shows the banneds, it should only shows the rows which it's `still_in_effect`
+value equals to `True`.
+But that's it.
+Other than that, this part doesn't have much weird things.
+
+Now, I did said about procedure of banning user.
+After we put the name of the 
+
+Checkpoint: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/8986abd49dea3186afecd70faa280a71ef60a6ab)
 #### Promote
 #### Edit
 
