@@ -2891,7 +2891,7 @@ postAdmBanR = do
         _ -> invalidArgs ["Your input is not correct."]
     (xs, Just _) -> invalidArgs ["Make up your mind!"]
     (xs, Nothing) -> do
-      forM_ names $ _ uid name group -- [3]
+      _ uid name group -- [3]
       redirect AdmBanR
 
 ```
@@ -2950,6 +2950,50 @@ So, let's continue with `[4]` and `[5]`.
 Truth to be told, they're just simple update and insert queries.
 I'll spare your sight from those simple functions.
 
+That's it and we're good to ban, assuming you've updated your `Foundation` and `Application` tho.
+
+The next part is lifting the ban hammer.
+Because `[b]` marked function at `postAdmBanR` returns a list, we shall use function
+`forM_` in our function so it will look like this.
+`forM_ names $ _ uid name group` but don't forget.
+`name` and `group` came from `allowedToMod`.
+So those are the name and group of the requester.
+
+For business thingy of this part, I guess it's pretty much the same with `banUser` above.
+```
+unbanUser execid execname execgroup username = do
+  gusernames <- liftHandler $ runDB $ selectGroupByUsername username -- [1]
+  case gusernames of
+    [] -> invalidArgs ["There's no user named " <> username] -- [2]
+    x:_ -> do
+      let (uid, gid, group) = (\(Value u, Value gi, Value g) -> (u, gi, g)) x -- [33
+      case (_ execgroup group, execid == uid) of -- [4]
+        (Right _, False) -> do
+          liftHandler $ runDB $ do
+            updateUserGroupingByUsername username Member -- [5]
+            updateBan username Nothing Nothing execid False -- [6]
+        (Right _, True)  -> invalidArgs ["You cannot unban yourself."]
+        (Left x, _)      -> invalidArgs [x]
+
+```
+See that? We only changed 3 things!
+Function marked by `[4]`, value of the second function `[5]`, and `False` for the function `[6]`!
+Let's show the snippet for function which was marked by `[4]`
+```
+unbanResult Administrator Banned = Right ()
+unbanResult Moderator Banned     = Right ()
+unbanResult Administrator _      = Left "Cannot unban non-banned"
+unbanResult Moderator _          = Left "Cannot unban non-banned"
+unbanResult _ _                  = Left "You have no right to do so."
+
+```
+Much simpler!
+Only banned that can be unbanned.
+And the rest can cry at the corner.
+
+And I guess we've finished this part.
+Don't forget to check the commit below.
+I've changed a few things.
 
 Checkpoint: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/8986abd49dea3186afecd70faa280a71ef60a6ab)
 
