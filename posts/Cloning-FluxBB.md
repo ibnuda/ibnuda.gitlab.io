@@ -2819,7 +2819,7 @@ allowedToAdmin = do
 
 ```
 See that beauty?
-No, I don't still a repetitive, if I may say.
+No, I still see a repetitive pattern, if I may say.
 But at least, those functions reuse themselves.
 And yes `allowedToMod` could be plugged to `[1]` in `getAdmBanR`.
 
@@ -2832,9 +2832,127 @@ But that's it.
 Other than that, this part doesn't have much weird things.
 
 Now, I did said about procedure of banning user.
-After we put the name of the 
+After we put the name of the victim of ban hammer, we should create another form for
+the reasons and few other.
+
+```
+data BanUserOptionsForm = BanUserOptionsForm
+  { banUserOptionsFormUsername :: Text
+  , banUserOptionsFormIp       ::Maybe Text
+  , banUserOptionsFormMessage  ::Maybe Textarea
+  }
+
+banUserOptionsForm username =
+  renderDivs $ BanUserOptionsForm
+  <$> areq textField "Username" (Just username)
+  <*> aopt textField "IP" Nothing
+  <*> aopt textareaField "Message" Nothing
+
+```
+You see that `username` parameter there?
+We are going to use that from `[2]` form in `getAdmBanR`.
+Surely, we should create a handler to put `BanUserOptionsForm`, right?
+We will create that and make it to only receive `POST` request.
+
+```
+postAdmBanOptionsR = do
+  (uid, name, group) <- allowedToMod
+  ((res, _), _) <- runFormPost banUserForm
+  case res of
+    FormSuccess r -> do
+      (wid, enct) <-
+        generateFormPost . banUserOptionsForm . banUserFormUsername $ r
+      defaultLayout $(widgetFile "adm-ban-options")
+    _ -> invalidArgs ["Fill your input correctly."]
+
+```
+Nothing particularly interesting here.
+But make sure to see `adm-ban-options.hamlet` in `templates` directory of
+this project because the previous handler will throw a `POST` request to `AdmBanR`.
+Obviously, we are going to (ab)use `POST` params here.
+Not only `AdmBanR` will receive `POST` request from `AdmBanOptionsR` but also
+from `AdmBanR` itself in case of lifting the ban hammer.
+
+Let's create `POST` handler for `AdmBanR`.
+```
+postAdmBanR = do
+  (uid, name, group) <- allowedToMod
+  names <- lookupPostParams "username" -- [a]
+  ban <- lookupPostParam "ban" -- [b]
+  case (names, ban) of
+    ([], Nothing) -> invalidArgs ["Make up your mind!"]
+    ([], Just _) -> do
+      ((res, _), _) <- runFormPost $ banUserOptionsForm "x" -- [1]
+      case res of
+        FormSuccess r -> do
+          _ uid name group (banUserOptionsFormUsername r) (banUserOptionsFormIp r) (unTextarea <$> banUserOptionsFormMessage r)
+       -- ^ [2]
+          redirect $ AdmBanR
+        _ -> invalidArgs ["Your input is not correct."]
+    (xs, Just _) -> invalidArgs ["Make up your mind!"]
+    (xs, Nothing) -> do
+      forM_ names $ _ uid name group -- [3]
+      redirect AdmBanR
+
+```
+It's pretty hectic, I know.
+That `[a]` marked function above was designed to receive a list of value with `name` parameter of `username`
+while `[b]` marked function will decide what the program should do when it receives a `POST` request
+with `ban` as one of its parameters.
+Do you know why did we put an `"x"` at that `[1]` marked function?
+Actually, we can put any string there because "it's just a default value".
+So, as long as the input from `Administrator` or `Moderator` is valid (lol, they're never),
+the program won't use `"x"`.
+Then, `[2]` marked function, in where we should slam the m.f. ban hammer.
+I decided to let this function to take 5 (FIVE!!!) parameters because we have a lot of things
+going on here.
+Don't worry we will talk about it in a minute.
+For the `[3]` marked function, it is where we lift the ban hammer for those who appeal.
+
+Okay, let's create the business process of banning user.
+```
+banUser execid execname execgroup username ip message = do
+  gusername <- liftHandler $ runDB $ selectGroupByUsername username -- [1]
+  case gusername of
+    [] -> invalidArgs ["There's no user named " <> username] -- [2]
+    x:_ -> do
+      let (uid, gid, group) = (\(Value u, Value gi, Value g) -> (u, gi, g)) x
+      case (_ execgroup group, execid == uid) of -- [3]
+        (Right _, False) -> do
+          liftHandler $ runDB $ do
+            updateUserGroupingByUsername username Banned -- [4]
+            insertBan username ip message execid -- [5]
+        (Right _, True)  -> invalidArgs ["You cannot ban yourself."]
+        (Left x, _)      -> invalidArgs [x]
+
+```
+Don't worry about query function `selectGroupByUsername` which was marked by `[1]` above.
+It just gets `UsersId`, `GroupsId`, and its `Grouping` of the user in question.
+Because the result of `[1]` is like any other standard esqueleto queries, it returns a list.
+So, when the list is empty, surely we don't have a user who has name which equals to `username` 
+parameter above and we shall throw an error about the non-existence of a user with that name.
+And that's the reasoning of marker `[2]`
+
+Okay, mark number `[3]` deserves a simple explanation and snippet.
+```
+banResult Administrator Administrator = Left "Cannot ban an Admin"
+banResult Administrator Moderator     = Left "Cannot ban a Mod"
+banResult Administrator Member        = Right ()
+banResult Administrator Banned        = Left "Cannot ban an already banned user."
+-- skipped the rest.
+
+```
+Of course we should not be able to throw ban hammer to admin and mods.
+But when it comes to normal member, we should let them ban that poor user.
+Though we can't make an already banned user get banned.
+
+So, let's continue with `[4]` and `[5]`.
+Truth to be told, they're just simple update and insert queries.
+I'll spare your sight from those simple functions.
+
 
 Checkpoint: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/8986abd49dea3186afecd70faa280a71ef60a6ab)
+
 #### Promote
 #### Edit
 
