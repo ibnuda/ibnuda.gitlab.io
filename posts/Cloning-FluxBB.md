@@ -2997,7 +2997,7 @@ I've changed a few things.
 
 Checkpoint: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/8986abd49dea3186afecd70faa280a71ef60a6ab)
 
-I've sneakily modified the layouts in this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/39711d9e8cba445680174be0d7b6da497825c4a5).
+I've sneakily modified the layouts in this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/39711d9e8cba445680174be0d7b6da497825c4a5) and [this](https://gitlab.com/ibnuda/Cirkeltrek/commit/42344b7dd255c8f124bbacd5b99d6539b44e4847)
 
 #### Promote
 #### Edit
