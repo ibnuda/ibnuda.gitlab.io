@@ -2999,7 +2999,9 @@ Checkpoint: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/8986abd49dea318
 
 I've sneakily modified the layouts in this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/39711d9e8cba445680174be0d7b6da497825c4a5) and [this](https://gitlab.com/ibnuda/Cirkeltrek/commit/42344b7dd255c8f124bbacd5b99d6539b44e4847)
 
-#### Promote
+#### Promote and Ban
+Checkpoint search and display: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/d83b2a0d12e7cf5f93f276d9ebbddb36b142c352)
+Checkpoint ban: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/f75c4acc8b075b14ec4bc5ff76cc545c86350c0c)
 #### Edit
 
 ### Polishing
