@@ -54,6 +54,24 @@ Yes, yes, those choices were better than the other browser did.
 But still... With more than 100 mio USD in funding, why would they chose that?
 That's really annoying, mate!
 
+### Input Output
+
+(Update on 2018-05-18)
+
+#### Output
+
+A cheapass 16x9 14 inches monitor.
+Also bought cheap earphone for this setup a week ago.
+
+Because I can barely enjoy movies, I use those output devices just like
+a normal human bean.
+Nothing particularly interesting..
+
+#### Input
+
+My man... I use [prog. dvorak](https://www.kaufmann.no/roland/dvorak/) as my keyboard
+layout.
+It's nice, I guess.
 ### End
 
 Pretty much that's it. Will add later.

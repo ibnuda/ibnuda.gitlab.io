@@ -3000,9 +3000,122 @@ Checkpoint: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/8986abd49dea318
 I've sneakily modified the layouts in this [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/39711d9e8cba445680174be0d7b6da497825c4a5) and [this](https://gitlab.com/ibnuda/Cirkeltrek/commit/42344b7dd255c8f124bbacd5b99d6539b44e4847)
 
 #### Promote and Ban
+
+Now, let's talk about promotion and banning dudes.
+You see, when we want to promote or demoting users, we should pick them first, correct?
+And when you want to pick them, you will need some criterias and a place you submit
+the criterias at, won't you?
+Great! Now we're on the same page.
+We should create the route, handler, and their miscellania first.
+
+```
+getAdmUserR :: Handler Html
+getAdmUserR = do
+  (uid, name, group) <- allowedToMod
+  groups <- _ -- [1]
+  (wid, enct) <- generateFormPost $ _ groups -- [2]
+  let users = []
+  adminLayout uid name group $ do
+    setTitle "Manage Users"
+    $(widgetFile "adm-user")
+
+```
+Of course we use `allowedToMod` guard in this route.
+We don't want a random user banning people as they wish, do we?
+Then, we shall get the existing groups using function marked by `[1]`.
+No worries, it's just a standard select.
+But when you ask me why do we need that?
+Remember about before? Where we talk about picking certain users first?
+Grouping is one of those criterias.
+There could be a scenario where we want to demote a stupid mod or something like that,
+correct?
+And surely we will use `groups` as the "seed" for the form we should create.
+Though the form itself is nothing interesting.
+It just wraps :
+
+- Grouping of the users
+- Username
+- Email
+
+Yeah, that's it.
+We won't be needing a lot of criterias like what FluxBB does.
+Oh yeah, we are our new custom layout for administration hereon.
+
+What's next? We need to create a place where we receive the criterias
+and then pass it to another part to process it.
+```
+postAdmUserR :: Handler Html
+postAdmUserR = do
+  (uid, name, group) <- allowedToMod
+  groups <- getAllGroups -- [1]
+  ((res, wid), enct) <- runFormPost $ searchUserForm groups
+  let (mgid, musername, memail) =
+        case res of
+          FormSuccess r ->
+            ( toSqlKey <$> searchUserFormGroupId r
+            , searchUserFormUsername r
+            , searchUserFormEmail r)
+          _ -> (Nothing, Nothing, Nothing)
+  users <- _ mgid musername memail -- [2]
+  adminLayout uid name group $ do
+    setTitle "Users"
+    $(widgetFile "adm-user")
+
+```
+If you ask why do we receive those search criterias at the same route / handler,
+because I just feel like it.
+Again, I'm conflicted with url cleanliness, rest interface thingy, and yesod's routes.
+Okay, what we have here?
+Function marked by `[1]` is the same marked function of `getAdmUserR`.
+Nothing special.
+And about form parsing (or something like that), it's just our normal parsing.
+But the difference here is we won't care any invalid criterias and just return a triple of `Nothing`.
+Sure, it's a bad thing considering "best practices".
+Truly, the spirit is ready but the flesh is weak.
+
+Anyway, function which was marked by `[2]` above, is where we process the picking process and then
+display the result.
+Pretty simple, correct?
+So, it's obvious that we are going to create that function at `src/Flux/User.hs` (bad choice, I know).
+
+```
+getUsersByConditions mgid musername memail = do
+  userandgroup <-
+    liftHandler $ runDB $ _ mgid musername memail -- [1]
+  return $ map (\(user, Value group) -> (user, group)) userandgroup
+
+```
+Yeah, standard query transformation of `ReaderT` to `Handler`.
+But the nice thing is what I've marked by `[1]`.
+Look at the following snippet from `src/DBOp/User.hs`!
+
+```
+selectUsersByConditions mgid musername memail = do
+  select $
+    from $ \(user, group) -> do
+      where_
+        (    qbuilder user UsersGroupId mgid
+         &&. qbuilder user UsersUsername musername
+         &&. qbuilder user UsersEmail memail
+         &&. user ^. UsersGroupId ==. group ^. GroupsId)
+      orderBy [asc (user ^. UsersUsername)]
+      return (user, group ^. GroupsGrouping)
+  where
+    qbuilder _ _ Nothing = (val True)
+    qbuilder user accessor (Just v) = (user ^. accessor ==. val v)
+
+```
+You see that `qbuilder` function?
+I feel so proud when I came up with that kind of solution, to be quite honest.
+Though actually I just substitute a `Nothing` data with a `True` and otherwise
+use the value in `Just a` to get the comparison of `a` and the field.
+Which in turn we can chain compare any `Maybe` input with `NOT NULL` collumn.
+
 Checkpoint search and display: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/d83b2a0d12e7cf5f93f276d9ebbddb36b142c352)
 Checkpoint ban: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/f75c4acc8b075b14ec4bc5ff76cc545c86350c0c)
+
 #### Edit
 
 ### Polishing
+
 #### Fixing Links
