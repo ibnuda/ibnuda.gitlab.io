@@ -3111,8 +3111,118 @@ Though actually I just substitute a `Nothing` data with a `True` and otherwise
 use the value in `Just a` to get the comparison of `a` and the field.
 Which in turn we can chain compare any `Maybe` input with `NOT NULL` collumn.
 
-Checkpoint search and display: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/d83b2a0d12e7cf5f93f276d9ebbddb36b142c352)
+Now, we have all the needed parts for searching a specific group of users.
+And here's the checkpoint search and display: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/d83b2a0d12e7cf5f93f276d9ebbddb36b142c352)
+
+Now, we have something like this pic
+![alt text](images/cirkeltrek-adm-user.png "Search result.")
+
+Now we have should use those two button to demote or promote users.
+It's a great choice to ban those dudes first.
+
+In FluxBB, the step to mass ban is something like this.
+
+1. Select the users.
+2. Press that "Ban" button.
+3. Write the messages why do we ban them.
+4. Execute.
+5. ???
+6. Mass banned!
+
+Okay, pretty simple, right?
+
+Let's the form and its handler.
+And yes, I assume you have decided the route by yourself.
+No, I won't show the snippet.
+Anyway, here's the handler.
+```
+postAdmUserPromoteR = do
+  promote <- lookupPostParam "promote" -- [1]
+  userids <- lookupPostParams "user-id" -- [1]
+  case promote of
+    Just "ban" -> do
+      (uid, name, group) <- allowedToMod -- [2]
+      (wid, enct) <-
+        generateFormPost $ _ $ intercalate "," userids -- [3]
+      adminLayout uid name group $ do
+        setTitle "Promote"
+        $(widgetFile "adm-user-promote")
+    _ -> invalidArgs ["What do you want to do with the users?"] -- [4]
+
+```
+The lines marked by `[1]` above are just to get the params.
+We've talked about them a few pages above.
+And why do we use `allowedToMod` at `[2]`?
+Because mods could also ban people, not just admins.
+For the holed function marked by `[3]`, we are going to create a simple form
+with a hidden field.
+Don't worry about `[4]`, we're going to address it later.
+
+```
+data BanUsersOptionsForm = BanUsersOptionsForm { banUsersOptionsFormMessessage :: Maybe Text , banUsersOptionsFormIds        :: Text}
+
+banUsersOptionsForm :: Text -> Form BanUsersOptionsForm
+banUsersOptionsForm userid = renderDivs $ BanUsersOptionsForm
+  <$> aopt textField "Message" Nothing
+  <*> areq hiddenField "" (Just userid) -- [1]
+
+```
+That `[1]` is where we hide our victims' id.
+I mean, we are just passing their id for the next phase but we don't actually want to watch them.
+
+For example, we have a request body like the following:
+```
+user-id=7&user-id=6&promote=ban
+
+```
+And this handler should only show us this markup:
+
+![alt text](images/cirkeltrek-adm-user-message.png "Shown message.")
+
+I hope you are getting what I mean.
+
+Okay, the next part is where we actually do the banning.
+In this case, we should create another handler to parse the form with "ban message"
+and hidden "user-id".
+```
+postAdmUserPromoteExeR = do
+  promote <- lookupPostParam "promote"
+  case promote of
+    Nothing -> invalidArgs ["No promote param."]
+    Just "ban" -> do
+      (uid, name, group) <- allowedToMod -- [1]
+      ((res, wid), enct) <- runFormPost $ banUsersOptionsForm "" -- [2]
+      case res of
+        FormSuccess r -> do
+          let (mes, userids) = ( banUsersOptionsFormMessessage r , map forceTextToInt64 $ splitOn "," $ banUsersOptionsFormIds r)
+          forM_ userids $ \userid -> _ uid name group (toSqlKey userid) Nothing mes -- [3]
+          redirect $ AdmUserR
+    Just "change" -> do
+      error "Change"
+    _ -> invalidArgs ["Can't understand that."]
+
+```
+Again, only mod and admin who can ban users, so we put `allowedToMod` at that `[1]`.
+And why do we use an empty string as default value at `[2]`?
+Surely because we don't want randomly ban people in case of we fail to parse a request.
+And then the main part of this snippet is the holed function which was marked by `[3]`.
+That line iterates the victims' userids and then pass them for the next banning process.
+
+Let's write that function.
+```
+banUserById execid execname execgroup userid ip message = do
+  [user] <- liftHandler $ runDB $ selectUserById userid -- [1]
+  banUser execid execname execgroup (usersUsername $ entityVal user) ip message
+
+```
+Yeah, I didn't forget that we already had written a similar function to ban them.
+We just make sure that the passed user id does indeed exist on`[1]`.
+Then, we just call `banUser` to finish the deed. 
+
 Checkpoint ban: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/f75c4acc8b075b14ec4bc5ff76cc545c86350c0c)
+
+After finishing the ban hammer part, we are going to create the promotion part.
+
 
 #### Edit
 
