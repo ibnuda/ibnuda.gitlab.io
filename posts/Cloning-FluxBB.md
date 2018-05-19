@@ -3223,6 +3223,13 @@ Checkpoint ban: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/f75c4acc8b0
 
 After finishing the ban hammer part, we are going to create the promotion part.
 
+Commit promote: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/24c0c6cba75a738cd0f15f60b6ae315cd8d7da61)
+
+#### Reports
+
+Commit report handler: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/cf121cae529eecd7d074338cc80cc630b7d21fc9)
+
+Commit report admin: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/24c0c6cba75a738cd0f15f60b6ae315cd8d7da61)
 
 #### Edit
 
