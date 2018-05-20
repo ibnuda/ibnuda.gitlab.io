@@ -3362,7 +3362,144 @@ Usually, the flow of the reporting post is like the following.
 6. Admin/Mod do whatever they want with the post in question.
 7. Admin/Mod zap that report.
 
+Okay, let's start by creating handler for reporting.
+```
+-- src/Handler/Post.hs
+getPostReportR pid = do
+  (uid, name, group) <- allowedToPost
+  (Value fname, Value fid, Value tsub, (Entity pid' (Posts tid num name' uid' t content))) <- getPostParentInformation $ toSqlKey pid
+  (wid, enct) <- generateFormPost reportPostForm
+  defaultLayout $ do
+    setTitle "Reports"
+    $(widgetFile "post-report")
+
+```
+You see, it's just standard `GET` handler, `Posts` information retrieval, and
+normal form rendering.
+Even `reportPostForm` itself is just a rendered `Form` with a single textarea
+input.
+
+That `GET` handler will be followed by writing its `POST` handler equivalent.
+```
+postPostReportR pid = do
+  (uid, name, group) <- allowedToPost
+  (Value fname, Value fid, Value tsub, (Entity pid' (Posts tid num name' uid' t content))) <- getPostParentInformation $ toSqlKey pid
+  ((res, wid), enct) <- runFormPost reportPostForm
+  case res of
+    FormSuccess r -> do
+      _ pid' tid fid uid (unTextarea $ reportPostFormComplaint r) -- [1]
+      redirect $ PostR pid
+    _ -> invalidArgs ["Please report correctly."]
+
+```
+Still our usual `POST` handler.
+The only difference here is just that we should insert the `Reports` into
+database.
+Let's write it.
+```
+createReport pid tid fid uid message = do
+  now <- liftIO getCurrentTime
+  liftHandler $ runDB $ _ pid tid fid uid now message Nothing Nothing -- [1]
+
+```
+Again and again, that `[1]` function, it's just a standard `insert` operation.
+I will spare wasting your time by skipping writing that holed function in this article.
+
+That's it! We have finished report feature.
+Also, don't forget to update `topic.hamlet` to link to `ReportR`.
+
 Commit report handler: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/cf121cae529eecd7d074338cc80cc630b7d21fc9)
+
+Surely, we won't let admin and mods wondering where to access those precious
+reports, will we?
+Therefore, we should create the desired path to administer that reports.
+
+In FluxBB, admins and mods are allowed to see the latest reports and the "zapped"
+reports (whatever that means) at the Reports Management page.
+Not only we can see what are the reports are, but also we can see who has
+created them, etc.
+You get the gist.
+
+So, firstly we should create that handler.
+```
+-- src/Handler/Adm/Report.hs
+getAdmReportR = do
+  (uid, name, group) <- allowedToMod
+  unzappedreports <- _ -- [1]
+  zappedreports <- _ -- [2]
+  adminLayout uid name group $ do
+    setTitle "Reports Management"
+    $(widgetFile "adm-report")
+
+```
+Of course we are using `allowedToMod` guard, for the ones who are allowed to see
+the reports just mods and admins.
+Then, we should create two functions which retrieve the needed reports.
+```
+-- src/Flux/Adm/Report.hs
+getAllUnzappedReports = do
+  reports <- liftHandler $ runDB $ _ -- [1]
+  return $ map (\(x, Value a, Value b, Value c) -> (x, a, b, c)) reports
+
+getAllZappedReports = do
+  -- snip [2]
+
+```
+Those two functions above practically the same.
+The only difference is the first one doesn't return the mods/admins who "zapped"
+the reports.
+Even their queries don't differ that much.
+
+Let me show you one of them.
+```
+selectReportsZappedInfo = do
+  select $ from $ \(report, user, topic, forum, user') -> do
+    where_
+      (report ^. ReportsReportedBy ==. user ^. UsersId
+        &&. report ^. ReportsForumId ==. forum ^. ForumsId
+        &&. report ^. ReportsTopicId ==. topic ^. TopicsId
+        &&. report ^. ReportsZappedBy ==. just (user' ^. UsersId))
+    orderBy [desc (report ^. ReportsZapped)]
+    return
+      (report , user ^. UsersUsername , forum ^. ForumsName , topic ^. TopicsSubject , user' ^. UsersUsername)
+
+```
+That's it.
+We just select from `reports`, `users`, `topic`, `forums`, and `users` tables
+to get the required data for `AdmReport` page.
+
+Now, when you load the route to the `AdmReport`, you will see reports from users.
+Oh, don't forget that the mods/admins are capable of editing the posts themselves.
+So, after we can response to that reports, it left us with "how to mark them as 'zapped'".
+Of course, we should start by creating `POST` handler for that.
+```
+postAdmReportR = do
+  (uid, name, group) <- allowedToMod
+  reportids <- lookupPostParams "report-id"
+  _ uid reportids -- [1]
+  redirect AdmReportR
+
+```
+Yeah, it's pretty simple, too fricking simple, actually.
+Even the holed function which was marked by `[1]` also simple.
+Here
+```
+readReports uid reportids = do
+  liftHandler $ runDB $ do
+    let x = map readMay reportids :: [Maybe Int64]
+        y = map (toSqlKey <$>) x :: [(Maybe (Key Reports))]
+    forM_ y $ \z -> do
+      case z of
+        Nothing -> return ()
+        Just x -> updateReportZap uid x
+
+```
+Yeah, we just map `[Text]` into `[Maybe Int64]` and then map them into `[(Maybe (Key Reports))]`
+And when the transformed report id returns `Nothing`, we will just
+return a unit.
+Yes, even `updateReportZap` only update `reports` table to make them "zapped."
+
+And that's it! We finished this part!
 
 Commit report admin: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/24c0c6cba75a738cd0f15f60b6ae315cd8d7da61)
 
