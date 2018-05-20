@@ -3222,17 +3222,153 @@ Then, we just call `banUser` to finish the deed.
 Checkpoint ban: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/f75c4acc8b075b14ec4bc5ff76cc545c86350c0c)
 
 After finishing the ban hammer part, we are going to create the promotion part.
+At the same handler, we are going to add a few minor changes.
+For example, at `postAdmUserPromoteR` we will add a few lines.
+But before that, we should know that in FluxBB, only admin who can promote users.
+But, even admin could only promote (or demote them) from normal member to moderator
+vice versa.
+Surely there will be a few differences in places, but that doesn't really matter, I guess.
+
+Okay, let's modify `postAdmUserPromoteR`.
+```
+postAdmUserPromoteR = do
+  -- snip
+  case promote of
+    Just "ban" -> do
+      -- snip
+    Just "change" -> do
+      (uid, name, group) <- allowedToAdmin
+      let ban = False
+      mo <- _ Moderator -- [1]
+      me <- _ Member -- [1]
+      (wid, enct) <- generateFormPost $ promoteUserForm [mo, me] $ intercalate "," userids -- [2]
+      adminLayout uid name group $ do
+        setTitle "Promote"
+        $(widgetFile "adm-user-promote")
+
+```
+We should get the group for promotion (or demotion), so we are placing those `[1]` for it.
+Actually, `[1]` is pretty simple.
+It just select the group from database, nothing more and nothing less.
+Also, there's a form for promotion which doesn't differ much from `BanUsersOptionsForm`
+where we hide a few things from users.
+Another difference is we supply that form with a list of `Groups` for the sake of
+the promotion.
+
+After we modified `postAdmUserPromoteR`, we should also modify `postAdmUserPromoteExeR`.
+Remember that we have to make sure the process of promotion doesn't go awry.
+
+```
+postAdmUserPromoteExeR = do
+  promote <- lookupPostParam "promote"
+  case promot
+    -- snip
+    Just "promote" -> do
+      (uid, name, group) <- allowedToAdmin -- [1]
+      mo <- getGroup Moderator
+      me <- getGroup Member
+      -- ^ [2]
+      ((res, _), _) <- runFormPost $ promoteUsersForm [mo, me] ""
+      -- ^ [3]
+      case res of
+        FormSuccess r -> do
+          let (gid, userids) = (promoteUsersFormGroupId r , map forceTextToInt64 $ splitOn "," $ promoteUsersFormUserIds r)
+          -- ^ [4]
+          forM_ userids $ \userid -> _ uid name group (toSqlKey userid) (toSqlKey gid)
+          -- ^ [5]
+          redirect AdmUserR
+        _ -> invalidArgs ["Please..."]
+
+```
+We use `allowedToAdmin` at `[1]` just to make sure that only admin could promote users.
+Same goes as `[2]`, we only make sure that only allowed `Groups` are appearing in this part.
+I mean, we don't want user sending administrator's `id`, right?
+FluxBB devs say that it posesses security risk or something like that.
+And for `[3]`, we use an empty string for the default value for the second param (where user-ids
+being placed at) because where do we know the value of the sent requests?
+So it's better to leave them empty.
+And when the user's requests comply our form, we will process that at `[4]`.
+Nothing really interesting here.
+The second tuple is the result of a forced string of comma-separated integers being tranformed
+back to list of integers.
+God. What a weird sentence!
+
+The actual working part is the function which was marked by `[5]`.
+It iterates `userids` and then pass them to the holed function at the right side of the right arrow.
+
+Now, let's create a function that fill that hole.
+```
+-- src/Flux/Adm/User.hs
+promoteUser execid execname execgroup targetid targetgroupid = do
+  guardUser execid targetid -- [1]
+  guardGroup execgroup -- [2]
+  enttargetuser <- getUserById targetid -- [3]
+  enttargetgroup <- getGroupById targetgroupid -- [3]
+  let username = usersUsername $ entityVal enttargetuser -- [4]
+      group = groupsGrouping $ entityVal enttargetgroup -- [4]
+  liftHandler . runDB $ do
+    updateUserGroupingByUsername username Member -- [5]
+    updateBan username Nothing Nothing execid False -- [5]
+    updateUserGroupingByUsername username group -- [6]
+  where
+    guardUser xid tid = -- [1]
+      if xid /= tid
+        then return ()
+        else invalidArgs ["Cannot promote or demote yourself."]
+    guardGroup Administrator = return () -- [2]
+    guardGroup _ = invalidArgs ["Only admin allowed to promote."]
+
+```
+To be honest, the function at the snippet above deserves a few explanations based on
+their marks.
+
+1. We don't want an admin demote himself.
+   If we let him do that, there could be a forum where there's no admin.
+   Chaos will surely ensue.
+2. Again, we should make sure that only a user in `Administrator` group
+   allowed to modify user's group.
+   See point 1.
+3. I can assure you.
+   Those function only get their respective entities.
+   Nothing more, nothing less.
+4. Here, we get the entity's field. or column. or name.
+5. Remember when I talked about a few differences in promoting/demoting users?
+   Here's the difference.
+   In FluxBB, we couldn't promote / demote banned users.
+   Here, we will let them being promoted.
+6. It's where we actually change the group of the user.
+   Whether the user's group being changed to `Banned`, `Member`, or even `Moderator`,
+   we change it here.
+   
+And that's it.
+It concludes this section. 
 
 Commit promote: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/24c0c6cba75a738cd0f15f60b6ae315cd8d7da61)
 
 #### Reports
 
+Let's be honest, we are going to absolutely have conflicts when a lot of people
+gather in a single place.
+In this case, the problems will arise from the forum posts.
+So, we should accomodate the needs for <del>complaints</del> reports.
+
+Usually, the flow of the reporting post is like the following.
+
+1. User sees a troubling post.
+2. User click `report` link.
+3. User fill the reports.
+4. Admin/Mod load the report page.
+5. Admin/Mod check the reported post.
+6. Admin/Mod do whatever they want with the post in question.
+7. Admin/Mod zap that report.
+
 Commit report handler: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/cf121cae529eecd7d074338cc80cc630b7d21fc9)
 
 Commit report admin: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/24c0c6cba75a738cd0f15f60b6ae315cd8d7da61)
 
-#### Edit
+### Edit User Information
 
-### Polishing
+#### By User Themselves
 
-#### Fixing Links
+#### By Admin
+
