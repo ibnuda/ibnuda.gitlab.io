@@ -3503,7 +3503,187 @@ And that's it! We finished this part!
 
 Commit report admin: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/24c0c6cba75a738cd0f15f60b6ae315cd8d7da61)
 
-### Edit User Information
+### User Information
+
+PLEASE WRITE ME!!!
+
+#### Searching Users
+
+Well, you know, from time to time, we surely want to know about user's information
+who has ignited our passionate interests when we're doing our stuff in this
+forum.
+So, it's only normal to have a feature to search users, isn't it?
+
+Let's start by writing the handler first.
+```
+-- src/Handler/User.hs
+getUserListR = do
+  (uid, name, group) <- allowedToPost -- [1]
+  let users = [] :: [(Grouping, Entity Users)] -- [2]
+  ad <- getGroup Administrator -- [3]
+  mo <- getGroup Moderator -- [3]
+  me <- getGroup Member -- [3]
+  (wid, enct) <- generateFormPost $ _ [ad, mo, me] -- [4]
+  defaultLayout $ do
+    setTitle "User List"
+    $(widgetFile "user-list")
+
+```
+Of course we are using our beloved guard, `allowedToPost`, here!
+It "flatten" our function's structure!
+No need `case` or anything else! Neat!
+And why do we need that empty list at `[2]`?
+Because we are going to use that in our template.
+And because they're empty, we won't have to worry about needless queries.
+Though we will use that at `[3]` for our search form because we're just
+an incomplete immitation of FluxBB.
+And for the holed function which was marked by `[4]`, that's the form we're
+using.
+And let's write that form.
+```
+data SearchUserForm = SearchUserForm
+  { searchUserFormUsername  :: Maybe Text
+  , searchUserFormGroup     :: Maybe Int64
+  , searchUserFormSortBy    :: SortBy
+  , searchUserFormAscending :: Bool
+  }
+
+```
+Look, that's what FluxBB's search form look like.
+We have a field of nullable username, nullable group (adm, mod, member),
+sorting field, and ascending / descending options.
+And we should write our own "sort categories"
+The category (`SortBy`) in and of itself is just a simple
+sum type like the following
+```
+data SortBy = Username | Registered | PostCount deriving (Eq, Enum, Bounded)
+
+instance Show SortBy where
+  show Username   = "Username"
+  show Registered = "Registration Date"
+  show PostCount  = "Post Count"
+
+```
+Pretty much a copy and paste from Yesod's cookbook with a minor difference
+in `Show` derivation.
+Nothing really interesting here, to be quite honest.
+
+```
+searchUserForm groups = renderDivs $
+  SearchUserForm
+  <$> aopt textField "Username" Nothing
+  <*> aopt (selectFieldList glist) "Groups" Nothing
+  <*> areq (selectFieldList slist) "Sort By" Nothing
+  <*> areq (selectFieldList alist) "Sort Order" Nothing
+  where
+    glist =
+      map (\x -> ( pack . show . groupsGrouping $ entityVal x , fromSqlKey . entityKey $ x)) groups :: [(Text, Int64)]
+    -- ^ [1]
+    slist = map (pack . show &&& id) [minBound .. maxBound] :: [(Text, SortBy)]
+    -- ^ [2]
+    alist = [("Ascending", True), ("Descending", False)] :: [(Text, Bool)]
+    -- ^ [3]
+
+```
+Here's the same old form rendering function.
+The function marked by `[1]` is the exact same function in promotion form far above.
+I should remind you that number `[2]`, again, is the carbon copy of `selectFieldList`
+example from Yesod book.
+Number `[3]`? Sadly it's pretty clear.
+We shows "Ascending" or "Descending" in a dropdown input.
+
+After you put the previous function to the holed function at `getUserListR`,
+go to `UserListR` and you will see the rendered layout.
+Sure it's a waste of space compared to the original FluxBB.
+And unfortunately, I'm illiterate of HTML and CSS.
+So, please spare me your anger. ;-;
+
+The next part, is where we actually search things.
+First, as usual, we should create the handler.
+```
+postUserListR :: Handler Html
+postUserListR = do
+  (uid, name, group) <- allowedToPost
+  ad <- getGroup Administrator
+  mo <- getGroup Moderator
+  me <- getGroup Member
+  ((res, wid), enct) <- runFormPost $ searchUserForm [ad, mo, me]
+  case res of
+    FormSuccess r -> do
+      let (username, groupid, orderby, ascending) = (searchUserFormUsername r, toSqlKey <$> searchUserFormGroup r, searchUserFormSortBy r, searchUserFormAscending r)
+      users <- _ username groupid orderby ascending -- [1]
+      defaultLayout $ do
+        setTitle "User List"
+        $(widgetFile "user-list")
+    _ -> error ""
+
+```
+Other than the holed function `[1]`, there's nothing much to explain.
+We get the group entities, parse the form data from the request, and then
+"extract" their values, `[1]` do its part, and then show the result to the
+requester (is requester a word?).
+
+Truth to be told, the function `[1]` itself is not really complicated.
+Apart from `unValue` a thing or two, it just runs the query.
+And the query, which I spent 2 hours for, is really neat, I guess.
+```
+-- src/DBOp/CRUDUser.hs
+selectUsersBySearchConditions :: ( PersistUniqueRead backend , PersistQueryRead backend , BackendCompatible SqlBackend backend , MonadIO m)
+  => Maybe Text -> Maybe (Key Groups) -> SortBy -> Bool
+  -> ReaderT backend m [(Value Grouping, Entity Users)]
+selectUsersBySearchConditions username groupid orderby ascending = do
+  select $
+    from $ \(user, group) -> do
+      where_ (qbuilder group GroupsId groupid &&. qbuilder user UsersUsername username &&. user ^. UsersGroupId ==. group ^. GroupsId)
+      --      ^ [1]
+      ordering ascending user orderby
+      -- ^ [2]
+      return (group ^. GroupsGrouping, user)
+
+qbuilder :: (PersistField a, Esqueleto query expr backend, PersistEntity ent) => expr (Entity ent) -> EntityField ent a -> Maybe a -> expr (Value Bool)
+qbuilder _ _ Nothing           = val True
+qbuilder ent accessor (Just v) = ent ^. accessor ==. val v
+
+ordering :: Esqueleto query expr backend => Bool -> expr (Entity Users) -> SortBy -> query ()
+ordering b user Username   = orderBy [(chooseAscension b) (user ^. UsersUsername)]
+ordering b user Registered = orderBy [(chooseAscension b) (user ^. UsersJoinTime)]
+ordering b user PostCount  = orderBy [(chooseAscension b) (user ^. UsersRepliesPosted)]
+--                                    ^ [3]
+
+chooseAscension :: (Esqueleto query expr backend, PersistField a) => Bool -> expr (Value a) -> expr OrderBy
+chooseAscension True e  = asc e
+chooseAscension False e = desc e
+
+```
+Yeah, I built a franken-query function here.
+As you can see, we have three custom query expressions in a single query function.
+
+1. Let's look at `qbuilder`.
+   This function decides whether it should return the equality of an empty `PersistField a`
+   in an `Entity` when it receives a `Just a` value and returns `True` otherwise.
+   Why did I decide that?
+   Because based on my quick and dirty thinking (lol), in where clause, `True` is the
+   "empty value" of a query.
+   You know, something like `1 = 1` in `select * from users where 1 = 1`, yeah something like that.
+2. `ordering` function.
+   In FluxBB, they can query based on three different data types.
+   `UsersUsername :: Text`, `UsersJoinTime :: UTCTime`, and `UsersRepliesPosted :: Int64`.
+   I mean, we can't build a general function inside of `orderBy` when we have
+   three different data type.
+   So, instead of `ordering b u o = (chooseAscension b) (u ^. accessor)`, which will
+   make GHC complaint about "rigid data type" or something like that,
+   we should build a function which directly returns `query ()`.
+   And here we are, we have one.
+3. Practically the same hurdle with `ordering`, "rigid data type", when we only
+   write `chooseAscension True = asc`.
+   So, we should make the function more "concrete" by placing an `e` which is an `expr`.
+
+Yeah, pretty much that's it, for the query explanation.
+
+So, let's head for `UserList`, write and choose something based on the default value
+of the form, perhaps we will get some users which match with the criterions.
+
+Anyway, here's the commit of this section: ["user data. search."](https://gitlab.com/ibnuda/Cirkeltrek/commit/092932cd9f2c174060eda9e158991a03daffc7ce)
 
 #### By User Themselves
 
