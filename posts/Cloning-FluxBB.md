@@ -3739,3 +3739,93 @@ We wouldn't be able to do that because they return different types of things.
 
 Anyway, we've completed `GET` handler here.
 The next step is creating `POST` handler.
+```
+postUserEditR userid = do
+  (uid, name, group) <- allowedToActuallyEdit userid -- [1]
+  user'@(Entity uid' user) <- getUserById $ toSqlKey userid -- [1]
+  case group of -- [2]
+    Administrator -> do
+      ((res, wid), enct) <- runFormPost $ editByAdminForm (usersEmail user) -- [3]
+      case res of
+        FormSuccess r -> do -- [4]
+          let (newpass, email) = (editByAdminFormNewPass r, editByAdminFormEmail r)
+          _ uid' newpass email -- [5]
+          redirect $ UserR userid - [6]
+        _ -> profileLayout uid name group user' [whamlet|Please fill the input correctly|]
+    _ -> do
+      ((res, wid), enct) <- runFormPost $ editByUserForm (usersEmail user) -- [3]
+      case res of
+        FormSuccess r -> do
+          let (oldpass, newpass, email) = (editByUserFormOldPass r ,editByUserFormNewPass r ,editByUserFormEmail r)
+          _ uid (usersPassword user) oldpass newpass email -- [7]
+          redirect $ UserR userid - [6]
+        _ -> profileLayout uid name group user' [whamlet|Please fill the input correctly|]
+
+```
+The function above is simple.
+Too simple, even.
+
+1. Same procedures with `GET` handler.
+2. Dedices which form should we use to parse the form based on the group.
+   Remember, admin could simply set a new password.
+3. Simple form parsing.
+4. Only proceed when the form is correctly formed.
+5. Simple CRUD operation.
+   Will write it later.
+6. Redirect to user's page.
+7. Simple CRUD operation.
+   Will write it later.
+
+Now, let's write function `[5]`
+```
+updateInfoByAdmin userid Nothing email = liftHandler $ runDB $ updateUserEmail userid email -- [1]
+updateInfoByAdmin userid (Just np) email =
+  liftHandler $ runDB $ do
+    newpassword <- liftIO $ makePassword (encodeUtf8 np) 17 -- [2]
+    updateUserEmail userid email -- [1]
+    updateUserPassword userid (Just $ decodeUtf8 newpassword) -- [3]
+
+```
+I'm not really sure whether the function above is clear or not.
+But I can assure you that `[1]` and `[3]` are just standard queries
+with nothing interesting in particular.
+Even `[2]` itself should have been talked when we look at `RegisterR`'s snippet.
+
+For function `[7]` of `postUserEditR`, it's pretty hectic.
+```
+selfUpdateInfoByUser userid userpass oldpass newpass email = do
+  case (userpass, oldpass, newpass) of
+    (Nothing, _, _) -> error "Your profile is broken. Ask admin to fix this."
+    (Just _, Nothing, Nothing) -> liftHandler $ runDB $ updateUserEmail userid email
+    (Just _, Nothing, Just _) -> invalidArgs ["You cannot update your password without providing your old password."]
+    (Just _, Just _, Nothing) -> invalidArgs ["You cannot use an empty password."]
+    (Just up, Just op, Just np) -> do
+      if verifyPassword (encodeUtf8 op) (encodeUtf8 up)
+        then do
+          newpassword <- liftIO $ makePassword (encodeUtf8 np) 17
+          liftHandler $
+            runDB $ do
+              updateUserEmail userid email
+              updateUserPassword userid (Just $ decodeUtf8 newpassword)
+        else invalidArgs ["Your password don't match with the old one."]
+
+```
+The function above could be refactored, I guess.
+But whatever, will do that next time (or never, lol).
+So, what we have here? Oh, yeah, pattern match for passwords.
+Basically simple thing.
+
+- When the existing password in db is null, we should display error.
+  Because it's impossible, to be honest.
+- When there's password in db and user didn't fill password field, we
+  should update their email.
+  I mean, they didn't change their password, right?
+  So their intention must be changing email, right?
+- When there's password in db and new password field while nothing in old password,
+  we should throw an invalid thingy.
+- Same goes when there's no new password, we just simply throw n error.
+- Finally, when the request provides everything, we just simply
+  verify the password and then update email and password data in database.
+  Else, just throw some error or something.
+
+Current situation: [user data. change info.](https://gitlab.com/ibnuda/Cirkeltrek/commit/b9f4f6cc8d46926d6ae6e93c265bd4499550baf8)

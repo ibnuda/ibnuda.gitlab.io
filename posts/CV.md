@@ -25,3 +25,7 @@ Not only that, it also helped me to maintain a watchful attitude when handling m
 ### Technical Work Experience
 
 - Parametrik Solusi Integrasi (2015 - ...)
+
+### Teaching Experience
+
+- Teaching Assistant for Operating System at UNS.
