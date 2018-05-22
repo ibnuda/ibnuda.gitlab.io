@@ -3680,12 +3680,62 @@ As you can see, we have three custom query expressions in a single query functio
 
 Yeah, pretty much that's it, for the query explanation.
 
-So, let's head for `UserList`, write and choose something based on the default value
+So, let's head for `UserListR`, write and choose something based on the default value
 of the form, perhaps we will get some users which match with the criterions.
 
 Anyway, here's the commit of this section: ["user data. search."](https://gitlab.com/ibnuda/Cirkeltrek/commit/092932cd9f2c174060eda9e158991a03daffc7ce)
 
-#### By User Themselves
+#### Editing
 
-#### By Admin
+Let's see, usually users want to change their password or email once in a while.
+Assuming they have the inclination to do so, obviously.
+There could also be times where user couldn't even login and admin should edit it
+for them. Yeah, I know, being an admin is a pain in the back.
+Oh yeah, unlike a normal user,  when admin want to change user's password, he could
+just simply set it without putting the old password.
+And I retract my previous statement about admin's pain.
 
+So, as usual, we should create the handler first, followed by form, and then `Flux` module.
+```
+getUserEditR userid = do
+  (uid, name, group) <- allowedToActuallyEdit userid -- [1]
+  user'@(Entity uid' user) <- getUserById $ toSqlKey userid -- [2]
+  (wid, enct) <- _ group (usersEmail user) -- [3]
+  profileLayout uid name group user' $(widgetFile "profile-info-edit")
+
+```
+You see, we couldn't know what to edit when we don't even know what is it, could we?
+So that's `[2]` for you.
+Because we don't want to be bothered by checking what kind of form we should display,
+we just "outsource" it to another function.
+Will back to it in a minute.
+And yeah, we are using another modified function of `allowedToPost` for the `[1]` marked
+function.
+```
+allowedToActuallyEdit pid = do
+  (uid, name, group) <- allowedToPost
+  if uid == toSqlKey pid || group == Administrator
+    then return (uid, name, group)
+    else permissionDenied "You're not allowed to edit user's information."
+
+```
+Isn't it beautiful? No actually.
+We just simply passing around things like checking `userid` of the incoming request
+and its `group` too.
+You see, "only admin and user who could modify their informations."
+
+And for the holed function `[3]` of `getUserEditR`, here it is.
+```
+generateFormEdit :: Grouping -> Text -> Handler (Widget, Enctype)
+generateFormEdit Administrator = generateFormPost . editByAdminForm
+generateFormEdit _             = generateFormPost . editByUserForm
+
+```
+Where their respective forms are just simply `passwordField` and `emailField`.
+That function have no qualms because of the difference of the generated forms here
+because both of them returns `(Widget, Enctype)`.
+A bit different when running `generateFormPost`'s parsing counterpart.
+We wouldn't be able to do that because they return different types of things.
+
+Anyway, we've completed `GET` handler here.
+The next step is creating `POST` handler.
