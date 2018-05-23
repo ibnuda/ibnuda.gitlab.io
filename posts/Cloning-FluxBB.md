@@ -3840,19 +3840,75 @@ Current situation: [user data. change info.](https://gitlab.com/ibnuda/Cirkeltre
 
 #### User's Posts and Topics
 
-Write me, please.
-I'm tired.
+Now, it feels incomplete when we can see user's information and even edit it, but
+we couldn't even read his activities.
+Don't worry, we are going to fix that.
+Let's assume that "activities" here is his posts and topics history, for the sake
+of simplicity.
+Now, we will see his post history first.
+```
+getUserPostsR userid = do
+  (uid, name, group) <- allowedToPost
+  user'@(Entity uid' user) <- getUserById $ toSqlKey userid
+  posts <- getUserPosts $ toSqlKey userid
+  profileLayout uid name group user' $(widgetFile "profile-info-posts")
+
+```
+Yeah, that simple. 
+First, only logged in users are allowed to see this page.
+Then we get the user's information for the sake of `profileLayout`
+and then, we should get those posts made by the corresponding user.
+Simple.
+
+For user's topic history, it doesn't differ much.
+```
+getUserTopicsR userid = do
+  (uid, name, group) <- allowedToPost
+  user'@(Entity uid' user) <- getUserById $ toSqlKey userid
+  topics <- getUserTopics $ toSqlKey userid
+  profileLayout uid name group user' $(widgetFile "profile-info-topics")
+
+```
+You see, it's practically the same function with `getUserPostsR`.
+The only difference here is `topics` doesn't only contain `[Entity Topics]` but also
+contains the name of the forum which the topic being posted at.
+Why did I do that?
+Simply because I want to show it.
+
+And I'll break this nice and easy section with stupid correction.
+Whenever a user posts a reply or create a new topic, his post count didn't
+increment.
+So, I have modified `createTopicByPosting` and `replyTopicByPosting` by adding
+```
+updateUserIncrementTopic userid
+```
+and
+```
+updateUserIncrementPost userid
+```
+to the existing functions' bodies.
+Where `updateUserIncrementTopic` and `updateUserIncrementPost` themselves are just
+queries that increment `UsersTopicsCreated` and `UsersRepliesPosted`, respectively..
 
 Commit: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/b0f9f864faccc67869a27404ab75af161a9b3724)
+
+## Finish, I guess.
+
+That's all, folks.
+This article has more words than my theses.
+I don't think I can write any longer about it.
+Furthermore, I think this project can be considered as a fully functioning forum software.
+So, yeah, it was fun while it lasts.
 
 # Lessons Learnt
 
 - Dumping snippets as blog post content makes me feel bad.
 - English is hard.
 - Writing sentences coherently especially so.
+- Short circuiting functions are nice.
 
-# Exercise For The Readers
+# Exercises For The Readers
 
 - I don't know, perhaps write custom group?
-- Or even loose the permissions so any anon-kun can read the discussions?
-- Even more intriguing, forum for mods and/or admins.
+- Or even loosen the permissions so any anon-kun can read the discussions?
+- Even more intriguing, forum for mods and/or admins, maybe?
