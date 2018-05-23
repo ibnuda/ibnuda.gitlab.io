@@ -21,6 +21,7 @@ Not only that, it also helped me to maintain a watchful attitude when handling m
 ### Education
 
 - <i>Universitas Sebelas Maret Surakarta, Technology Information, Thesis Data-mining related project.</i>
+- <i>Sekolah Tinggi Ilmu Dakwah Al Hadid, Surabaya, Unfinished</i>
 
 ### Technical Work Experience
 

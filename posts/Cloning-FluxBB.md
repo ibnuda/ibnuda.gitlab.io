@@ -2364,14 +2364,14 @@ While I personally agree with his stance, I feel conflicted about a few things r
 this matter.
 
 1. This program's result is intended to be consumed using browsers and their supported methods.
-Which is only `POST` and `GET`.
+   Which is only `POST` and `GET`.
 2. About path pieces, I dislike url with parameters, to be quite honest.
-I prefer my urls structured `domain/fist/second/third/path` with no additional parameters.
+   I prefer my urls structured `domain/fist/second/third/path` with no additional parameters.
 3. In a web application (and especially REST "API") which supports those six methods
-(or "verbs"), the second point could be easily achieved.
-Not so much in a web browser, without additional POST parameters or even specialised
-routes which serve the purpose to accept unsupported methods by common browsers, my second point
-(or my taste) is basically a stupid thing.
+   (or "verbs"), the second point could be easily achieved.
+   Not so much in a web browser, without additional POST parameters or even specialised
+   routes which serve the purpose to accept unsupported methods by common browsers, my second point
+   (or my taste) is basically a stupid thing.
 
 Okay, that's enough for the ramble.
 
@@ -2411,7 +2411,8 @@ Forgive me, my friend, for I am just a human bean.
 `[3]` is a holed function where it returns the posts of that topic on a certain page.
 While we're doing that, we will ask the forum's information to the database on `[4]`.
 It's just a poorman's breadcrumb's, you know.
-Surely we will address it later (or maybe much much later) about its pros and cons.
+Surely we will address it later (or maybe much much later, or even won't ever) about
+its pros and cons.
 Then, we are going to create form's widget at `[5]`.
 
 Okay, let's address number five first.
@@ -3162,7 +3163,7 @@ with a hidden field.
 Don't worry about `[4]`, we're going to address it later.
 
 ```
-data BanUsersOptionsForm = BanUsersOptionsForm { banUsersOptionsFormMessessage :: Maybe Text , banUsersOptionsFormIds        :: Text}
+data BanUsersOptionsForm = BanUsersOptionsForm { banUsersOptionsFormMessessage :: Maybe Text , banUsersOptionsFormIds :: Text}
 
 banUsersOptionsForm :: Text -> Form BanUsersOptionsForm
 banUsersOptionsForm userid = renderDivs $ BanUsersOptionsForm
@@ -3250,7 +3251,8 @@ postAdmUserPromoteR = do
         $(widgetFile "adm-user-promote")
 
 ```
-We should get the group for promotion (or demotion), so we are placing those `[1]` for it.
+We should get the appropriate group for promotion (or demotion), so we are placing
+those `[1]` for it.
 Actually, `[1]` is pretty simple.
 It just select the group from database, nothing more and nothing less.
 Also, there's a form for promotion which doesn't differ much from `BanUsersOptionsForm`
@@ -3838,8 +3840,19 @@ Current situation: [user data. change info.](https://gitlab.com/ibnuda/Cirkeltre
 
 #### User's Posts and Topics
 
+Write me, please.
+I'm tired.
+
 Commit: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/b0f9f864faccc67869a27404ab75af161a9b3724)
 
 # Lessons Learnt
 
-- Dumping snippets as blog post makes me feel bad.
+- Dumping snippets as blog post content makes me feel bad.
+- English is hard.
+- Writing sentences coherently especially so.
+
+# Exercise For The Readers
+
+- I don't know, perhaps write custom group?
+- Or even loose the permissions so any anon-kun can read the discussions?
+- Even more intriguing, forum for mods and/or admins.
