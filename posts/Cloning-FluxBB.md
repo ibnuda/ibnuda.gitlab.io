@@ -1,13 +1,12 @@
 Cloning FluxBB
 2018-04-14 16:38:19.675105163 UTC
 Post
-# (In Progress)
  
 Writing a forum software is one of a few things that I-wish-I-had-but-hadn't
 in the last of couple of years.
 For example, among a gazillion of abandoned repos on this GitLab account,
 [`Forum`](https://gitlab.com/ibnuda/Forum) is one of them.
-If you take a glance on it, you will see -- obviously -- that it's an unfinished
+If you take a glance of it, you will see -- obviously -- that it's an unfinished
 forum software.
 
 So, I decided to take a different approach to finally do it, no matter what it takes.
@@ -30,7 +29,7 @@ is not really complicated.
 Not only that, a lot of its fields are `nullable`, so we can remove them in this
 clone and make use of foreign keys constraints.
 
-For example, we will not use some of nullables of `Users`'s columns.
+For example, we will not use some of nullables columns from `Users` table.
 So, instead of [this](https://fluxbb.org/docs/v1.5/dbstructure#users), we will
 use (in `persistent`'s fields)
 ```
@@ -49,7 +48,7 @@ Users
 ```
 
 Furthermore, we will not use some of FluxBB's tables.
-For example, we won't use `permissions`, `forum_subscribtions`, and `topic_subscribtions`.
+Example given, we won't use `permissions`, `forum_subscribtions`, and `topic_subscribtions`.
 
 ## Inner Workings
 
@@ -69,6 +68,7 @@ So, instead of actual FluxBB's features, we will dumb it down like the following
   - Edit his own `reply`
   - Edit information.
   - Can `report` people.
+  - See other users' information.
 
 - <b>Moderators</b>
 
@@ -139,10 +139,11 @@ extra-deps:
   commit: b81e0d951e510ebffca03c5a58658ad884cc6fbd
 
 ```
-which means that we will use the library at the repo url in the snippet above on
+which means that we will use the library at the repo's url in the snippet above on
 that specific commit.
 As for the reason, Mr. Allen says that currently, supporting `persistent-2.8.1`
-is not his priority and he gives the above lines as the solution of this situation.
+is not his priority and he gave the above lines as the temporary solution for this
+situation.
 Thanks, Mr. Allen.
 
 Then, we will remove `src/Add.hs` file and remove any references to it.
@@ -169,7 +170,7 @@ Now, let's push it to our repo. (our current progress is saved
 
 In the scaffolded templates, you will see a lot of stuff going on, which baffled
 me a couple months ago, from settings, database, and templating.
-Surely, the yesod-book and the templates' comments helped me a lot but it was 
+Sure, the yesod-book and the templates' comments helped me a lot, but it was 
 not enough for to grasp the reasoning of the decisions made by the author of the
 templates.
 That and my hot-headed temper combined, resulted a few abandoned projects in my
@@ -182,6 +183,7 @@ the routes.
 As you can see in the `Yesod.Core`'s haddock, `Yesod site` has signature (or something)
 of `class RenderRoute site => Yesod site`.
 Which in turn, `RenderRoute site` has signature of `class Eq (Route site) => RenderRoute site`.
+Nah, it's complicated.
 
 Let's talk about `class`es first.
 In short, there's a thing in Haskell called `typeclass`.
@@ -193,8 +195,8 @@ So, in Haskell, if you want to let your data to be recognised as one of the clas
 you have to fulfill the requirements (or "minimal complete definitions") of that class.
 
 In order to make a `Yesod App`, we should start by defining the route first.
-I mean, how would the web server know what kind of content if it doesn't know
-anything.
+I mean, how would the web server know what kind of content it should serve if it
+doesn't know anything.
 At best, it will only serve you `404 Not Found`.
 Therefore, in `src/Foundation.hs`, we will modify it into the following
 ```
@@ -1097,6 +1099,7 @@ My weird code styles:
 - DataTypesInCamelCase
 - functionsInCamelCase
 - valuesinlowercase
+- 2 space indentation. Deal with it, mi amigo! 😎
 
 Now, let's start by cleaning up our imports.
 For example, instead of importing `Yesod.Core`, `ClassyPrelude.Yesod`, etc in
@@ -1116,14 +1119,14 @@ import Foundation as Import
 ```
 Now, whenever you see a module that imports, say, `Yesod.Auth`, you can simply
 replace it with `import Import`.
-What we just did was to simplify our imports by "combining" our modules into
+What we just did was to simplify our imports by "combining" our import modules into
 a single module.
 
 And create a directory named `Handler` to contain every handler we have.
 Plus, don't forget to update the name of the module that responsible for handling
 requests (`Home` and `Profile`).
 The purpose of this move is to ensure that we separate our (modules') concerns.
-Other than that, I dislike a disastrous `~/` and any root project is.
+Other than that, I dislike a disastrous `~/` or any root project.
 
 Now, we have cleaned our root project directory, let's start.
 
@@ -1133,7 +1136,7 @@ If you're wondering why do we start with administering category, then I will
 confess that I feel I can solve this problem (writing this article) better when
 I approach it top-down.
 It doesn't mean that you should the same, but, I don't know.
-Just like Sinatra has sung, I will just do it my way~
+Just like Sinatra has sung, I will do it my way~
 
 Okay, administering category in this context actually just means that we can create
 categories and delete them, if the situation demands us to do so.
@@ -1267,19 +1270,16 @@ getUserAndGrouping = do
     Nothing -> return Nothing
     Just (Entity uid user) -> do
       [gro] <-
-        liftHandler $
-        runDB $
-        select $
-        from $ \(group, user) -> do
-          where_
-            (user ^. UsersId ==. val uid
-             &&. group ^. GroupsId ==. user ^. UsersGroupId)
-          limit 1
-          return (group ^. GroupsGrouping)
+        liftHandler $ runDB $
+          select $ from $ \(group, user) -> do
+            where_
+              (user ^. UsersId ==. val uid &&. group ^. GroupsId ==. user ^. UsersGroupId)
+            limit 1
+            return (group ^. GroupsGrouping)
       return $ Just (uid, usersUsername user, unValue gro)
 
 ```
-The function above retrieves from the following columns from database:
+The function above retrieves userid, username, and group from the following columns from database:
 `users.id`, `users.username`, and `groups.grouping` by doing the following things:
 
 1. Gets the authentication status of a request.
@@ -1289,8 +1289,9 @@ The function above retrieves from the following columns from database:
 4. Returns the group and and wrap them into a triple.
 
 Current progress: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/be2dd0d1f592a80cf11c36b487d109125038eeb6)
+
 And I'm sorry for commiting so often.
-I'm afraid commiting mistakes when writing this article.
+I'm afraid of commiting mistakes when writing this article.
 Especially about the flow of the software-writing process.
 
 When we load localhost:3000/admin/category in our browser, we will see a page with
@@ -1401,11 +1402,12 @@ getAdmCategoryR = do
     |]
 
 ```
-At the first function, I just want to show a nice DSL.
-At the second function, we just "lift" the execution of the first function (which actually a query).
-At the third function, which we just modified it a little, we add the dropdown for the categories
-which generated from the categories in the database.
-Is short, just check it out at your browser, my dude.
+At the first function, I just want to show you a nice DSL.
+At the second function, we just "lift" the execution of the first function (which
+actually is a query).
+At the third function, which we just modified it a little, we added a dropdown for
+the categories which generated from the categories in the database.
+In short, just check it out at your browser, my dude.
 
 There's a bug, though. When you click "delete" what the system does is it inserts the key of
 the shown category to as a new category.
@@ -1421,12 +1423,14 @@ When we want to modify something, we would use `PATCH` or `PUT`.
 When we want to delete something, we would use `POST`.
 When we want to have a giggle, we would use `GET`.
 Unfortunately, in browser, there's no support for this kind of neat interface.
-Apparently, nobody has the time to write the specifications for verbs other than `GET` and `POST`.
+Apparently, nobody has the time to write the specifications for verbs other than 
+``GET` and `POST`.
 I don't know why, my friend.
 
-So, why did I write the previous paragraph? Because it relates to the undesired behaviour
-at the previous section.
-In an ideal world, we can just define the method for the forms and create the corresponding yesod handler.
+So, why did I write the previous paragraph? Because it relates to the undesired
+behaviour at the previous section.
+In an ideal world, we can just define the method for the forms and create the
+corresponding yesod handler.
 Unfortunately, there's no such thing as `ideal` in this world.
 So, we will try to fit our program in.
 
@@ -1449,8 +1453,8 @@ getAdmCategoryR :: Handler Html
   |]
 
 ```
-Please the name of the `input` element above.
-It has `create` as it's name and `create` as it's value.
+Please see the name tag of the `input` element above.
+It has `create` as its name and `create` as its value.
 When you press the "Create" button at the previous section, the format of the request will look like something
 ```
 curl -d "_token=JdwQprBqre&f1=Ayyy+lmoa&create=create" -H "Content-Type: application/x-www-form-urlencoded" \
@@ -1861,8 +1865,7 @@ postAdmForumR = do
       case res of
         FormFailure x -> invalidArgs x
         FormSuccess r -> do
-          createForum
-            g
+          createForum g
             (toSqlKey $ createForumFormCategory r)
             (createForumFormName r)
             (unTextarea <$> createForumFormDesc r)
@@ -3505,7 +3508,10 @@ Commit report admin: [commit](https://gitlab.com/ibnuda/Cirkeltrek/commit/24c0c6
 
 ### User Information
 
-PLEASE WRITE ME!!!
+I don't know, man.
+Why would one want to know what is a dude what up to in the internet?
+That sounds like what a stalker do, doesn't it?
+But whatever, it's okay, "you do you" like the wise usually says.
 
 #### Searching Users
 
@@ -3685,7 +3691,7 @@ of the form, perhaps we will get some users which match with the criterions.
 
 Anyway, here's the commit of this section: ["user data. search."](https://gitlab.com/ibnuda/Cirkeltrek/commit/092932cd9f2c174060eda9e158991a03daffc7ce)
 
-#### Editing
+#### Editing User's Information
 
 Let's see, usually users want to change their password or email once in a while.
 Assuming they have the inclination to do so, obviously.
@@ -3829,3 +3835,11 @@ Basically simple thing.
   Else, just throw some error or something.
 
 Current situation: [user data. change info.](https://gitlab.com/ibnuda/Cirkeltrek/commit/b9f4f6cc8d46926d6ae6e93c265bd4499550baf8)
+
+#### User's Posts and Topics
+
+Commit: [here](https://gitlab.com/ibnuda/Cirkeltrek/commit/b0f9f864faccc67869a27404ab75af161a9b3724)
+
+# Lessons Learnt
+
+- Dumping snippets as blog post makes me feel bad.
