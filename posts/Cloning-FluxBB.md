@@ -48,7 +48,7 @@ Users
 ```
 
 Furthermore, we will not use some of FluxBB's tables.
-Example given, we won't use `permissions`, `forum_subscribtions`, and `topic_subscribtions`.
+Example given, we won't use `permissions`, `forum_subscriptions`, and `topic_subscriptions`.
 
 ## Inner Workings
 
