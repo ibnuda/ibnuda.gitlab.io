@@ -87,7 +87,7 @@ actuation force.
 Or perhaps I don't press them correctly, I don't know.
 
 There are a few keys that don't feel so good. Example given, the tilde key `~`,
-`BKSPACE`, , `CAPSLOCK`, and `w` in QWERTY layout.
+`BKSPACE`, , `CAPSLOCK`, `;`, and `w` in QWERTY layout.
 Especially `CAPSLOCK` key, because of I use `ESC` frequently, I swapped `ESC` with
 `CAPSLOCK`.
 And the result is pretty disappointing.
@@ -106,3 +106,38 @@ And the result is pretty disappointing.
   I regreted the decision.
   It was too loud and I was afraid that my co-workers would be annoyed by the sound
   of it.
+
+## Opinions
+
+### Good
+
+- Nice build.
+
+### Bad
+
+- LED.
+  Too bright.
+  
+### Ugly
+
+- Weird switches and keys placement.
+  I know, it's my first keyboard.
+  But I can say surely that the keys aren't that placed really well.
+
+### Temporary Conclusions
+
+- It is a sturdy and heavy keyboard.
+- It is a loud keyboard.
+- I'm not really used to it yet.
+  Especially about actuating and pressing the keys.
+
+Do I happy with this keyboard?
+I can't say that I'm not happy.
+But I can't really say that I'm really happy with it.
+Do I happy with this purchase?
+Well, what's done is done.
+Do I happy with my life?
+Do I need happiness?
+
+Anyway, I will update this review in a few months.
+Perhaps in this article or perhaps write a new one.
