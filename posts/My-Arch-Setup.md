@@ -72,6 +72,12 @@ Nothing particularly interesting..
 My man... I use [prog. dvorak](https://www.kaufmann.no/roland/dvorak/) as my keyboard
 layout.
 It's nice, I guess.
+
+(Update on 2018-05-30)
+
+Bought a mech. keyboard, IKBC C104 with blue switches.
+Pretty nice so far.
+
 ### End
 
 Pretty much that's it. Will add later.
