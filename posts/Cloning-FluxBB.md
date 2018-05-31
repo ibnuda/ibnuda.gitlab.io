@@ -243,7 +243,7 @@ with the settings we need for this clone.
 data ApplicationSettings = ApplicationSettings
   { appStaticDir :: String
   , appRoot :: Maybe Text
-  , appDBConf :: PostgresConf -- from "persistent-postgresql" package, module Database.Persist.Postgresql
+  , appDatabaseConf :: PostgresConf -- from "persistent-postgresql" package, module Database.Persist.Postgresql
   , appHost :: HostPreferences -- from "warp" package, module Network.Wai.Handler.Warp
   , appPort :: Int
   , appReloadTemplate :: Bool
@@ -259,7 +259,7 @@ Do we need it?
 Surely we need it for the ease of development process like in the scaffolded templates. 
 Other than to ease the development process, we surely want to set some configurations
 that meet our needs.
-Example given, we will use `appDBConf` field to create a `ConnectionPool` for our
+Example given, we will use `appDatabaseConf` field to create a `ConnectionPool` for our
 `App`.
 
 Now, let's back to `Foundation.hs` and continue our instantiation of our `Yesod` app.
