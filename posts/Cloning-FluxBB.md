@@ -434,9 +434,12 @@ that we're in a development mode.
 
 The other two functions?
 `configSettingsYmlBS` is just a helper function from "file-embed" package that
-reads a file using a magic named `TemplateHaskell` by parsing `configSettingsYaml`
-into filepath `config/settings.yml`. Same with `configSettingsYmlValue`, it is a
+reads a file using a magic named `TemplateHaskell` by parsing `configSettingsYml`
+into filepath `config/settings.yml`.
+Oh yeah, we can get `configSettingsYml` by importing `Yesod.Default.Config2`.
+Same with `configSettingsYmlValue`, it is a
 helper function that throws an `Exception` if we can't parse the file at `src/settings.yml`.
+
 
 Now, when you compile this project and run it, you will get an error about there's
 no file in `config/settings.yml`.
