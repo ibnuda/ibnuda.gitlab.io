@@ -14,7 +14,7 @@ Even though I practically have left social media, here they are.
 - Keybase: [ibnudaruaji](https://keybase.io/ibnudaruaji).
 - Twitter: [IbnuDAji](https://twitter.com/ibnudaji).
 - LinkedIn: [Ibnu Daru Aji](https://www.linkedin.com/in/ibnu-d-5337b6149/).
-- Mastodon: [Ibnu D. Aji](http://mastodon.pirateparty.be/@waterboard]
+- Mastodon: [Ibnu D. Aji](http://mastodon.pirateparty.be/@waterboard)
 
 ## Other Presences
 Perhaps you will randomly find me jesting around at:
