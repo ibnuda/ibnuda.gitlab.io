@@ -3,6 +3,7 @@ module Lib.Regenerate where
 
 import           Lib.Prelude                   hiding (div, head)
 
+import qualified CMark                         as CM
 import           Data.List                     (partition)
 import           Data.Maybe                    (fromJust)
 import qualified Data.Text                     as T
@@ -13,7 +14,6 @@ import           System.FilePath.Posix
 import qualified Text.Blaze.Html.Renderer.Text as BT
 import           Text.Blaze.Html5              as H hiding (map)
 import           Text.Blaze.Html5.Attributes   as A
-import           Text.Markdown
 
 import           Lib.Rewrite
 import           Lib.RSS
@@ -101,7 +101,7 @@ generateSingleHtml config@SiteInfo {..} Rawpost {..} = do
 
 contentMarkdownToHtml :: Text -> Html
 contentMarkdownToHtml md =
-  div ! class_ "content" $ markdown def . TL.fromStrict $ md
+  div ! class_ "content" $ preEscapedText $ CM.commonmarkToHtml [CM.optSafe] md
 
 generateSideMenu :: [Rawpost] -> Filename -> Html
 generateSideMenu rawpages feed = do

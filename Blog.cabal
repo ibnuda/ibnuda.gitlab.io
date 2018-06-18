@@ -26,7 +26,7 @@ library
                      , blaze-html
                      , directory
                      , filepath
-                     , markdown
+                     , cmark
                      , network-uri
                      , regex-compat
                      , text
