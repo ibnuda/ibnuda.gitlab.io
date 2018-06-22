@@ -49,5 +49,3 @@ Like this.
 ![alt text](images/ytbdlg-03.png "Finished")
 
 That's it. You can download any videos you want. As long as you download them at one of [these sites](https://rg3.github.io/youtube-dl/supportedsites.html). 
-
-For Nana.
