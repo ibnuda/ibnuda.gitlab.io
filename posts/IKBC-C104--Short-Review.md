@@ -141,3 +141,20 @@ Do I need happiness?
 
 Anyway, I will update this review in a few months.
 Perhaps in this article or perhaps write a new one.
+
+### Update on 2018-06-30
+
+My right `Ctrl` key is malfunctioning.
+Unlike the rest of the keys, whenever I press that button, it won't click.
+I can't really explain it but one thing for sure, that button sucks.
+
+The rest of the experience? Shit is really good, man!
+And whenever I use keyboard on the server, which is a normal rubberdome,
+I don't exactly feel comfortable.
+Especially the I don't have the tactile response from the keyboard.
+Just a minor complaint, the tactile response from this keyboard is not
+"strong" enough for me.
+All in all, it's really nice.
+
+That's it! I am planning to buy another mech. keyboard.
+Preferably the one with green switch!

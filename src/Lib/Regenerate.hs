@@ -129,7 +129,7 @@ layout SiteInfo {..} mymenu titlecontent htmlcontent =
       H.meta ! name "viewport" !
         content "width=device-width, initial-scale=1.0, user-scalable=yes"
       H.meta ! name "author" ! value (textValue siteinfoAuthor)
-      H.meta ! name "theme-color" ! content "#333"
+      H.meta ! name "theme-color" ! content "#2A2B2A"
       H.meta ! name "short_name" ! content "{} Unusual"
       H.meta ! name "description" !
         content (textValue (T.take 100 titlecontent))
@@ -165,7 +165,7 @@ js =
 
 css :: Text
 css =
-  "html{font-family:sans-serif;background-color:#eee}body{margin:0}footer," <>
+  "html{font-family:sans-serif;background-color:#e7e5df}body{margin:0}footer," <>
   "header,main,menu,nav,section,summary{display:block}b,strong{font-weight:700}" <>
   "h1{font-size:2em;margin:.67em 0}small{font-size:80%}img{border:0;width:100%}" <>
   "hr{box-sizing:content-box;height:0}code,kbd,pre{font-family:monospace;font-size:1em}" <>
@@ -182,17 +182,17 @@ css =
   "all .2s ease-out}#layout{position:relative;left:0;padding-left:0}#layout.active" <>
   " #menu{left:150px;width:150px}#layout.active .menu-link{left:150px}" <>
   ".content{margin:0 auto;padding:0 2em;max-width:800px;margin-bottom:50px;" <>
-  "line-height:1.6em}.header{margin:0;color:#333;text-align:center;padding:2.5em 2em 0}" <>
+  "line-height:1.6em}.header{margin:0;color:#2A2B2A;text-align:center;padding:2.5em 2em 0}" <>
   ".header h1{margin:.2em 0;font-size:3em;font-weight:300}#menu{height:calc(100%)" <>
   ";margin-left:-150px;width:150px;position:fixed;top:0;left:0;bottom:0;z-index:1000" <>
-  ";overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;background:#eee;" <>
-  "border-right:1px #000;flex-flow:column}#menu a{color:#333;border:0;padding:.6em 0" <>
+  ";overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;background:#e7e5df;" <>
+  "border-right:1px #000;flex-flow:column}#menu a{color:#2A2B2A;border:0;padding:.6em 0" <>
   " .6em .6em;display:flex}#menu .pure-menu{flex:0 1 auto}#menu .filler{flex:1 1 auto}" <>
-  "#menu .feed{flex:0 1 auto;display:block;background:#c26522;color:#fff;font-size:110%;" <>
+  "#menu .feed{flex:0 1 auto;display:block;background:#fe4a49;color:#fff;font-size:110%;" <>
   "text-transform:uppercase}#menu .pure-menu,#menu .pure-menu ul{border:0;background:" <>
   "transparent}#menu .pure-menu ul,#menu .pure-menu .menu-item-divided{border-top:1px" <>
-  " solid #333}#menu .pure-menu li a:hover,#menu .pure-menu li a:focus{background:#333;" <>
-  "color:#f2f2f2}#menu .pure-menu-heading{background:#333;color:#f2f2f2}#menu" <>
+  " solid #2A2B2A}#menu .pure-menu li a:hover,#menu .pure-menu li a:focus{background:#2A2B2A;" <>
+  "color:#f2f2f2}#menu .pure-menu-heading{background:#2A2B2A;color:#f2f2f2}#menu" <>
   " .pure-menu-heading{font-size:110%;color:#fff;margin:0}.menu-link{position:" <>
   "fixed;display:block;top:0;left:0;background:#000;background:rgba(0,0,0,0.7);" <>
   "font-size:12px;z-index:10;width:2em;height:auto;padding:2.1em 1.6em}.menu-link:" <>
