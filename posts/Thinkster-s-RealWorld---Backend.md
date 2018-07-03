@@ -198,7 +198,7 @@ ServerT ourapi CustomHandler
                -- ^ This one.
 ```
 To `servant`'s `Server`:
-``
+```
 `ServerT ourapi Handler
 ```
 
