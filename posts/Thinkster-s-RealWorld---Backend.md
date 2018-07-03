@@ -199,7 +199,7 @@ ServerT ourapi CustomHandler
 ```
 To `servant`'s `Server`:
 ```
-`ServerT ourapi Handler
+ServerT ourapi Handler
 ```
 
 ### Creating Custom Handler.
@@ -258,6 +258,12 @@ b. We get the reader transformer.
 c. Then `Handler` transform the result from point a.
 
 Current commit: [configuration and custom handler](https://gitlab.com/ibnuda/real-world-conduit/commit/5e1fa9322613570546a7658ef96cfb7eabce034f).
+
+## Building API
+Now it's time to build the server thing. 
+
+Current commit: [started to define the rest interface](https://gitlab.com/ibnuda/real-world-conduit/commit/9c4299b1d7a644129b111640f7e675e43d4efeff).
+
 ##### Note
 I use a lot of "feel" word when I write this because I'm pretty sure that when I do it,
 I haven't had a decent experience and/or knoweldge to back up the thing I do.
