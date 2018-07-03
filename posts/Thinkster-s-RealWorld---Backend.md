@@ -55,7 +55,88 @@ I, for one, am really forgetful person.
 I can hardly remember which is which, so I prefer to define those schemas first
 and let the compiler helps me recognise it.
 
+I've copied the route, json schemas, and stuff into the `readme.md` of this project
+so, it will shorten this article for a bunch.
 
+Basically, both the response and requests payloads look like the following:
+```
+{
+  "nameofpayloadkind": {
+    "fielda": "valuea",
+    "fieldb": "valueb"
+  }
+}
+
+```
+And that means we have to (or I want to, to be exact) make two records for a single request type.
+Example given:
+```
+{ "user":{ "email": "email@domain.tld", "password":"strong pass", "username": "emanresu" }}
+```
+Will be represented by:
+```
+data RequestRegistration = RequestRegistration
+  { reqregUser :: RequestRegistrationBody
+  } deriving (Generic)
+instance ToJSON RequestRegistration where
+  parseJSON = genericParseJSON (aesonPrefix camelCase)
+data RequestRegistrationBody = RequestRegistrationBody
+  { reqregbodyUsername :: Text
+  , reqregbodyEmail    :: Text
+  , reqregbodyPassword :: Text
+  } deriving (Generic)
+instance ToJSON RequestRegistrationBody where
+  parseJSON = genericParseJSON (aesonPrefix camelCase)
+```
+Above, those two records represent a single json schema (for `reqregister.json` in `readme.md`
+file).
+And please note that the parts from the field which started by capital letters are the
+fields which will be used for the json payload's fiels.
+There are also `deriving (Generic)`s because we will not write our own parse rules for json
+(de)serialisations.
+
+Current commit status: [types](https://gitlab.com/ibnuda/real-world-conduit/commit/d708fd2aa9c6e04ddc50beb733225274288794c4).
+
+### Database Representation.
+
+I have decided how the database modeling looks like for this project.
+I don't know how normalised it is, but I'm pretty sure Mrs. Dyah will not be
+disappointed by it.
+You can read see the tables on [note on joins](https://siskam.link/2018-07-01-note-on-joins.html).
+Although I omitted two tables there (`follows` and `comment`), I will make it up by showing
+`persistent`'s database model thingy.
+```
+share [ mkPersist sqlSettings , mkDeleteCascade sqlSettings , mkMigrate "migrateEverything" ] [ persistLowerCase|
+    Follow sql=follows
+      followerId UserId
+      authorId UserId
+      UniqueFollowerAuthor followerId authorId
+      deriving Generic
+    Comment sql=comments
+      body Text
+      createdAt UTCTime
+      updatedAt UTCTime Maybe
+      articleId ArticleId
+      userId Userid
+      deriving Generic
+  ]
+
+instance ToJSON User where
+  toJSON = genericToJSON (aesonPrefix camelCase)
+instance FromJSON User where
+  parseJSON = genericParseJSON (aesonPrefix camelCase)
+instance ToJWT User
+instance FromJWT User
+```
+I guess that the intentions for that `share` block is pretty clear for it represents
+`follows` and `comments` tables at the database.
+But why did I create `ToJSON` and `FromJSON` instances when I can do that in the `share`
+block previously?
+Pretty much the same reasons why I did that at the previous section.
+And why did I also create `ToJWT` and `FromJWT` for `User`?
+That because we are going to use JWT for auth in this project.
+
+Current commit: [persistent model](https://gitlab.com/ibnuda/real-world-conduit/commit/0a14c4f30e5724edf6d9801696972faf44d96e39).
 
 ##### Note
 I use a lot of "feel" word when I write this because I'm pretty sure that when I do it,
