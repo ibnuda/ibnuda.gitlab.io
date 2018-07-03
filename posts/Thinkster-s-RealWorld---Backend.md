@@ -257,6 +257,7 @@ b. We get the reader transformer.
    (or "extractor function")
 c. Then `Handler` transform the result from point a.
 
+Current commit: [configuration and custom handler](https://gitlab.com/ibnuda/real-world-conduit/commit/5e1fa9322613570546a7658ef96cfb7eabce034f).
 ##### Note
 I use a lot of "feel" word when I write this because I'm pretty sure that when I do it,
 I haven't had a decent experience and/or knoweldge to back up the thing I do.
