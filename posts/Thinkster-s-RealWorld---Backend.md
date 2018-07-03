@@ -143,7 +143,7 @@ That because we are going to use JWT for auth in this project.
 
 Current commit: [persistent model](https://gitlab.com/ibnuda/real-world-conduit/commit/0a14c4f30e5724edf6d9801696972faf44d96e39).
 
-## `Handler`, `ReaderT`, and `AppT`.
+## `Handler`, `ReaderT`, `CoachT`, and `ServerT`.
 I actually don't really like talking about types a lot.
 But, in this case, I think that `servant`'s `Handler` doesn't really have the
 capabilities we want.
@@ -387,9 +387,47 @@ running = do
 3. Migration, using our recently created pool.
 4. Using the proxy, context config, and our server, we run it at port 8080.
 
-That's it, folks!!!
+That's it, folks!
+You can try to run it inside of your `ghci` and head to [http://localhost:8080/api/user](http://localhost:8080/api/user)!
+It will show you something really nice there!
 
 Current commit: [started to define the rest interface](https://gitlab.com/ibnuda/real-world-conduit/commit/9c4299b1d7a644129b111640f7e675e43d4efeff).
+
+### Finishing REST Interface definitions.
+
+I won't write too much because basically what I did here is the same as the 
+previous section.
+
+Current commit: [finished api definitions and uses RealWorld.hs instead of Lib.hs as the entry point](https://gitlab.com/ibnuda/real-world-conduit/commit/9f983d89207d6ec1cd381dfe9188edea4a5ddc92).
+
+## Building `Coach`es.
+
+Yeah, we are going to create our modified `Handler`s (`Coach`) here.
+To remind you, `Handler` is where we process the requests and perhaps return the
+response.
+For example, the simplest server in this project, `tagServer`, only has a single
+`Handler` which returns `ResponseTags` in form of json when there's a request coming
+to `/api/tags`.
+
+But, first thing first.
+We should create `yesod-devel` thing first.
+
+### Copying `DevelMain`.
+It's an optional step, actually.
+I just like it soo much.
+
+Don't worry too much about it.
+All I did was copying `DevelMain` from `app/` directory from `yesod-postgresql`
+template and then modify it a bit.
+
+Don't forget to create a `Makefile` or an alias command that contains:
+```
+ghcid --command "stack ghci real-world-conduit" --test "DevelMain.update"
+```
+Hereon, whenever you change your code, you will see the result in real time.
+That's nice, no?
+
+Commit: [added ghcid](https://gitlab.com/ibnuda/real-world-conduit/commit/89a2798c64a18e6f3500de886000b16f47c3de23).
 
 ##### Note
 I use a lot of "feel" word when I write this because I'm pretty sure that when I do it,
