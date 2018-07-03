@@ -17,6 +17,10 @@ fully functional.
 But, it doesn't feel right if I don't write it up.
 So, here we go again.
 
+Oh, by the way, perhaps you want to read my previous post about
+[authorization in servant](2017-11-03-authorization-in-servant.html) where I rambled
+too much about servant previously.
+
 ## Prep
 As stated previously, in this article I will use:
 - [servant](https://hackage.haskell.org/package/servant)
@@ -139,7 +143,7 @@ That because we are going to use JWT for auth in this project.
 
 Current commit: [persistent model](https://gitlab.com/ibnuda/real-world-conduit/commit/0a14c4f30e5724edf6d9801696972faf44d96e39).
 
-## `Handler`, `ReaderT`, and `AppT`, 
+## `Handler`, `ReaderT`, and `AppT`.
 I actually don't really like talking about types a lot.
 But, in this case, I think that `servant`'s `Handler` doesn't really have the
 capabilities we want.
@@ -172,15 +176,7 @@ Here's `Handler`'s signature:
 ```
 newtype Handler a = Handler
   { runHandler' :: ExceptT ServantErr IO a
-  } deriving ( Functor
-             , Applicative
-             , Monad
-             , MonadIO
-             , Generic
-             , MonadError ServantErr
-             , MonadThrow
-             , MonadCatch
-             )
+  } deriving (Functor, Applicative, Monad, MonadIO, Generic, MonadError ServantErr, MonadThrow, MonadCatch)
 ```
 As you can see, there's no `MonadReader` instance there.
 Sure, we can create our own `MonadReader` instantiation but I'm afraid things will
@@ -220,19 +216,14 @@ I couldn't think any other data that should be carried over.
 
 The next step is creating our custom `Handler` and we will be calling
 it as `Coach`.
+That's what I got from asking DuckDuckGo, by the way.
 
 ![alt text](images/handlersynonym.png "Handler synonym.")
 
 ```
 newtype CoachT m a = CoachT
   { runCoach :: ReaderT Configuration (ExceptT ServantErr m) a
-  } deriving ( Functor
-             , Applicative
-             , Monad
-             , MonadReader Configuration
-             , MonadError ServantErr
-             , MonadIO
-             )
+  } deriving (Functor, Applicative, Monad, MonadReader Configuration, MonadError ServantErr, MonadIO)
 type Coach = CoachT IO
 ```
 Please note that the main difference between `runHandler'` and `runCoach`
@@ -251,16 +242,152 @@ coachToHandler conf coach = Handler (runReaderT (runCoach coach) conf)
                                                   -- + b
 ```
 A little explanation why did we what we did:
-a. We extract `ExceptT ServantErr m` so it can be transformed to `Handler`.
+
+1. We extract `ExceptT ServantErr m` so it can be transformed to `Handler`.
    (or "extractor runner function").
-b. We get the reader transformer.
+2. We get the reader transformer.
    (or "extractor function")
-c. Then `Handler` transform the result from point a.
+3. Then `Handler` transform the result from point a.
 
 Current commit: [configuration and custom handler](https://gitlab.com/ibnuda/real-world-conduit/commit/5e1fa9322613570546a7658ef96cfb7eabce034f).
 
-## Building API
-Now it's time to build the server thing. 
+## Building the Interface.
+
+After the preparation is complete, we can now start building the server.
+We can start by defining the main api as the following
+```
+-- Don't forget to use DataKinds extensions and friends.
+type ConduitAPI auth =
+  "api" :> (Servant.Auth.Server.Auth auth User :> UserInformationAPI)
+  :<|> "api" :> UserAdministrationAPI
+  :<|> Raw
+```
+Here, we defined that in path `/api/{path/defined/by/UserInformationAPI}` is
+being guarded by authorization while `api/{path/defined/by/UserAdministrationAPI}`
+is not.
+
+I guess it's the right time to create the `UserInformationAPI`
+
+### Creating `UserInformationAPI` and `UserAdministrationAPI`
+
+Next, we should define `UserInformationAPI` in `API/User.hs`.
+```
+type UserInformationAPI =
+  "user" :> Get '[ JSON] ResponseUser
+  :<|> "user" :> ReqBody '[ JSON] RequestUpdateUser :> Put '[ JSON] ResponseUser
+type UserAdministrationAPI =
+  "users" :> ReqBody '[ JSON] RequestRegistration :> Post '[ JSON] ResponseUser
+  :<|> "users" :> "login" :> ReqBody '[ JSON] RequestLogin :> Post '[ JSON] ResponseUser
+```
+Basically, path `/user`, accepts `GET` request and will give `ResponseUser` as
+the reply.
+Not only that, `/user` will also accept `PUT` request with the payload of `RequestUpdateUser`.
+So yeah, basically those two defined route point at the same route but accepting
+different kind of request.
+As for the reason, I dislike definition like the following:
+```
+type UserInformationAPI =
+  "user" :>
+    ( Get '[ JSON] ResponseUser
+    :<|> ReqBody '[ JSON] RequestUpdateUser :> Put '[ JSON] ResponseUser)
+```
+Yes, the former and the latter are basically the same.
+But it feels so wrong putting it like that.
+
+After defining the route and/or api, we should create the something that makes them
+usable.
+In this case, we should create `ServerT` which reads `UserAdministrationAPI` and
+`UserInformationAPI` as its route and will use `CoachT IO` as its `Handler` replacement.
+Why do we do that?
+Remember, folks. `Handler` has no `MonadReader Configuration` while we are going
+to use that `Configuration` a lot because of we need to talk to the database.
+
+```
+userInformationApi :: MonadIO m => AuthResult User -> ServerT UserAdministrationAPI (CoachT m)
+userInformationApi authres = panic ""
+
+userAdministrationApi :: MonadIO m => AuthResult User -> ServerT UserAdministrationAPI (CoachT m)
+userAdministrationApi authres = panic ""
+
+userInformationProxy :: Proxy UserInformationAPI
+userInformationProxy = Proxy
+
+userAdministrationProxy :: Proxy UserAdministrationAPI
+userAdministrationProxy = Proxy
+```
+Don't ask me why I should define `userInformationProxy` and `userAdministrationProxy`
+which basically just `Proxy` in disguise?
+I don't really know.
+But my gut feeling tells me that I really need it so `hoistServer` will be able
+to make a `ServerT OurAPI Handler` from `ServerT OurAPI Coach`.
+
+And the reason why I decided to put `panic ""` at `userInformationApi` and
+`userAdministrationApi` because we will revisit it later when all of the REST interface
+has been written.
+For now, we have to make it compile first.
+
+Okay, no we have to transform our `userInformationApi` to `Server UserAdministrationAPI`.
+```
+userAdministrationServer :: Configuration -> Server UserAdministrationAPI
+userAdministrationServer configuration =
+  hoistServer
+    userAdministrationProxy
+    (coachToHandler configuration)
+    userAdministrationApi
+userInformationServer :: Configuration -> AuthResult User -> Server UserInformationAPI
+userInformationServer configuration authres =
+  hoistServer
+    userAdministrationProxy
+    (coachToHandler configuration)
+    (userInformationApi authres)
+```
+There's a difference when it comes to the parameter.
+If you look at the `ConduitAPI` definition above, there's a type definition that
+preceded by `Servant.Auth.Server.Auth auth`.
+That what makes `userInformationApi` receives one extra parameter compared to
+`userAdministrationApi`.
+
+### Make It Run!
+
+Now, we are editing `RealWorld.hs` again.
+Here, we should create a `Server` from `ConduitAPI` so it can be run
+and make some helper functions so it has the capabilities like what `yesod --devel`
+has.
+
+```
+conduitProxy :: Proxy ConduitAPI
+conduitProxy = Proxy
+
+conduitServer :: Configuration -> Server (ConduitAPI auth)
+conduitServer conf =
+  userInformationServer conf
+  :<|> userAdministrationServer conf
+  :<|> serveDirectoryFileServer "front"
+```
+Unlike what we wrote in `userAdministrationApi` which return an error, here we
+combine `Server UserAdministrationAPI`, `Server UserInformationAPI`, and `Server Raw`
+using this cute fish combinator `:<|>`.
+
+And now it's the main part time, letting it run!
+
+```
+running :: IO ()
+running = do
+  jwk <- generateKey -- [1]
+  pool <- runStderrLoggingT (createPostgresqlPool connstring 10) -- [2]
+  let jws = defaultJWKSettings jwk
+      cfg = defaultCookieSettings :. jws :. EmptyContext
+      conf = Configuration pool jws
+  runSqlPool doMigration pool -- [3]
+  run 8080 (serveWithContext conduitProxy cfg (conduitServer conf)) -- [4]
+```
+
+1. Standard JWK generation.
+2. Database pool creation.
+3. Migration, using our recently created pool.
+4. Using the proxy, context config, and our server, we run it at port 8080.
+
+That's it, folks!!!
 
 Current commit: [started to define the rest interface](https://gitlab.com/ibnuda/real-world-conduit/commit/9c4299b1d7a644129b111640f7e675e43d4efeff).
 
