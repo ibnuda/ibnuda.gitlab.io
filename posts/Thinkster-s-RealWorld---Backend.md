@@ -632,8 +632,14 @@ as well.
 While the last step, it's just standard return.
 Nothing to worry here.
 
-Okay, now you can try to login using that `curl` or some other fancy tools to
-[login path](http://localhost:8080/api/users/login).
+Of course you should also modify `userAdministrationApi` so it will look like the
+following:
+```
+userAdministrationApi = postRegistrationCoach :<|> postLoginCoach
+```
+
+Okay, now you can try to login using `curl` or some other fancy tools to send
+some request to [login path](http://localhost:8080/api/users/login).
 
 PS: I was wrong for saying "conflicting resource == 422" at the first part of
 this section.
@@ -641,6 +647,117 @@ The correct one should be 409.
 
 Our status: [Finished creating `postLoginCoach` and fixing error code](https://gitlab.com/ibnuda/real-world-conduit/commit/26c42523d92e6f7f95487369a22afdb581eda0a9)
 
-##### Note
-I use a lot of "feel" word when I write this because I'm pretty sure that when I do it,
-I haven't had a decent experience and/or knoweldge to back up the thing I do.
+### Building `Coach`es for `userInformationServer`.
+This server is consisted from two handler.
+The first one, is where we get our current user's information which could also
+be used to renew their JWT.
+The second one is where we update our user's information.
+
+#### Building `getUserInformationCoach`.
+To be really honest, this part is practically a token renewal route.
+We only re-generate the token and then return it.
+But, only requests with valid JWT which can be processed.
+
+```
+getUserInformationCoach (Authenticated user) = do
+  token <- generateToken user
+  return $ UserResponse $ UserResponseBody (userEmail user) (Just token) (userUsername user) (userBio user) (userImage user)
+```
+Yeah, that's it.
+Just token generation and return it.
+
+#### Building `putUserInformationCoach`.
+Well, this one is a bit cumbersome, I guess.
+There are a few thing that should be considered.
+
+1. A user could not update their username and/or email as the same username and/or email
+   of the other users.
+2. When a user does that, I think error 409 is the correct response for them.
+3. When a user tries to update his username and/or email with his old username and/or email,
+   the server should ignore it.
+
+After those considerations, the next step is getting their new information which
+could be accomplished by fetching it from the database.
+But, how would we know which email should be used in case of that user decided
+to change it and the previous step approved the decision?
+Well, hold my beer. (and please endure this round-trip and shitty code)
+
+```
+putUserInformationCoach (Authenticated user) (RequestUpdateUser requpdate) = do
+  let newUsernameEmail old (Just x) = if x == old then Nothing else Just x
+      newUsernameEmail old Nothing = Nothing
+      -- ^ [1]
+      perhapsnewusername = newUsernameEmail (userUsername user) (requpdtuserbodyUsername requpdate)
+      -- ^ [2]
+      perhapsnewemail    = newUsernameEmail (useremail    user) (requpdtuserbodyemail    requpdate)
+      -- ^ [2]
+  existings <- runDb $ selectUserByMaybeUsernameEmail perhapsnewusername perhapsnewemail
+                      -- ^ [3]
+  unless (null existings) $ throwError err409 {errBody = "Already used."}
+  runDb $
+    updateUser -- [4]
+      (userUsername username)
+      (requpdtuserbodyEmail requpdate)
+      (requpdtuserbodyUsername requpdate)
+      (requpdtuserbodyPassword requpdate)
+      (requpdtuserbodyImage requpdate)
+      (requpdtuserbodyBio requpdate)
+  (Just (Entity _ u)) <-
+  -- ^ [5!!!!]
+    runDb $ getBy $ UniqueEmail $ fromMaybe (userEmail user) perhapsnewemail
+  token <- generateToken u
+  return $ UserResponse $ UserResponseBody (userEmail u) (Just token) (userUsername u) (userBio u) (userImage u)
+```
+Do you see this shitshow? I do.
+
+1. This function complies with the consideration number 3 above.
+2. It could be our new username and/or email, I guess?
+   As long as we believe the result of the previous point.
+3. It's another query, which look like the following:
+```
+selectUserByMaybeUsernameEmail musername memail = do
+  select $ from $ \user -> do
+    where_ (whereBuilderOr musername user UserUsername
+            ||. whereBuilderOr memail user UserEmail)
+    return user
+  where
+    whereBuilderOr Nothing _ _ = val False
+    whereBuilderOr (Just x) entity accessor = entity ^. accessor ==. val x
+```
+   There's nothing interesting with the query itself which basically translated to
+   ```
+   select * from users where username = ? or email = ?;
+   ```
+   when both of the `memail` and `musername` are not `Nothing` but it will become
+   ```
+   select * from users where username = ? or false;
+   ```
+   when `memail` is `Nothing`.
+
+4. This one. This query is pretty ugly.
+```
+updateUser username memail musername mpassword mimage mbio = do
+  mpassword' <- liftIO $ mapM generatePassword mpassword
+  update $ \user -> do
+    set user [ updateByMaybe memail user UserEmail
+             , updateByMaybe musername user UserUsername
+             , updateByMaybe mpassword' user UserPassword
+             , UserImage =. val mimage
+             , UserBio =. val mbio
+             ]
+    where_ (user ^. UserUsername ==. val username)
+  where
+    updateByMaybe (Just x) _ accessor = accessor =. val x
+    updateByMaybe Nothing entity accessor = accessor =. entity ^. accessor
+```
+   You see this thing? That `updateByMaybe`?  When there's nothing to update, we
+   just overwrite the old value with the old value itself.
+   I don't know man.
+   But if it is the best thing I could come up with, I guess I'm still a stupid kid.
+
+5. Yes, you see that right? Basically we are ignoring the safety of Haskal's `Maybe`
+   by casting it straight to `Just`.
+And the rest is exactly the same with `getUserInformationCoach`.
+
+Where we are? [finished putUserInformationCoach](https://gitlab.com/ibnuda/real-world-conduit/commit/16197c86ca317f57871d650e0785d31963bb17a2)
+
