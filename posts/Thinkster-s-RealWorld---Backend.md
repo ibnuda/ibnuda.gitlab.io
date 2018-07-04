@@ -44,7 +44,7 @@ like in the commit.
 There are a few dependencies that I feel I should give you some explanations:
 - `aeson-casing`: I really like this package.
 - `bcrypt`: I guess it's a common wisdom to never store your password in a plaintext.
-- `foreeign-store`: I really like Yesod's scaffold's `yesod-devel` thingy. Really nice, if you ask me.
+- `foreign-store`: I really like Yesod's scaffold's `yesod-devel` thingy. Really nice, if you ask me.
   And to have that feature, the `DevelMain.hs` imports `Foreign.Store`.
 - `monad-logger`: `persistent` asks an access to logger whenever it executes a query.
 - `regex-compat`: because I don't like capital letters and special characters.
@@ -184,10 +184,6 @@ go out of hands real fast.
 
 Fortunately, there's a helper function from `servant-server` to "transform" from a
 `ServerT api m` to `ServerT api n`.
-And in this case, that function, `hoistServer`, will transform our `CustomServer`
-into `Server`.
-Which ultimately, `Server` is the one which will be `run` after being transformed
-into `wai`'s `Application`.
 From our `CustomServer`:
 ```
 ServerT ourapi CustomHandler
@@ -197,6 +193,10 @@ To `servant`'s `Server`:
 ```
 ServerT ourapi Handler
 ```
+And in this case, that function, `hoistServer`, will transform our `CustomServer`
+into `Server`.
+Which ultimately, `Server` is the one which will be `run` after being transformed
+into `wai`'s `Application`.
 
 ### Creating Custom Handler.
 Remember that we are going to create a custom handler just because we can't hold
@@ -262,9 +262,13 @@ type ConduitAPI auth =
   :<|> "api" :> UserAdministrationAPI
   :<|> Raw
 ```
-Here, we defined that in path `/api/{path/defined/by/UserInformationAPI}` is
-being guarded by authorization while `api/{path/defined/by/UserAdministrationAPI}`
+Here, we defined that in path `/api/{path/by/UserInformationAPI}` is
+being guarded by authorization while `api/{path/by/UserAdministrationAPI}`
 is not.
+Compared a while ago when I used `Servant.Experimental.Auth`,
+`servant-auth` is much nicer.
+All I do is just putting `Auth auth entity` preceding the API type
+I want to protect.
 
 I guess it's the right time to create the `UserInformationAPI`
 
@@ -326,7 +330,7 @@ And the reason why I decided to put `panic ""` at `userInformationApi` and
 has been written.
 For now, we have to make it compile first.
 
-Okay, no we have to transform our `userInformationApi` to `Server UserAdministrationAPI`.
+Okay, now we have to transform our `userInformationApi` to `Server UserAdministrationAPI`.
 ```
 userAdministrationServer :: Configuration -> Server UserAdministrationAPI
 userAdministrationServer configuration =
@@ -347,7 +351,7 @@ preceded by `Servant.Auth.Server.Auth auth`.
 That what makes `userInformationApi` receives one extra parameter compared to
 `userAdministrationApi`.
 
-### Make It Run!
+### Making It Run!
 
 Now, we are editing `RealWorld.hs` again.
 Here, we should create a `Server` from `ConduitAPI` so it can be run
@@ -355,7 +359,7 @@ and make some helper functions so it has the capabilities like what `yesod --dev
 has.
 
 ```
-conduitProxy :: Proxy ConduitAPI
+conduitProxy :: Proxy (ConduitAPI '[ JWT])
 conduitProxy = Proxy
 
 conduitServer :: Configuration -> Server (ConduitAPI auth)
@@ -367,6 +371,9 @@ conduitServer conf =
 Unlike what we wrote in `userAdministrationApi` which return an error, here we
 combine `Server UserAdministrationAPI`, `Server UserInformationAPI`, and `Server Raw`
 using this cute fish combinator `:<|>`.
+It's worth nothing that `ConduitAPI` which being used as `conduitProxy`'s
+parameter has `'[ JWT]` as its own parameter.
+It signifies that we are using JWT as our main means of authorisation.
 
 And now it's the main part time, letting it run!
 
@@ -404,7 +411,7 @@ Current commit: [finished api definitions and uses RealWorld.hs instead of Lib.h
 
 Yeah, we are going to create our modified `Handler`s (`Coach`) here.
 To remind you, `Handler` is where we process the requests and perhaps return the
-response.
+desired response.
 For example, the simplest server in this project, `tagServer`, only has a single
 `Handler` which returns `ResponseTags` in form of json when there's a request coming
 to `/api/tags`.
@@ -428,6 +435,56 @@ Hereon, whenever you change your code, you will see the result in real time.
 That's nice, no?
 
 Commit: [added ghcid](https://gitlab.com/ibnuda/real-world-conduit/commit/89a2798c64a18e6f3500de886000b16f47c3de23).
+
+### Building `Coach` for `tagsApi`.
+We create it first because `tagsApi` basically just serving a single
+simple `GET` request.
+Not only that, it also doesn't need an authentication so it could be a perfect
+example.
+
+First, we should create a directory named `Coach` in `src` directory.
+And then create a file named `Tags.hs` and fill it with
+```
+getTagsCoach :: MonadIO m => CoachT m ResponseTags
+getTagsCoach = 
+  tags <- fromdb -- owo whats dis?
+  return $ tagsToResponse tags
+  where
+    tagsToResponse xs = ResponseTags $ map (tagName . entityVal) xs
+```
+The code above basically just queries the database and then transform
+the fetched rows into a `ResponseTags`.
+Also, please note the signature of the function above.
+We are not using `Handler ResponseTags` like we usually do in `servant`
+scaffolded template.
+
+Oh, we still don't have any ways to talk to the database.
+Better fix that now.
+Let's create a file named `Tags.hs` (yeah, I'm not a creative dudu)
+in `Que` folder.
+And put standard esqueleto query.
+```
+selectTags = do
+  select $ from $ \tag -> do
+    orderBy [asc (tag ^. TagName)]
+    return tag
+```
+And then create a query runner inside of `Model.hs`
+```
+runDb :: (MonadReader Configuration m, MonadIO m) => SqlPersistT IO b -> m b
+runDb q = do
+  pool <- asks configurationPool
+  liftIO $ runSqlPool q pool
+```
+
+And then followed by replacing a line in `Que.Tags` module, from `tags <- fromdb`
+with `tags <- runDb selectTags`.
+Furthermore, you should also replace a line in `API.Tags` module from `panic ""`
+to `getTagsCoach`
+
+Finally, run it and head to [our recently defined rest interface](http://localhost:8080/api/tags)!!ELEVEN1!
+
+Current situation: [finished /api/tags coach](https://gitlab.com/ibnuda/real-world-conduit/commit/53c9063e85be867062d4e9927b89e8134084bc21).
 
 ##### Note
 I use a lot of "feel" word when I write this because I'm pretty sure that when I do it,

@@ -14,3 +14,7 @@ and something like `git` but for any data for blockchain.
 I know, I know, you will say what I write here is wrong and I'm a retard.
 I just don't want to write something too technical for this bullshit.
 
+Articles on the Enterweb:
+
+- [No, you don't need ML/AI. You need SQL](https://cyberomin.github.io/startup/2018/07/01/sql-ml-ai.html)
+- [Lobste.rs discussion](https://lobste.rs/s/s2mqaf/no_you_don_t_need_ml_ai_you_need_sql)
