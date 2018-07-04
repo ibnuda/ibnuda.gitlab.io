@@ -574,6 +574,73 @@ One thing, though.
 There's a helper function which throws error on, well, error.
 
 Current situation: [finished postRegistrationCoach](https://gitlab.com/ibnuda/real-world-conduit/commit/4ed12b16a43cd5eff5c42e6a4687c814d2c4c754).
+
+The next part is creating `Coach` for the second part of `userAdministrationApi`
+which is handler for post request for login.
+Let's create that.
+
+```
+postLoginCoach (RequestLogin (RequestLoginBody email password)) = do
+  checkingExistenceOfEmail -- [1]
+  validatingPassword -- [2]
+  generatingToken -- [3]
+  returningResponse -- [4]
+```
+The step of authenticating user is like the step above, I guess.
+At the first step, we should return a 404 error when there's no user who use that
+email.
+At the second step, we should return a 401 error when the provided password cannot
+be verified using the existing hashed password.
+While the third and fourth step is basically the same as the previous handler,
+generating token andn returning response.
+
+Let's create the first step.
+But, don't forget that we have made `email` field in the database as a `UNIQUE`
+field in the database, we can easily use that.
+```
+postLoginCoach .... =  
+  (Entity uid user) <- notFoundIfNothing =<< runDb (getBy (UniqueEmail email))
+  ... 
+
+where
+  notFound Nothing = throwError $ err404 { errBody = "No such thing." }
+  notFound (Just x) = return x
+```
+Pretty simple actually.
+And I'm still looking for the function name of `bind` function which is not an
+operator (`>>=` and/or `=<<`).
+
+And for validating password, we can use `unless`.
+```
+unless
+  (validatePassword
+    ((pack . unpack) (userPassword user))
+    ((pack . unpack) (password user)) $
+  throwError err401 { errBody = "No such thing." }
+```
+This part is pretty simple actually, `unless` the result of `validatePassword`
+is `False`, we would not throw a 401 error.
+Which basically the password is correct.
+Also, please not that that `pack` above is from `Data.ByteString.Char8` while `unpack`
+is from `Data.Text`.
+Why? Because `validatePassword` receives `ByteString` while our `password`s are
+`Text`.
+
+For the third and fourth step, I guess we can just shift `generateToken` and
+`eitherToCoach` a bit left so those functions can be reached from other functinos
+as well.
+While the last step, it's just standard return.
+Nothing to worry here.
+
+Okay, now you can try to login using that `curl` or some other fancy tools to
+[login path](http://localhost:8080/api/users/login).
+
+PS: I was wrong for saying "conflicting resource == 422" at the first part of
+this section.
+The correct one should be 409.
+
+Our status: [Finished creating `postLoginCoach` and fixing error code](https://gitlab.com/ibnuda/real-world-conduit/commit/26c42523d92e6f7f95487369a22afdb581eda0a9)
+
 ##### Note
 I use a lot of "feel" word when I write this because I'm pretty sure that when I do it,
 I haven't had a decent experience and/or knoweldge to back up the thing I do.
