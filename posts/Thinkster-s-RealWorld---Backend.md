@@ -436,7 +436,7 @@ That's nice, no?
 
 Commit: [added ghcid](https://gitlab.com/ibnuda/real-world-conduit/commit/89a2798c64a18e6f3500de886000b16f47c3de23).
 
-### Building `Coach` for `tagsApi`.
+### Building `Coach` for `tagsServer`.
 We create it first because `tagsApi` basically just serving a single
 simple `GET` request.
 Not only that, it also doesn't need an authentication so it could be a perfect
@@ -486,6 +486,94 @@ Finally, run it and head to [our recently defined rest interface](http://localho
 
 Current situation: [finished /api/tags coach](https://gitlab.com/ibnuda/real-world-conduit/commit/53c9063e85be867062d4e9927b89e8134084bc21).
 
+### Building `Coach`es for `userAdministrationServer`.
+Another server which doesn't need an authentication is `userAdministrationServer`.
+Not only that, it is also the one which being used to register and login.
+So, it's perfect for us to continue this activity.
+
+First, we should create the coach for user registration.
+Of course we are going to create a file in the `Coach` directory first and put
+a file named `Users.hs` there.
+
+Of course, there are a few things that should be considered when a registration request
+comes (simplified too much).
+
+1. What should the server send when it has complied to the request?
+2. What should the server send when it couldn't comply to the request?
+3. What should be considered when the server want to process the request?
+
+In the RealWorld's [api spec.](https://github.com/gothinkster/realworld/tree/master/api),
+there's no clear cut answere.
+So, let's do whatever we see fit.
+
+1. As defined in the `Model.hs`, there could only be one for each username
+   and email.
+2. So, when a request comes with conflicting username and/or email,
+   we should return a 422 error status.
+3. When the request comes with non-conflicting username and email,
+   we should process them and returns 200 ok status.
+   (Although I'm not sure if 200 is the correct one, because there's a created
+   request, and 201 is the correct one about it.
+
+Now, let's write it out.
+```
+postRegistrationCoach (RequestRegistration reqreg) = do
+  uniqueenough <- checkingUsernameEmail reqreg
+  hashedpass <- hashingpass
+  userentity <- insertingUserEntity reqreg
+  createuserresponse
+  return userresponse
+```
+There are at least 4 steps that need to be done.
+Okay, let's start by creating a function that checks username and email which
+returns 422 when the request is not unique enough.
+```
+usernameEmailDoNotConflict username email = do
+  existings <- runDb (selectUsernameEmail username email) -- [1]
+  case existings of
+    [] -> return ()
+    _  -> throwError err422
+```
+where the function that being referred as `[1]` is just a standard esqueleto select
+which equivalent to `select * from users where username = ? or email = ?;`.
+
+The next step is hashing the password in case of the request is unique enough.
+Although I feel that hashing the password first is better than checking the
+username and password first in term of limiting the database query, I've already
+written the previous paragraph.
+So yeah, I made mistakes.
+
+The next part of that hashing the password itself.
+```
+generatePassword password = do
+  mpass <- hashPasswordUsingPolicy slowerBcryptHashingPolicy (Char8.pack $ Text.unpack password)
+  case mpass of
+    Nothing -> generatePassword password
+    Just pa -> return pa
+```
+Which basically keep repeating the hash until the host os generating enough entropy
+or something like that so whatever happens, it will return a hashed password.
+But, I don't really know about that, actually.
+Check it out yourself [BCrypt.Crypto](https://www.stackage.org/haddock/lts-11.15/bcrypt-0.0.11/src/Crypto.BCrypt.html), man!
+
+Following that, we are going to create the JWT which will be used for auth in the future
+incoming request by this request.
+Well, whatever, you know what I mean, I'm sure.
+
+```
+generateToken user = do
+  jws <- asks configurationJWTSettings
+  etoken <- liftIO $ makeJWT user jws Nothing
+  token <- eitherToCoach etoken (decodeUtf8 . BL.toStrict) err500
+  return token
+eitherToCoach (Left x) _ onFail = throwError $ onFail {errBody = show x}
+eitherToCoach (Right v) onSuccess _ = return $ onSuccess v
+```
+`generateToken` above just creates the token which basically will never expires.
+One thing, though.
+There's a helper function which throws error on, well, error.
+
+Current situation: [finished postRegistrationCoach](https://gitlab.com/ibnuda/real-world-conduit/commit/4ed12b16a43cd5eff5c42e6a4687c814d2c4c754).
 ##### Note
 I use a lot of "feel" word when I write this because I'm pretty sure that when I do it,
 I haven't had a decent experience and/or knoweldge to back up the thing I do.
