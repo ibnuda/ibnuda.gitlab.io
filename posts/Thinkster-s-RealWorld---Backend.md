@@ -105,7 +105,7 @@ Current commit status: [types](https://gitlab.com/ibnuda/real-world-conduit/comm
 ## Database Representation.
 
 I have decided how the database modeling looks like for this project.
-I don't know how normalised it is, but I'm pretty sure Mrs. Dyah will not be
+I don't know how normalised it is, but I'm pretty sure Mrs. Dian will not be
 disappointed by it.
 You can read see the tables on [note on joins](https://siskam.link/2018-07-01-note-on-joins.html).
 Although I omitted two tables there (`follows` and `comment`), I will make it up by showing
@@ -939,7 +939,6 @@ deleteFollows username profilename = do
     where_ $ exists $ from $ \(user, profile) -> do
       where_ (user ^. UserUsername ==. val username)
       where_ (profile ^. UserUsername ==. val profilename)
-
 ```
 
 Current situation: [finished post and deleteUserFollowCoach](https://gitlab.com/ibnuda/real-world-conduit/commit/60e8186fa5112eb755b5458ba4de861a839372d2).
@@ -947,3 +946,90 @@ Current situation: [finished post and deleteUserFollowCoach](https://gitlab.com/
 But, I should have [checked user's existence first](https://gitlab.com/ibnuda/real-world-conduit/commit/5927df2eddecd7d4ae34adc422497feb075f642f).
 
 [Alright, trying to be smart doesn't work](https://gitlab.com/ibnuda/real-world-conduit/commit/ad4f1e1fba290855d4d37fa4481681c47fd1b757).
+
+### Building `Coach`es for `articleApi`.
+You know what? When I wrote my first try of this project's implementation, I
+found out that there are three routes (or handlers) that can use the same query!
+Although it will not look ["Haskal-ly" and much more "Lisp-y"](https://chrisdone.com/posts/haskell-lisp-philosophy-difference),
+I think I can live with it.
+You can read about that query in [note on join](2018-07-01-note-on-joins.html)
+which I really suggest you to skim them.
+
+The previous three routes are:
+
+- `getArticlesCoach` which serve `/api/articles/`.
+- `getArticlesFeedCoach` which serve `/api/articles/feed`.
+- `getArticleSlugCoach` which serve `/api/articles/:slug`.
+
+Let's build them.
+
+```
+getArticlesCoach authres mtag mauthor mfavorited mlimit moffset = do
+  articles <-
+    runDb $
+    selectArticles
+      (userUsername <$> authresToMaybe authres) -- move authresToMaybe to src/Util.hs
+      False -- is it a feed?
+      mtag
+      mauthor
+      mfavorited
+      (fromMaybe 20 mlimit)
+      (fromMaybe 0 moffset)
+  return $ ResponseMultiArticle (map resultQueryToResponseArticle articles) (length articles)
+```
+It's pretty clear, I guess.
+If you're wondering about `resultQueryToResponseArticle` function, this function
+only "spread and extract" the value of the given parameter.
+
+```
+getArticlesFeedCoach (Authenticated user) mlimit moffset = do
+  articles <-
+    runDb $
+    selectArticles
+      (Just $ userUsername authres)
+      True -- it is a feed!
+      Nothing
+      Nothing
+      Nothing
+      (fromMaybe 20 mlimit)
+      (fromMaybe 0 moffset)
+  return $ ResponseMultiArticle (map resultQueryToResponseArticle articles) (length articles)
+getArticlesFeedCoach _ _ _ = throwError err401 {errBody = "only authenticated user."}
+```
+Same goes as this one.
+Because `/api/articles/feed` is reserved for special route, it should be placed
+right after `getArticlesCoach`.
+The function itself doesn't differ much compared to the previous function.
+It only sets `mtag`, `mauthor`, and `mfavorited` directly as `Nothing`.
+The other distinction is, when an unauthorised request comes to it, it will
+return a standard unauthorized error.
+```
+getArticleSlugCoach authres slug = do
+  articles <-
+    runDb $
+    selectArticles
+      (userUsername <$> authresToMaybe authres) -- could be a request from user.
+      False
+      Nothing
+      Nothing
+      Nothing
+      1 -- slug is unique.
+      0 -- only need a single article.
+  case articles of
+    []  -> throwError err404 {errBody = "no such article."}
+    x:_ -> return $ ResponseArticle $ resultQueryToResponseArticle x
+```
+Well, I guess if you understand the previous function, you will understand this one.
+Unfortunately, there's no native way to use named parameters without using an external
+library like [named](https://hackage.haskell.org/package/named).
+
+Oh yeah, don't forget to update `articlesApi` so it will look like this.
+```
+articlesApi authres =
+  getArticlesCoach authres
+  :<|> getArticlesFeed authres
+  :<|> getArticleSlug authres
+  :<|> panic ""
+```
+
+Current progression: [finished getArticlesCoach, getArticlesFeedCoach, and getArticleSlug](https://gitlab.com/ibnuda/real-world-conduit/commit/0b2f050b2e4ac885f762427f2312c2079543e840).

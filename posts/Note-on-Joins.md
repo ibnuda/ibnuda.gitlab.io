@@ -49,12 +49,13 @@ tag_id (fk, tags.id)
 
 ```
 
-show article's id, slug, author name, tag names, and favorite counts.
+show article's id, slug, author name, tag names, favorite counts, and whether
+have you favorited the article yet.
 
 ### 1. Getting Article's `id`, `slug`, and Author's `name`.
 
 To get those fields, we can join `articles` and `users` tables.
-And because only one author for every articles we use `inner join`.
+And because there could be only one author for every article, we can user `inner join`.
 ```
 select articles.id
      , articles.slug
@@ -62,7 +63,7 @@ select articles.id
 from articles
 inner join users on users.id = articles.author_id;
 ```
-And that query results...
+And that query will result something like this.
 ```
  id |            slug             | username 
 ----|-----------------------------|----------
@@ -76,11 +77,12 @@ Pretty clear, I pressume.
 And the result of this query will be referred as `res1`.
 
 ### 2. Getting Article's `tag`.`name`s.
+
 To get those field, we can join `res1` with `tagged` and `tags`.
-Because a single article can has more than one tag and even has no tags,
-we will `outer join`.
+Because a single article can have more than one tag and even has no tags, we will
+use `outer join`.
 And in this case, we will use `left outer join` because no matter what,
-article is the most important piece in this database.
+article is the most important piece of information in this query.
 ```
 select articles.id
      , articles.slug
@@ -110,7 +112,7 @@ You see that there are a few duplicate rows?
 We can replace `tag.name as tagnames` with `array_agg(tags.name) as tagnames`
 and remove `group by tags.name` so we can get the result like the following
 ```
- id |            slug             | authorname |        tagnames         
+ id |            slug             | authorname |        tagnames
 ----|-----------------------------|------------|-------------------------
   1 | a-title-and-its-description | iaji       | {nicer}
   2 | something                   | ibnu       | {NULL}
@@ -118,6 +120,7 @@ and remove `group by tags.name` so we can get the result like the following
   4 | a-title-desc                | iaji       | {"tag name","eman gat"}
   5 | not-a-title-desc            | iaji       | {"not nice"}
 ```
+As you can see, we have "grouped" the result of `tagnames` in a single row.
 The result of this query will be referred as `res2`.
 
 ### 3. Getting Article's `favorite` counts.
@@ -147,13 +150,43 @@ Which will result
   4 | a-title-desc                | iaji       | {"tag name","eman gat"} |         0
   5 | not-a-title-desc            | iaji       | {"not nice"}            |         0
 ```
-That's it.
+We're almost done.
+We only need the last thing, have we favorited it, yet?
 
+### 4. Getting Our Favorite Status.
+To get our status, we can use a sub query to check whether have we liked it or not.
+Surely we can use subquery.
+But, I don't know how does subquery affect our execution time.
+Yeah, I know, I know about premature optimization is evil thingy.
+```
+select articles.id
+     , articles.slug
+     , users.username as authorname
+     , array_agg(tags.name) as tagnames
+     , count(favorited.id) as favcounts
+     , (case when (exists (select *
+                 from users as users2
+                    , favorited as favd
+                 where (users2.id = favd.user_id)
+                   and (articles.id = favd.article_id)
+                   and (users2.username = 'iaji')))
+      then true
+      else false
+    end)
+from articles
+inner join users on users.id = articles.author_id
+left outer join tagged on articles.id = tagged.article_id
+left outer join tags on tags.id = tagged.tag_id
+left outer join favorited on favorited.article_id = articles.id 
+group by articles.id
+       , users.username;
+```
+You see that `(case ...)` thingy?
 
 ### Generating it in Esqueleto.
 
 ```
-getArticleTagNamesAndFavCounts =
+getArticleTagNamesAndFavCounts username =
   select $
     from $ \(article
              `InnerJoin` author -- table users
@@ -163,12 +196,21 @@ getArticleTagNamesAndFavCounts =
       on (favd ^. FavoritedArticleId ==. art ^. ArticleId)
       on (tag ^. TagId ==. tagged ^. TaggedTagId)
       on (author ^. AuthorId ==. article ^. ArticleAuthorId)
+      let favoriting =
+        case_ [ when_
+                  (exists $ from $ \(favorited, user) -> do
+                    where_ (favorited ^. FavoritedArticleId ==. article ^. ArticleId)
+                    where_ (favorited ^. FavoritedUserId ==. user ^. UserId)
+                    where_ (user ^. UserUsername ==. val username))
+                  then_ $ val True
+              ]
+              (else_ $ val Fase)
       groupBy (article ^. ArticleId)
       groupBy (author ^. UserUsername)
       return ( article ^. ArticleId
-            , article ^. ArticleSlug
-            , author ^. UserUsername
-            -- This one will cause runtime error. Use sub_select instead.
-            , arrayAgg (tag ^. TagName)
-            , count (favd ^. FavoritedId))
+             , article ^. ArticleSlug
+             , author ^. UserUsername
+             -- This one will cause runtime error. Use sub_select instead.
+             , arrayAgg (tag ^. TagName)
+             , count (favd ^. FavoritedId))
 ```
