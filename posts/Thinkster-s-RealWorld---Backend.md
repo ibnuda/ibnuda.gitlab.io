@@ -759,5 +759,121 @@ updateUser username memail musername mpassword mimage mbio = do
    by casting it straight to `Just`.
 And the rest is exactly the same with `getUserInformationCoach`.
 
+Of course you need to update the definition of `userInformationApi` to
+```
+userInformationApi :: MonadIO m => AuthResult User -> ServerT UserInformation (CoachT m)
+userInformationApi authres = getUserInformationCoach authres :<|> putUserInformationCoach authres
+
+```
+And then you can run it!
+
+I swear, compared to half year ago when I'm using `Servant.Auth.Experimental`
+thingy, `servant-auth` eases my life by a huge margin.
+
 Where we are? [finished putUserInformationCoach](https://gitlab.com/ibnuda/real-world-conduit/commit/16197c86ca317f57871d650e0785d31963bb17a2)
 
+### Building `Coach`es for `userProfileApi`.
+Based on the defined interface, there are three handlers that need to be had.
+A handler which serves user profile requests, and handlers which serve
+creation and deletion of follow resource.
+While the user profile handler consider auth as an optional feature,
+the other two will ask auth.
+
+#### `getUserProfileCoach`.
+This coach is the one which serves the requests for users' profile.
+There's nothing really interesting here, but the coach itself is
+But, basically, we are having roundtrips and weird queries based on what
+I consider the good way to check a user's existence.
+
+1. Check the requested username's existence in the database.
+2. When there's nothing like that in the database, that means
+   we have to throw a not found error.
+3. When there's something like that, we are going to check
+   the existence of that user, AGAIN, and then check whether
+   the one who requested the profile following him or not.
+4. Return the result, based on the pre-defined response type.
+
+Like this, my dude.
+```
+getUserProfileCoach authres profilename = do
+  checkingexistence & throwifdoesn'texist
+  gettheprofileandfollowstatus
+  return
+```
+For `checkingexistence`, is pretty simple I guess.
+```
+  muser <- runDb $ getBy $ UniqueUsername profilename
+```
+Which will be used by `throwifdoesn'texist`
+```
+  when (isNothing muser) $ throwError err404 {errBody = "No such profile."}
+```
+Then, we are getting the profile and the following status of the user
+and the requested profile.
+```
+  followings <-
+    runDb $
+    selectFollowsByUsernameAndProfilename
+      (userUsername <$> authresToMaybe authres)
+      profilename
+  .....
+  where
+    authresToMaybe (Authenticated x) = Just x
+    authresToMaybe _                 = Nothing
+```
+Why do we need to transform `AuthResult a` to `Maybe a`, you say?
+Basically, if what matters in this scenario is the value of `a`
+itself, which is a `User`.
+Then, we will write `selectFollowsByUsernameAndProfilename`.
+Again, the query that will be written is a bit long winded.
+```
+selectFollowsByUsernameAndProfilename (Just username) profilename = do
+  select $ from $ \profile -> do
+    let isfollowing =
+          case_ [ when_ (exists $ from $ \(user, follows) -> do
+                            where_ (follows ^. FollowFollowerId ==. user ^. UserId)
+                            where_ (follows ^. FollowAuthorId ==. profile ^. UserId)
+                            where_ (user ^. UserUsername ==. val username)
+                            where_ (profile ^. UserUsername ==. val profile))
+                        (then_ $ val True)
+                ]
+                (else_ $ val False)
+    where_ (profile ^. UserUsername ==. val profilename)
+    return (profile, isfollowing)
+selectFollowsByUsernameAndProfilename (Just username) profilename = do
+  select $ from $ \profile -> do
+    where_ (profile ^. UserUsername ==. val profilename)
+    return (profile, False)
+```
+Which basically checks the existence of `users.id` of `username` and `users.id`
+of `profilename` in tables `follows` when the first parameter is not null (which
+the parameter itself came from `authresToMaybe`).
+If their `id`s are in the same row of `follows` table in the database, then
+the value of `isfollowing` should be set to `val True`.
+Else, it should be set to `val False`.
+And the rest is just standard row fetching.
+
+Back to `getUserProfileCoach`.
+`followings` now is a data which has type of `[(Entity User, Value Bool)]`
+so we can try to pattern match them.
+```
+  case followings of
+    [] -> throwError err409
+    ((Entity _ user, Value follow):_) -> do
+      return $ ResponseProfile $ ResponseProfileBody (userUsername user) (userBio user) (userImage user) follow
+```
+Why do we use 409 as the status when there's nothing of value from the query?
+Well, because a few moments ago, there are users whose names are `username` and
+`profilename` but now, there's none.
+So, 409 it is!
+But when there's something of value, we should return that as the appropriate
+response for the request.
+
+And basically that's it for the current `Coach`.
+We should put it in the `userProfileApi`
+```
+userProfileApi authres = getUserProfileCoach authres :<|> panic ""
+```
+Run it, dude!
+
+#### Building `getUserProfileCoach`.
