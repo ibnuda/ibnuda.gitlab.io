@@ -858,14 +858,14 @@ Back to `getUserProfileCoach`.
 so we can try to pattern match them.
 ```
   case followings of
-    [] -> throwError err409
+    [] -> throwError err410
     ((Entity _ user, Value follow):_) -> do
       return $ ResponseProfile $ ResponseProfileBody (userUsername user) (userBio user) (userImage user) follow
 ```
-Why do we use 409 as the status when there's nothing of value from the query?
+Why do we use 410 as the status when there's nothing of value from the query?
 Well, because a few moments ago, there are users whose names are `username` and
 `profilename` but now, there's none.
-So, 409 it is!
+So, 410 it is!
 But when there's something of value, we should return that as the appropriate
 response for the request.
 
@@ -876,4 +876,34 @@ userProfileApi authres = getUserProfileCoach authres :<|> panic ""
 ```
 Run it, dude!
 
-#### Building `getUserProfileCoach`.
+#### Building `postUserFollowCoach` and `deleteUserFollowCoach`.
+Practically, these two handlers are the same, structurally.
+Let's see.
+```
+postUserFollowCoach :: MonadIO m => AuthResult User -> Text -> CoachT m NoContent
+postUserFollowCoach (Authenticated user) profilename = do
+  follows <- runDb $ selectFollows (userUsername user) profilename
+  unless (null follows) $ throwError err409 {errBody = "Already followed that profile."} -- [1a]
+  runDb $ insertFollows (userUsername user) profilename -- [2a]
+  return NoContent
+postUserFollowCoach _ _ = throwError err401
+
+deleteUserFollowCoach :: MonadIO m => AuthResult User -> Text -> CoachT m NoContent
+deleteUserFollowCoach (Authenticated user) profilename = do
+  follows <- runDb $ selectFollows (userUsername user) profilename
+  when (null follows) $ throwError err409 {errBody = "You are not following that user."} -- [1b]
+  runDb $ deleteFollows (userUsername user) profilename -- [2b]
+  return NoContent
+deleteUserFollowCoach _ _ = throwError err401
+```
+
+As you can see at the marked numbers above, especially when there are a letter.
+That's where the differences lay.
+1. `post` handler will throw error when a user already follow the other user.
+    While `delete` handler will throw error when a user didn't already follow another user.
+2.  `post` handler will insert follow while delete will, well, delete the rows.
+
+Current situation: [finished post and deleteUserFollowCoach](https://gitlab.com/ibnuda/real-world-conduit/commit/60e8186fa5112eb755b5458ba4de861a839372d2).
+
+But, I should have [checked user's existence first](https://gitlab.com/ibnuda/real-world-conduit/commit/5927df2eddecd7d4ae34adc422497feb075f642f).
+
