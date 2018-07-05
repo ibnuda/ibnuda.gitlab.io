@@ -902,8 +902,48 @@ That's where the differences lay.
 1. `post` handler will throw error when a user already follow the other user.
     While `delete` handler will throw error when a user didn't already follow another user.
 2.  `post` handler will insert follow while delete will, well, delete the rows.
+3. Basically that's it.
+4. Also, don't forget to check the existence of the target profile first.
+
+Anyway, the function for `selectFollows`, `insertFollows`, and `deleteFollows` are just like the following:
+```
+selectFollows username profilename = do
+  select $ from $ \(user `InnerJoin` follow `InnerJoin` profile) -> do
+    on (follow ^. FollowAuthorId ==. profile ^. UserId)
+    on (follow ^. FollowFollowerId ==. user ^. UserId)
+    where_ (user ^. UserUsername ==. val username)
+    where_ (profile ^. UserUsername ==. val profilename)
+    return follow
+```
+This one is just our standard join query.
+While `insertFollows` a bit different.
+```
+insertFollows username profilename = do
+  insertSelect $ from $ \(user, profile) -> do
+    where_ (user ^. UserUsername ==. val username)
+    where_ (profile ^. UserUsername ==. val profilename)
+    return $ Follows <# (user ^. UserId) <&> (profile ^. UserId)
+```
+which translates into
+```
+insert into follows (follower_id, author_id)
+select users.id, users2.id
+from users, users as user2
+where users.username = ? and users2.username = ?;
+```
+Pretty neat, huh?
+But, this one is even neater.
+```
+deleteFollows username profilename = do
+  delete $ from $ \follow -> do
+    where_ $ exists $ from $ \(user, profile) -> do
+      where_ (user ^. UserUsername ==. val username)
+      where_ (profile ^. UserUsername ==. val profilename)
+
+```
 
 Current situation: [finished post and deleteUserFollowCoach](https://gitlab.com/ibnuda/real-world-conduit/commit/60e8186fa5112eb755b5458ba4de861a839372d2).
 
 But, I should have [checked user's existence first](https://gitlab.com/ibnuda/real-world-conduit/commit/5927df2eddecd7d4ae34adc422497feb075f642f).
 
+[Alright, trying to be smart doesn't work](https://gitlab.com/ibnuda/real-world-conduit/commit/ad4f1e1fba290855d4d37fa4481681c47fd1b757).
