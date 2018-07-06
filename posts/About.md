@@ -11,3 +11,5 @@ If you really really really want to contact me, just look [here](2018-04-25-cont
 
 Oh, by the way, if you want to edit this site, just push one or two pull reqs to
 this [repo](https://gitlab.com/ibnuda/ibnuda.gitlab.io) 
+
+[![I'm a has-peller.](https://www.haskellers.com/static/badge.png)](https://www.haskellers.com/user/4772)
