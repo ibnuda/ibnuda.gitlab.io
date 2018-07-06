@@ -621,7 +621,7 @@ unless
 This part is pretty simple actually, `unless` the result of `validatePassword`
 is `False`, we would not throw a 401 error.
 Which basically the password is correct.
-Also, please not that that `pack` above is from `Data.ByteString.Char8` while `unpack`
+Also, please note that that `pack` above is from `Data.ByteString.Char8` while `unpack`
 is from `Data.Text`.
 Why? Because `validatePassword` receives `ByteString` while our `password`s are
 `Text`.
@@ -1032,4 +1032,92 @@ articlesApi authres =
   :<|> panic ""
 ```
 
-Current progression: [finished getArticlesCoach, getArticlesFeedCoach, and getArticleSlug](https://gitlab.com/ibnuda/real-world-conduit/commit/0b2f050b2e4ac885f762427f2312c2079543e840).
+Current status: [finished getArticlesCoach, getArticlesFeedCoach, and getArticleSlug](https://gitlab.com/ibnuda/real-world-conduit/commit/0b2f050b2e4ac885f762427f2312c2079543e840).
+
+#### Building `postArticleCreateCoach`.
+Well, this handler receives a post request in form of `reqcreartic.json` in the readme file
+of this project.
+Servant's role here, like on the other handlers, is not much.
+Basically, it just receives the data and pass it around in the system and then
+returns the result.
+Most of this operation happen in the database.
+The steps are pretty much like the following:
+
+1. Generates a random string just in case some users created title
+   and description for the slug generation.
+2. Inserts the article into the database.
+3. Inserts the tags into the database.
+4. Inserts the relationship between tags and the article into the database.
+5. Returns the article in the required format.
+
+So, let's do that.
+First, we have to generate slug.
+```
+  ....
+  randgen <- liftIO newStdGen
+  let appedage = T.pack $ take 10 $ randomRs ('a', 'z') randgen
+  ....
+
+titleDescToSlug title desc appendage =
+  smaller title <> "-" <> smaller desc <> "-" <> smaller appendage
+  where
+    smaller sentence =
+      T.toLower (T.pack (subRegex (mkRegex "[^a-zA-Z0-9_.]") (T.unpack sentence) "-"))
+
+```
+Those two parts above are just functions which generate a text with 10 character
+as the length and the other one is to remove special characters and make them
+lower case.
+
+Next part is inserting the article into the database.
+The query itself is not complex, just a single `insert select`.
+```
+insertSelect username slug title desc body = do
+  now <- liftIO getCurrentTime
+  insertSelect $ from $ \user -> do
+    where_ $ user ^. UserUsername ==. val username
+    return $ Article <# slug <&> (user ^. UserId) <&> val title <&> val desc <&> val body <&> val now <&> nothing
+```
+As you can see, we create an `Article` object using the value which we got
+from the result of that `where_` query in the middle.
+
+After inserting the article, we should insert (or upsert?) the value of
+the `tagList` from json into the database, if any.
+```
+upsertMaybeTags Nothing _ = return ()
+upsertMaybeTags (Just tags) slug = do
+  putMany $ map Tag tags
+  insertSelect $ from $ \(article, tag) -> do
+    where_ $ article ^. ArticleSlug ==. val slug
+    where_ $ tag ^. TagName `in_` valList tags
+    return $ Tagged <# (article ^. ArticleId) <&> (tag ^. TagId)
+```
+When there's no `tagList` in the json request, we should just calmly exist.
+But when there's something there, we should update the existing tag, if any,
+or just insert it.
+Followed by inserting `Tagged` object from the parameters.
+
+Finally, we are returning the apppropriate response after getting the previously
+created article by querying the database based on the slug which was created earlier.
+
+So, the final function will look like this.
+```
+postArticleCreateCoach (Authenticated user) req = do
+  randgen <- liftIO newStdGen
+  let appedage = T.pack $ take 10 $ randomRs ('a', 'z') randgen
+      slug = titleDescToSlug reqtitle reqdesc appendage
+  articles <- runDb $ do
+    insertSelect article
+    upsertMaybeTags reqtags
+    selectArticles slug
+  case articles of
+    [] -> throwError err410 {errBody = "should be created but now is gone."}
+    x:_ -> return $ ResponseArticle $ resultQueryToResponseArticle x
+```
+Please note that the parameters on the above functions almost completely omitted
+for the sake of brevity.
+
+Where are we? [finished creating postArticleCreateCoach](https://gitlab.com/ibnuda/real-world-conduit/commit/2bbc108f05e024bea4032adf1360f43b09bca5b9).
+
+And [fixed a few things. non-consequentials i guess](https://gitlab.com/ibnuda/real-world-conduit/commit/265448043b24f0dd27211a696b4eccd606fc02ce).
+
