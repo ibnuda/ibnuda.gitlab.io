@@ -1121,3 +1121,66 @@ Where are we? [finished creating postArticleCreateCoach](https://gitlab.com/ibnu
 
 And [fixed a few things. non-consequentials i guess](https://gitlab.com/ibnuda/real-world-conduit/commit/265448043b24f0dd27211a696b4eccd606fc02ce).
 
+#### Building `deleteArticleSlugCoach` and `putArticleSlugCoach`.
+This part practically doesn't differ that much in term of business logic and its
+inner working compared to updating users' information.
+For example, when one wants to delete his article, server should:
+
+1. Chcek the existence of the article and whether the sender of the request really
+   the author of the article.
+2. When that's the case, systme should just delete the article in question.
+3. Returns `NoContent`.
+
+While for updating the article, server does these:
+
+1. Again, checking whether the request sender truly the author of the article in
+   question.
+2. Check the content of the request, when the request doesn't change anything,
+   it should just throw error.
+   I mean, why would one send an update request but doesn't want to change anything?
+   That's just stupid.
+3. Update it, of course.
+4. Returns the updated article.
+
+Now, building the handlers itself.
+
+```
+putArticleSlugCoach (Authenticated User {..}) slug (RequestUpdate req) = do
+  authors <- runDb $ isArticleAuthor userUsername slug -- [1]
+  when (null authors) $ throwError err401
+  when (reqUpdateIsEmpty req) $ throwError err422 -- [2]
+  articles <- runDb $ do
+    updateArticle slug title description body -- [4]
+    selectArticles (Just userUsername) False (Just slug) Nothing Nothing Nothing 1 0 -- [5]
+  case articles of
+    []  -> throwError err410
+    x:_ -> return $ ResponseArticle $ resultQueryToResponseArticle x
+putArticleSlugCoach _ _ _ = throwError err401
+
+deleteArticleCoach (Authenticated user) slug = do
+  authors <- runDb $ isArticleAuthor userUsername slug -- [1]
+  when (null authors) $ throwError err401
+  runDb $ deleteArticle slug -- [3]
+  return NoContent
+deleteArticleCoach _ _ = throwError err401
+```
+As you can see at the snippet above, the order of doing things here is pretty clear
+and as defined above.
+For example, for the marked snippet `[1]`, we are checking the wether the sender
+of the request is the author themselves or not.
+While the line marked `[2]`, denotes that we would not accept bullshit from users.
+Of course, we are ruthless when it comes to deleting stuff.
+As you can see at the line marked `[3]` above, we just simply delete things.
+Look at the snippet for the `deleteArticle` function below.
+```
+import qualified Database.Persist.Class as PC
+import qualified Database.Persist as P
+deleteArticle slug = PC.deleteCascadeWhere [ArticleSlug P.==. slug]
+```
+And if you're wondering why do we update the article, it's pretty simple.
+Because there are fields which could be sent as `Nothing`, we could simply reuse
+`updateByMaybe` in the `Que.User` module.
+Same goes for getting the updated article.
+What we (presumably) have changed are title, description, and the body article.
+That leaves the slug remains unchanged.
+So we fetch it using the huge query function above (`selectArticles`).
