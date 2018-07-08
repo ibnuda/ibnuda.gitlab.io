@@ -1184,3 +1184,47 @@ Same goes for getting the updated article.
 What we (presumably) have changed are title, description, and the body article.
 That leaves the slug remains unchanged.
 So we fetch it using the huge query function above (`selectArticles`).
+
+### Building Comments Section
+There are three sections here.
+
+- The all the comments from an article.
+- Post a comment to an article.
+- Delete a comment from an article.
+
+#### Get All Comments.
+
+It's pretty simple actually.
+```
+getCommentsSlugCoach authres slug = do
+  marticle <- runDb $ getBy $ UniqueSlug slug
+  when (isNothing marticle) $ throwError err404
+  comments <- runDb $ selectComments (userUsername <$> authresToMaybe authres) slug
+  return $ ResponseMultiComment $ map resultQueryToResponseComment comments
+```
+
+#### Create a Comment.
+Shitty code, tbh fam.
+```
+postCommentSlugCoach (Authenticated User {..}) slug (RequestComment (RequestComment body)) = do
+  -- check article's existence.
+  mcomment <- runDb $ insertComment userUsername slug body
+  case mcomment of
+    Nothing -> throwError err410
+    Just co -> return $ ResponseComment $ resulQueryToResponseComment co
+postCommentSlugCoach _ _ _ = throwError err401
+```
+#### Delete a Comment.
+Even shittier, tbh fam.
+```
+deleteCommentSlugIdCoach (Authenticated User {..}) slug id = do
+  -- check article's existence, author of the comment.
+  -- throw error when fail.
+  runDb $ deleteComment $ toSqlKey id
+  return NoContent
+deleteCommentSlugIdCoach _ _ _ = throwError err401
+```
+
+### Favoriting Things.
+Pretty much the same as following.
+The only difference is it talks to `favorited` tables.

@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP  #-}
 {-# LANGUAGE Safe #-}
 -----------------------------------------------------------------------------
 -- |
@@ -116,26 +115,26 @@ data Weekday
 
 -- | Converts RSS to XML.
 rssToXML :: RSS -> CFilter ()
-rssToXML (RSS title l description celems items) =
-  mkElemAttr
-    "rss"
-    [("version", literal "2.0")]
-    [ mkElem
-        "channel"
-        ([mkTitle title, mkLink l, mkDescription description, mkDocs] ++
-         map mkChannelElem celems ++ map mkItem items)
-    ]
+rssToXML (RSS title l description celems items) = mkElemAttr
+  "rss"
+  [("version", literal "2.0")]
+  [ mkElem
+      "channel"
+      (  [mkTitle title, mkLink l, mkDescription description, mkDocs]
+      ++ map mkChannelElem celems
+      ++ map mkItem        items
+      )
+  ]
 
 -- | Render XML as a string.
 showXML :: CFilter () -> [Char]
 showXML = verbatim . cfilterToElem
 
 cfilterToElem :: CFilter () -> Element ()
-cfilterToElem f =
-  case f (CString False "" ()) of
-    [CElem e _] -> xmlEscape stdXmlEscaper e
-    []          -> panic "RSS produced no output"
-    _           -> panic "RSS produced more than one output"
+cfilterToElem f = case f (CString False "" ()) of
+  [CElem e _] -> xmlEscape stdXmlEscaper e
+  []          -> panic "RSS produced no output"
+  _           -> panic "RSS produced more than one output"
 
 mkSimple :: [Char] -> [Char] -> CFilter ()
 mkSimple t str = mkElem t [literal str]
@@ -159,35 +158,33 @@ formatDate :: UTCTime -> [Char]
 formatDate = formatTime defaultTimeLocale rfc822DateFormat
 
 maybeElem :: (a -> CFilter ()) -> Maybe a -> [CFilter ()]
-maybeElem = maybe [] . ((:[]) .)
+maybeElem = maybe [] . ((: []) .)
 
 mkChannelElem :: ChannelElem -> CFilter ()
-mkChannelElem (Language str) = mkSimple "language" str
-mkChannelElem (Copyright str) = mkSimple "copyright" str
-mkChannelElem (ManagingEditor str) = mkSimple "managingEditor" str
-mkChannelElem (WebMaster str) = mkSimple "webMaster" str
-mkChannelElem (ChannelPubDate date) = mkPubDate date
+mkChannelElem (Language       str    ) = mkSimple "language" str
+mkChannelElem (Copyright      str    ) = mkSimple "copyright" str
+mkChannelElem (ManagingEditor str    ) = mkSimple "managingEditor" str
+mkChannelElem (WebMaster      str    ) = mkSimple "webMaster" str
+mkChannelElem (ChannelPubDate date   ) = mkPubDate date
 mkChannelElem (LastBuildDate date) = mkSimple "lastBuildDate" $ formatDate date
-mkChannelElem (Generator str) = mkSimple "generator" str
-mkChannelElem (TTL minutes) = mkSimple "ttl" $ show minutes
-mkChannelElem (SkipHours hs) = mkElem "skipHours" (map (mkSimple "hour" . show) hs)
-mkChannelElem (SkipDays ds) = mkElem "skipDays" (map (mkSimple "day" . show) ds)
+mkChannelElem (Generator      str    ) = mkSimple "generator" str
+mkChannelElem (TTL            minutes) = mkSimple "ttl" $ show minutes
+mkChannelElem (SkipHours hs) =
+  mkElem "skipHours" (map (mkSimple "hour" . show) hs)
+mkChannelElem (SkipDays ds) =
+  mkElem "skipDays" (map (mkSimple "day" . show) ds)
 
 mkItem :: Item -> CFilter ()
 mkItem itemElems = mkElem "item" (map mkItemElem itemElems)
 
 mkItemElem :: ItemElem -> CFilter ()
-mkItemElem (Title t) = mkTitle t
-mkItemElem (Link l) = mkLink l
-mkItemElem (Description d) = mkDescription d
-mkItemElem (Author e) = mkElem "author" [literal e]
-mkItemElem (Comments uri) = mkSimple "comments" $ show uri
-mkItemElem (Guid perm s) = mkElemAttr "guid" attrs [literal s]
-  where
-    attrs =
-      if perm
-        then [("isPermalik", literal "true")]
-        else []
-mkItemElem (PubDate ct) = mkElem "pubDate" [ literal (formatDate ct) ]
+mkItemElem (Title       t  ) = mkTitle t
+mkItemElem (Link        l  ) = mkLink l
+mkItemElem (Description d  ) = mkDescription d
+mkItemElem (Author      e  ) = mkElem "author" [literal e]
+mkItemElem (Comments    uri) = mkSimple "comments" $ show uri
+mkItemElem (Guid perm s    ) = mkElemAttr "guid" attrs [literal s]
+  where attrs = if perm then [("isPermalik", literal "true")] else []
+mkItemElem (PubDate ct) = mkElem "pubDate" [literal (formatDate ct)]
 mkItemElem (Source uri t) =
   mkElemAttr "source" [("url", literal (show uri))] [literal t]

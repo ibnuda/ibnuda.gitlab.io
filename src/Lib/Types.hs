@@ -32,7 +32,7 @@ readSiteinfo :: IO SiteInfo
 readSiteinfo = do
   eith <- decodeFileEither "config.yaml"
   case eith of
-    Left e -> panic . pack . prettyPrintParseException $ e
+    Left  e -> panic . pack . prettyPrintParseException $ e
     Right s -> pure s
 
 type Title = Text

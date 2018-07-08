@@ -18,13 +18,11 @@ readRawpost path nameoffile = do
   content <- readFile $ path ++ "/" ++ nameoffile
   case T.lines content of
     title:date:tipe:writing -> do
-      return $
-        Rawpost
-          nameoffile
-          title
-          (TR.read $ T.unpack date)
-          (TR.read $ T.unpack tipe)
-          (T.unlines writing)
+      return $ Rawpost nameoffile
+                       title
+                       (TR.read $ T.unpack date)
+                       (TR.read $ T.unpack tipe)
+                       (T.unlines writing)
     _ -> panic "Invalid file."
 
 getFiles :: FilePath -> IO [FilePath]
@@ -35,20 +33,18 @@ deleteFiles :: FilePath -> IO ()
 deleteFiles path = getFiles path >>= mapM_ (removeFile . (path </>))
 
 generateMdFilename :: [Char] -> [Char]
-generateMdFilename input =
-  subRegex (mkRegex "[^a-zA-Z0-9_.]") input "-"
+generateMdFilename input = subRegex (mkRegex "[^a-zA-Z0-9_.]") input "-"
 
 generateHtmlFilename :: [Char] -> UTCTime -> [Char]
 generateHtmlFilename title date =
-  let fn = generateMdFilename  title
+  let fn = generateMdFilename title
       dt = formatTime defaultTimeLocale "%z%F" $ utctDay date
-  in map toLower $ dt ++ "-" ++ fn ++ ".html"
+  in  map toLower $ dt ++ "-" ++ fn ++ ".html"
 
 writeRawpost :: FilePath -> Rawpost -> IO ()
-writeRawpost siteinfofiles Rawpost {..} =
-  writeFile
-    (siteinfofiles ++ "/" ++ rawpostFilename)
-    (T.unlines [rawpostTitle, show rawpostDate, show rawpostType, rawpostContent])
+writeRawpost siteinfofiles Rawpost {..} = writeFile
+  (siteinfofiles ++ "/" ++ rawpostFilename)
+  (T.unlines [rawpostTitle, show rawpostDate, show rawpostType, rawpostContent])
 
 writeGenerated :: FilePath -> Filename -> Text -> IO ()
 writeGenerated siteinfopublic filename content =
