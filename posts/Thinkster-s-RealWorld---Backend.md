@@ -1193,8 +1193,10 @@ There are three sections here.
 - Delete a comment from an article.
 
 #### Get All Comments.
-
-It's pretty simple actually.
+When we want to get the comments, we should try to check whether the article which
+hosts the comments exists or not.
+When there's no article like that, we should just throw a 404 error.
+But when there's an article like that, we should simply return the comments.
 ```
 getCommentsSlugCoach authres slug = do
   marticle <- runDb $ getBy $ UniqueSlug slug
@@ -1203,8 +1205,26 @@ getCommentsSlugCoach authres slug = do
   return $ ResponseMultiComment $ map resultQueryToResponseComment comments
 ```
 
+`selectComments` is a query which returns a list of triple `Entity Comment`,
+`Entity User` and `Value Bool`.
+We need those three because of the requirements which states that we should
+returns a field which contains the profile of the comment writer.
+The profile itself, in turn, should show whether we follow them or not.
+
+While `resultQueryToResponseComment` is a helper function which transforms
+query result to a `ResponseCommentBody`.
+```
+resultQueryToResponseComment ((Entity cid Comment {..}), (Entity _ User {..}), (Value isfollowing)) = do
+  let commid = fromSqlKey cid
+   in ResponseCommentBody commid commentCreatedAt commentUpdatedAt commentBody (ResponseProfileBody userUsername userBio userImage isfollowing)
+```
+
+Current situation: [finished getCommentsSlugCoach](https://gitlab.com/ibnuda/real-world-conduit/commit/1e14a6819ae1844b36ba7ffea6ef88060332524b).
+
 #### Create a Comment.
-Shitty code, tbh fam.
+Truth to be told, I really don't like this code.
+I couldn't come up with a direct method to do so.
+But basically, it checks the existence of the article, and then inserts the comment.
 ```
 postCommentSlugCoach (Authenticated User {..}) slug (RequestComment (RequestComment body)) = do
   -- check article's existence.
@@ -1214,8 +1234,33 @@ postCommentSlugCoach (Authenticated User {..}) slug (RequestComment (RequestComm
     Just co -> return $ ResponseComment $ resulQueryToResponseComment co
 postCommentSlugCoach _ _ _ = throwError err401
 ```
+If you're wondering how could the `insertComment` above returns a `Maybe`,
+it was caused by my inability to come up with something more direct.
+Let's look.
+```
+insertComment username slug body = do
+  now <- liftIO getCurrentTime
+  something <- select $ from $ \(user, article) -> do
+    let following Nothing = val False
+        following (Just uname) = case_ -- snipped, basically the same function in selectComments
+    -- snipped because it's just WHERE clauses.
+    return (article ^. ArticleId, user, following (Just username))
+  case something of
+    [] -> return Nothing
+    (articleid, entuser, valfollow):_ -> do
+      comment <- insertEntity $ Comment body now Nothing (unValue articleid) (entityKey entuser)
+      return $ Just (comment, entuser, valfollow)
+```
+As you can see, in, a very unlikely, case where an article has been deleted when
+there it hasn't been at the time the handler accepts the request to create a comment,
+we should return a `Nothing`, otherwise we return the comment entity, user entity
+and the value follow.
+
 #### Delete a Comment.
-Even shittier, tbh fam.
+Again, I don't feel satisfied with this part of the code.
+It basically just check the existence of the article and the author of the comment.
+It doesn't say which one the request doesn't satisfy.
+But when the request satisfies the requirements, it just simply delete the comment
 ```
 deleteCommentSlugIdCoach (Authenticated User {..}) slug id = do
   -- check article's existence, author of the comment.
@@ -1225,6 +1270,62 @@ deleteCommentSlugIdCoach (Authenticated User {..}) slug id = do
 deleteCommentSlugIdCoach _ _ _ = throwError err401
 ```
 
-### Favoriting Things.
+### Liking or Disliking Things.
 Pretty much the same as following.
 The only difference is it talks to `favorited` tables.
+
+#### Favoriting Things.
+This one, we should start by checking whether the sender of the request already
+favorited the article in questions or not.
+When the author hasn't favorited the article, we should proceed to the next step.
+But when the author already favorited this article, we should throw an error.
+I don't know perhaps conflicted error is the right one.
+
+The next step is inserting a row on the `favorited` table in the database
+and then returns the article in question.
+
+```
+postFavoriteArticleCoach (Authenticated User{..}) slug = do
+  favs <- runDb $ isFavoritingArticle userUsername slug
+  unless (null favs) $ throwError err410 {errBody = encodeRespError "I'm sorry Dave, I'm afraid I can't do that."}
+  articles <- runDb $ do
+    insertFavorited userUsername slug
+    selectArticles (Just username) -- skip.
+  case articles fo
+    [] -> throwError err404 {errBody = encodeRespError "Now it's gone."}
+    x:_ -> return $ ResponseArticle $ resultQueryToResponseArticle  x
+```
+That's it.
+Oh, and don't mind `errRespError`, it's just wrapper for `Data.Aeson.encode x` for
+`ResponseError`
+
+#### Unfavoriting Things
+Pretty much the same.
+The only difference here is a single line.
+```
+--  unless (null favs) $ throwError err410 {errBody = encodeRespError "I'm sorry Dave, I'm afraid I can't do that."}
+++  when (null favs) $ throwError err410 {errBody = encodeRespError "I'm sorry Dave, I'm afraid I can't do that."}
+```
+That's it!
+
+Where are we? [finished getComment, deleteComment, postFavorited, and deleteFavorited](https://gitlab.com/ibnuda/real-world-conduit/commit/e6b3e8ef7b677bd72c9e553d0e8873e13168987b).
+
+### Trying things.
+Just create an alias for curl.
+```
+alias curlhg='curl -H "Accept: application/json" -H "Content-Type: application/json" -X GET'
+alias curlhp='curl -H "Accept: application/json" -H "Content-Type: application/json" -X POST'
+```
+#### REGISTER
+```
+> curlhp http://localhost:8080/api/users -d '{"user":{"username":"iaji","password":"jaran","email":"iaji@jaran.com"}}
+{"user":{"bio":null,"email":"iaji@jaran.com","image":null,"token":"eyJhbGciOiJIUzUxMiJ9.eyJkYXQiOnsiYmlvIjpudWxsLCJlbWFpbCI6ImlhamlAamFyYW4uY29tIiwiaW1hZ2UiOm51bGwsInVzZXJuYW1lIjoiaWFqaSIsInBhc3N3b3JkIjoiJDJ5JDE0JHhQNFBqZTd1eS96OXNjYk1MZWhRUWUvR0oyZHVlWHZJVGsyTWs2VGQueEUwbkZreExodzJDIn19.-p_eQnzNbGoTQZYHmipj9JtA6KLqQN6TA21xaaMZVbXHqxCgZDBraYMeYH3aEF9bL5dHCc2EtnSgo2q3yt7EwA","username":"iaji"}}
+```
+Okay.
+```
+> curlhp http://localhost:8080/api/users -d '{"user":{"username":"iaji","password":"jaran","email":"iaji@jaran.com"}}
+{"errors":{"body":"Users already exist."}}
+```
+But when a request comes with the same `username` and/or `email` field, server will
+return something like above.
+But when 
