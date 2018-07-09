@@ -2,8 +2,6 @@ Thinkster's RealWorld - Backend
 2018-07-02 15:00:13.441855576 UTC
 Post
 
-(WIP)
-
 ## Background
 Nothing much, I just want to re-visit [Servant](http://haskell-servant.github.io/)
 and [servant-auth](https://github.com/haskell-servant/servant-auth/) and how does
@@ -1315,8 +1313,9 @@ Just create an alias for curl.
 ```
 alias curlhg='curl -H "Accept: application/json" -H "Content-Type: application/json" -X GET'
 alias curlhp='curl -H "Accept: application/json" -H "Content-Type: application/json" -X POST'
+alias curlhput='curl -H "Accept: application/json" -H "Content-Type: application/json" -X PUT'
 ```
-#### REGISTER
+#### Register
 ```
 > curlhp http://localhost:8080/api/users -d '{"user":{"username":"iaji","password":"jaran","email":"iaji@jaran.com"}}
 {"user":{"bio":null,"email":"iaji@jaran.com","image":null,"token":"eyJhbGciOiJIUzUxMiJ9.eyJkYXQiOnsiYmlvIjpudWxsLCJlbWFpbCI6ImlhamlAamFyYW4uY29tIiwiaW1hZ2UiOm51bGwsInVzZXJuYW1lIjoiaWFqaSIsInBhc3N3b3JkIjoiJDJ5JDE0JHhQNFBqZTd1eS96OXNjYk1MZWhRUWUvR0oyZHVlWHZJVGsyTWs2VGQueEUwbkZreExodzJDIn19.-p_eQnzNbGoTQZYHmipj9JtA6KLqQN6TA21xaaMZVbXHqxCgZDBraYMeYH3aEF9bL5dHCc2EtnSgo2q3yt7EwA","username":"iaji"}}
@@ -1328,4 +1327,88 @@ Okay.
 ```
 But when a request comes with the same `username` and/or `email` field, server will
 return something like above.
-But when 
+
+#### Login
+```
+> curlhp http://localhost:8080/api/users/login -d '{"user":{"password":"jaran","email":"iaji@jaran.com"}}'
+{"user":{"bio":null,"email":"iaji@jaran.com","image":null,"token":"eyJhbGciOiJIUzUxMiJ9.eyJkYXQiOnsiYmlvIjpudWxsLCJlbWFpbCI6ImlhamlAamFyYW4uY29tIiwiaW1hZ2UiOm51bGwsInVzZXJuYW1lIjoiaWFqaSIsInBhc3N3b3JkIjoiJDJ5JDE0JHhQNFBqZTd1eS96OXNjYk1MZWhRUWUvR0oyZHVlWHZJVGsyTWs2VGQueEUwbkZreExodzJDIn19.vNIHRv_uEOCRAOoEMHTTx6AOdJFZJrnp7JI1W84BU-obp_ysEBfZfxSjA25AQKEhM0i0v16JaJGYeFj5BHND4g","username":"iaji"}}
+```
+We are getting our JWT when we use the correct password and email.
+But when we use an incorrect email or password, we will see something like the following:
+```
+> curlhp http://localhost:8080/api/users/login -d '{"user":{"password":"jaran","email":"iaji@jarancom"}}'
+{"errors":{"body":"No such thing."}}
+> curlhp http://localhost:8080/api/users/login -d '{"user":{"password":"kuda","email":"iaji@jaran.com"}}'
+{"errors":{"body":"No such thing."}}
+```
+#### Getting User Information.
+It's just getting user information.
+But only authenticated requests which could be processed.
+```
+> curlhg http://localhost:8080/api/user -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJkYXQiOnsiYmlvIjpudWxsLCJlbWFpbCI6ImlhamlAamFyYW4uY29tIiwiaW1hZ2UiOm51bGwsInVzZXJuYW1lIjoiaWFqaSIsInBhc3N3b3JkIjoiJDJ5JDE0JHhQNFBqZTd1eS96OXNjYk1MZWhRUWUvR0oyZHVlWHZJVGsyTWs2VGQueEUwbkZreExodzJDIn19.vNIHRv_uEOCRAOoEMHTTx6AOdJFZJrnp7JI1W84BU-obp_ysEBfZfxSjA25AQKEhM0i0v16JaJGYeFj5BHND4g'
+{"user":{"bio":null,"email":"iaji@jaran.com","image":null,"token":"eyJhbGciOiJIUzUxMiJ9.eyJkYXQiOnsiYmlvIjpudWxsLCJlbWFpbCI6ImlhamlAamFyYW4uY29tIiwiaW1hZ2UiOm51bGwsInVzZXJuYW1lIjoiaWFqaSIsInBhc3N3b3JkIjoiJDJ5JDE0JHhQNFBqZTd1eS96OXNjYk1MZWhRUWUvR0oyZHVlWHZJVGsyTWs2VGQueEUwbkZreExodzJDIn19.vNIHRv_uEOCRAOoEMHTTx6AOdJFZJrnp7JI1W84BU-obp_ysEBfZfxSjA25AQKEhM0i0v16JaJGYeFj5BHND4g","username":"iaji"}}
+```
+But when there's no auth header or even when the token is not recognized by the
+system, we will get something like this.
+```
+> curlhg http://localhost:8080/api/user -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJkYXQiOnsiYmlvIjpudWxsLCJlbWFpbCI6ImlhamlAamFyYW4uY29tIiwiaW1hZ2UiOm51bGwsInVzZXJuYW1lIjoiaWFqaSIsInBhc3N3b3JkIjoiJDJ5JDE0JHhQNFBqZTd1eS96OXNjYk1MZWhRUWUvR0oyZHVlWHZJVGsyTWs2VGQueEUwbkZreExodzJDIn19.vNIHRv_uEOCRAOoEMHTTx6AOdJFZJrnp7JI1W84BU-obp_ysEBfZfxSjA25AQKEhM0i0v16JaJGYeFj5BHND4'
+{"errors":{"body":"Not qualified to access."}}
+```
+Please not about the lack of character `g above which results the failure.
+
+#### Updating User Information
+```
+> curlhput http://localhost:8080/api/user -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJkYXQiOnsiYmlvIjpudWxsLCJlbWFpbCI6ImlhamlAamFyYW4uY29tIiwiaW1hZ2UiOm51bGwsInVzZXJuYW1lIjoiaWFqaSIsInBhc3N3b3JkIjoiJDJ5JDE0JHhQNFBqZTd1eS96OXNjYk1MZWhRUWUvR0oyZHVlWHZJVGsyTWs2VGQueEUwbkZreExodzJDIn19.vNIHRv_uEOCRAOoEMHTTx6AOdJFZJrnp7JI1W84BU-obp_ysEBfZfxSjA25AQKEhM0i0v16JaJGYeFj5BHND4g' -d '{"user":{"bio":"not a horse.", "image":"http://i.imgur.com/axuKJwu.jpg"}}'
+{"user":{"bio":"not a horse.","email":"iaji@jaran.com","image":"http://i.imgur.com/axuKJwu.jpg","token":"eyJhbGciOiJIUzUxMiJ9.eyJkYXQiOnsiYmlvIjoibm90IGEgaG9yc2UuIiwiZW1haWwiOiJpYWppQGphcmFuLmNvbSIsImltYWdlIjoiaHR0cDovL2kuaW1ndXIuY29tL2F4dUtKd3UuanBnIiwidXNlcm5hbWUiOiJpYWppIiwicGFzc3dvcmQiOiIkMnkkMTQkeFA0UGplN3V5L3o5c2NiTUxlaFFRZS9HSjJkdWVYdklUazJNazZUZC54RTBuRmt4TGh3MkMifX0.GVFipD7aZnYj5BbJ_dBn5d3juA5g2rOr87vWHl0rCi3WDQBuvBTuxz-TcPLCTHmU1SgvbxVLbCnwNyi9IhOT5g","username":"iaji"}}
+```
+As you can see, compared to the result from `Getting User Information`, we can
+see the difference between pre-updated and post-updating user information.
+
+I think there's no need to show the response for a request which has no auth in
+it.
+
+#### Getting User Profile.
+As demanded by the documentation, we will serve a user's profile when there's a
+user which use username as the requested.
+```
+> curlhg http://localhost:8080/api/profiles/iaji
+{"profile":{"bio":"not a horse.","image":"http://i.imgur.com/axuKJwu.jpg","username":"iaji","following":false}}
+```
+But when there's no user we will show something like this.
+```
+> curlhg http://localhost:8080/api/profiles/iaji2
+{"errors":{"body":"There's no such thing."}}
+```
+
+#### Following User
+The result of following request or something like is like the snippet below:
+```
+> curlhp http://localhost:8080/api/profiles/iaji/follow -H 'Authorization: Bearer Our.JWT.Token'
+# returns nothing
+> curlhg http://localhost:8080/api/profiles/iaji -H 'Authorization: Bearer Our.JWT.Token'
+{"profile":{"bio":"not a horse.","image":"http://i.imgur.com/axuKJwu.jpg","username":"iaji","following":true}
+```
+
+#### Unfollowing User
+The result of following request or something like is like the snippet below.
+```
+> curlhd http://localhost:8080/api/profiles/iaji/follow -H 'Authorization: Bearer Our.JWT.Token'
+# returns nothing.
+> curlhg http://localhost:8080/api/profiles/iaji -H 'Authorization: Bearer Our.JWT.Token'
+{"profile":{"bio":"not a horse.","image":"http://i.imgur.com/axuKJwu.jpg","username":"iaji","following":false}
+```
+
+#### Getting Article and The Rest
+Please try this by yourself.
+Good, luck!
+I'm finished.
+
+### Something Something Finish.
+- `servant-auth` is nice.
+  Though I couldn't get it working when I want it to receive `Authorization: Token your.jwt.token`
+  It always wants `Authorization: Bearer your.jwt.token`.
+  For a quick glance, `servant-auth` hard wire it. I don't know.
+- I'm sure a beginner will start to use `ReaderT pattern` when there's a concrete
+  example of its usage.
+- For Indonesian readers, if you want to ask something, please contact me on telegram channel.
+  Though I rarely open it.
