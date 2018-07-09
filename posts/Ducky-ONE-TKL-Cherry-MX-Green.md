@@ -35,6 +35,6 @@ I like it less compared the keycaps from iKBC ones.
 Now I know why does [r/mechanicalkeyboards](https://reddit.com/r/mechanicalkeyboards)
 prefer PBT instead of ABS.
 
-#### Oveall
+#### Overall
 I guess I really am happy with this purchase.
 Now, I don't know which one I should use at home and which one I should use at work.
