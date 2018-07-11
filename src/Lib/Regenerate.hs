@@ -85,10 +85,9 @@ generateIndex posts = div ! class_ "content" $ do
     generateIndexItem rawpostDate rawpostTitle
  where
   generateIndexItem d tit = li $ do
-    h4 $ do
-      a
-        ! href (textValue . T.pack . generateHtmlFilename (T.unpack tit) $ d)
-        $ text (formatteddate d <> " - " <> tit)
+    a
+      ! href (textValue . T.pack . generateHtmlFilename (T.unpack tit) $ d)
+      $ text (formatteddate d <> " - " <> tit)
   formatteddate d = T.pack $ formatTime defaultTimeLocale "%z%F" $ utctDay d
 
 generateSingleHtml :: SiteInfo -> Rawpost -> IO ()
