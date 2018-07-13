@@ -34,6 +34,7 @@ library
                      , yaml
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings, NoImplicitPrelude
+  ghc-options:         -Wall
 
 executable Blog
   hs-source-dirs:      app
