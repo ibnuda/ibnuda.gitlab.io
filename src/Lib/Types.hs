@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Lib.Types where
 
-import           Lib.Prelude
+import           Protolude
 
 import           Data.Text
 import           Data.Time
@@ -15,6 +15,7 @@ data SiteInfo = SiteInfo
   , siteinfoFiles  :: Filename
   , siteinfoPublic :: Filename
   , siteinfoRSS    :: Filename
+  , siteinfoCSS    :: Filename
   } deriving (Show, Eq)
 
 instance FromJSON SiteInfo where
@@ -25,6 +26,7 @@ instance FromJSON SiteInfo where
     siteinfoFiles <- o .: "files"
     siteinfoPublic <- o .: "public"
     siteinfoRSS <- o .: "rss"
+    siteinfoCSS <- o .: "css"
     return SiteInfo {..}
 
 
@@ -53,4 +55,3 @@ defaultRawpost = Rawpost "" "" (posixSecondsToUTCTime 0) Post ""
 
 instance Ord Rawpost where
   compare a b = compare (rawpostDate a) (rawpostDate b)
-

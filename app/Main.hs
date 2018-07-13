@@ -14,7 +14,7 @@ main = do
       deleteFiles (siteinfoPublic siteinfo)
       generateSite siteinfo
     ["clean"] -> deleteFiles (siteinfoPublic siteinfo)
-    ["atom"] -> generatePakan siteinfo
+    ["atom"] -> generateFeed siteinfo
     _ -> do
       putText "should be one of the following:"
       putText "new Post title_of_post"

@@ -1,4 +1,3 @@
-{-# LANGUAGE Safe #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Text.RSS
@@ -45,7 +44,7 @@
 -----------------------------------------------------------------------------
 module Lib.RSS where
 
-import           Lib.Prelude
+import           Protolude
 
 import           Data.Ix                    (Ix)
 import           Data.Time.Clock            (UTCTime)

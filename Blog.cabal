@@ -15,8 +15,7 @@ library
   hs-source-dirs:      src
   ghc-options:         -Wall
   exposed-modules:     Lib
-  other-modules:       Lib.Prelude
-                     , Lib.Types
+  other-modules:       Lib.Types
                      , Lib.Regenerate
                      , Lib.Rewrite
                      , Lib.RSS

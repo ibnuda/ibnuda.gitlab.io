@@ -4,3 +4,4 @@ author: iaji@siskam.link (Ibnu Daru Aji)
 files: posts
 public: public
 rss: feed.xml
+css: res/main.css

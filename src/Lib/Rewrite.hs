@@ -1,6 +1,8 @@
 {-# LANGUAGE RecordWildCards #-}
 module Lib.Rewrite where
 
+import           Protolude           hiding (intercalate)
+
 import           Data.Char
 import qualified Data.Text             as T
 import           Data.Time
@@ -9,7 +11,6 @@ import           System.FilePath.Posix
 import qualified Text.Read             as TR
 import           Text.Regex            (mkRegex, subRegex)
 
-import           Lib.Prelude           hiding (intercalate)
 import           Lib.Types
 
 
@@ -32,12 +33,12 @@ getFiles path =
 deleteFiles :: FilePath -> IO ()
 deleteFiles path = getFiles path >>= mapM_ (removeFile . (path </>))
 
-generateMdFilename :: [Char] -> [Char]
-generateMdFilename input = subRegex (mkRegex "[^a-zA-Z0-9_.]") input "-"
+mdFilename :: [Char] -> [Char]
+mdFilename input = subRegex (mkRegex "[^a-zA-Z0-9_.]") input "-"
 
-generateHtmlFilename :: [Char] -> UTCTime -> [Char]
-generateHtmlFilename title date =
-  let fn = generateMdFilename title
+htmlFilename :: [Char] -> UTCTime -> [Char]
+htmlFilename title date =
+  let fn = mdFilename title
       dt = formatTime defaultTimeLocale "%z%F" $ utctDay date
   in  map toLower $ dt ++ "-" ++ fn ++ ".html"
 
@@ -53,6 +54,6 @@ writeGenerated siteinfopublic filename content =
 createMdFile :: SiteInfo -> [Char] -> Title -> IO ()
 createMdFile SiteInfo {..} ctype title = do
   now <- getCurrentTime
-  let fn = generateMdFilename (T.unpack title)
-      ct = TR.read ctype :: PostType
+  let fn = mdFilename (T.unpack title)
+      ct = TR.read ctype
   writeRawpost siteinfoFiles $ Rawpost (fn ++ ".md") title now ct "Write here."
