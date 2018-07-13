@@ -138,11 +138,12 @@ layout SiteInfo {..} mymenu titlecontent htmlcontent =
       H.meta ! charset "utf-8"
       H.meta ! name "viewport" ! content
         "width=device-width, initial-scale=1.0, user-scalable=yes"
+      H.link ! rel "manifest" ! href "manifest.json"
       H.meta ! name "author" ! value (textValue siteinfoAuthor)
       H.meta ! name "theme-color" ! content "#2A2B2A"
+      H.meta ! name "name" ! content "Nothing Unusual"
       H.meta ! name "short_name" ! content "Normal"
-      H.meta ! name "description" ! content
-        (textValue (T.take 100 titlecontent))
+      H.meta ! name "description" ! content (textValue $ T.take 100 titlecontent)
       H.style $ text css
       H.link ! rel "icon" ! href "favicon.ico"
       H.title $ text $ siteinfoName <> " - " <> titlecontent
@@ -155,7 +156,7 @@ layout SiteInfo {..} mymenu titlecontent htmlcontent =
 css :: Text
 css =
   "html{font-family:sans-serif;background-color:#f4f4f4}h1{font-size:2em;margin:0.67em 0}"
-    <> "small{font-size:80%}img{width:100%}code,kbd,pre{font-family:monospace;font-size:1em}"
+    <> "small{font-size:80%}img{width:100%}code,kbd,pre{font-family:monospace;font-size:1.15em}"
     <> "pre > code{display:block;border-left:0.1em solid #656565;padding:1rem 1.5rem;"
     <> "background-color:#f9f9f9;color:#656565;overflow-y:auto;overflow-x:auto}body{color:#000}"
     <> ".layout{display:flex;flex-direction:column;min-height:100vh;height:100%}"
