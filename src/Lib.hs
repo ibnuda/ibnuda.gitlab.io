@@ -4,6 +4,6 @@ module Lib
 
 import           Protolude      as Exports
 
-import           Lib.Regenerate as Exports
+import           Lib.Generate   as Exports
 import           Lib.Rewrite    as Exports
 import           Lib.Types      as Exports

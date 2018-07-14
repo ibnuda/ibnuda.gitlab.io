@@ -5,3 +5,4 @@ files: posts
 public: public
 rss: feed.xml
 css: res/main.css
+templates: res/templates

@@ -12,7 +12,7 @@ main = do
       createMdFile siteinfo ctype (intercalate " " . map pack $ titles)
     ["compile"] -> do
       deleteFiles (siteinfoPublic siteinfo)
-      generateSite siteinfo
+      generateBlog siteinfo
     ["clean"] -> deleteFiles (siteinfoPublic siteinfo)
     ["atom"] -> generateFeed siteinfo
     _ -> do

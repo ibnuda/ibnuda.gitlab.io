@@ -19,4 +19,4 @@ sitemap:
 
 home:
 	mv public/* ~/siskam.link
-	cp 404.html public/
+	cp res/404.html public/

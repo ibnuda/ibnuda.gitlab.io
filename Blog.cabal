@@ -16,18 +16,18 @@ library
   ghc-options:         -Wall
   exposed-modules:     Lib
   other-modules:       Lib.Types
-                     , Lib.Regenerate
+                     , Lib.Generate
                      , Lib.Rewrite
                      , Lib.RSS
   build-depends:       base >= 4.7 && < 5
                      , protolude >= 0.2
                      , HaXml
-                     , blaze-html
                      , directory
                      , filepath
                      , cmark
                      , network-uri
                      , regex-compat
+                     , stache
                      , text
                      , time
                      , yaml

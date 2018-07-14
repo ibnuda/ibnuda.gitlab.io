@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric   #-}
 {-# LANGUAGE RecordWildCards #-}
 module Lib.Types where
 
@@ -9,13 +10,14 @@ import           Data.Time.Clock.POSIX
 import           Data.Yaml
 
 data SiteInfo = SiteInfo
-  { siteinfoUrl    :: Text
-  , siteinfoName   :: Text
-  , siteinfoAuthor :: Text
-  , siteinfoFiles  :: Filename
-  , siteinfoPublic :: Filename
-  , siteinfoRSS    :: Filename
-  , siteinfoCSS    :: Filename
+  { siteinfoUrl          :: Text
+  , siteinfoName         :: Text
+  , siteinfoAuthor       :: Text
+  , siteinfoFiles        :: Filename
+  , siteinfoPublic       :: Filename
+  , siteinfoRSS          :: Filename
+  , siteinfoCSS          :: Filename
+  , siteinfoTemplatesDir :: Filename
   } deriving (Show, Eq)
 
 instance FromJSON SiteInfo where
@@ -27,12 +29,12 @@ instance FromJSON SiteInfo where
     siteinfoPublic <- o .: "public"
     siteinfoRSS <- o .: "rss"
     siteinfoCSS <- o .: "css"
+    siteinfoTemplatesDir <- o .: "templates"
     return SiteInfo {..}
-
 
 readSiteinfo :: IO SiteInfo
 readSiteinfo = do
-  eith <- decodeFileEither "config.yaml"
+  eith <- decodeFileEither "res/config.yaml"
   case eith of
     Left  e -> panic . pack . prettyPrintParseException $ e
     Right s -> pure s
@@ -55,3 +57,27 @@ defaultRawpost = Rawpost "" "" (posixSecondsToUTCTime 0) Post ""
 
 instance Ord Rawpost where
   compare a b = compare (rawpostDate a) (rawpostDate b)
+
+data BlogLink = BlogLink
+  { menulinkurl   :: Text,
+    menulinktitle :: Text
+  } deriving (Generic)
+instance ToJSON BlogLink
+
+data BlogPage = BlogPage
+  { pagetitle   :: Text
+  , pagecss     :: Text
+  , pagedesc    :: Text
+  , pagecontent :: Text
+  , pagelinks   :: [BlogLink]
+  } deriving (Generic)
+instance ToJSON BlogPage
+
+data Index = Index
+  { indextitle   :: Text
+  , indexcss     :: Text
+  , indexdesc    :: Text
+  , indexlinks   :: [BlogLink]
+  , indexindice  :: [BlogLink]
+  } deriving (Generic)
+instance ToJSON Index
