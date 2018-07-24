@@ -103,8 +103,8 @@ Current commit status: [types](https://gitlab.com/ibnuda/real-world-conduit/comm
 ## Database Representation.
 
 I have decided how the database modeling looks like for this project.
-I don't know how normalised it is, but I'm pretty sure Mrs. Dian will not be
-disappointed by it.
+I don't know how normalised it is, but I'm pretty sure Mrs. Dian, my Database Management
+System lecturer, will not be disappointed by it.
 You can read see the tables on [note on joins](https://siskam.link/2018-07-01-note-on-joins.html).
 Although I omitted two tables there (`follows` and `comment`), I will make it up by showing
 `persistent`'s database model thingy.
