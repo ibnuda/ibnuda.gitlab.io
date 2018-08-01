@@ -78,7 +78,7 @@ generateFeed SiteInfo {..} = do
         "https://gitlab.com/ibnuda/ibnuda.gitlab.io/blob/master/src/Lib/RSS.hs"
       ]
     rssItem = map makeItems rawposts
-  writeGenerated siteinfoPublic siteinfoCSS
+  writeGenerated siteinfoPublic siteinfoRSS
     . T.pack
     . showXML
     . rssToXML

@@ -2,8 +2,6 @@ servant-auth, CORS, and Nginx
 2018-07-24 05:33:33.007251724 UTC
 Post
 
-`servant-auth`, CORS, and Nginx
-
 My old man asked to write a POS solution for his community project.
 Something related to public well which provides cheap water for the
 poor or something like that. So I decided to create an unnecessary complex thing for
@@ -12,7 +10,7 @@ The solution will consist of 3 projects, a backend which is written in Haskell, 
 frontend in Elm (because I couldn't find a midsized Purescript project), and an
 android client for the dudes who checks the water usage.
 The backend part lives on [sumur-dalam](https://gitlab.com/ibnuda/sumur-dalam),
-frontend on [sumur-depan](https://gitlab.com/ibnuda/sumur-depan), while the android
+frontend on [timba](https://gitlab.com/ibnuda/timba), while the android
 client will be written soon (tm).
 
 The writing process for backend was really boring, to be quite honest (apart from

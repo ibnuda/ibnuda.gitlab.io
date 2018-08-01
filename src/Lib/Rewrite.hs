@@ -49,7 +49,7 @@ writeRawpost siteinfofiles Rawpost {..} = writeFile
 
 writeGenerated :: FilePath -> Filename -> Text -> IO ()
 writeGenerated siteinfopublic filename content =
-  writeFile (siteinfopublic ++ "/" ++ filename) content
+  writeFile (siteinfopublic </> filename) content
 
 createMdFile :: SiteInfo -> [Char] -> Title -> IO ()
 createMdFile SiteInfo {..} ctype title = do
