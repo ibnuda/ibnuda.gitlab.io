@@ -3,7 +3,7 @@ Ayyy! New Site!
 Post
 
 Finally I have my own site.
-Having a personal site is also one of a few things that I-wish-I-had-but-hadn't
+Having a personal site was one of a few things that I-wish-I-had-but-hadn't
 
 There are a few components of this site.
 
@@ -48,6 +48,12 @@ No offense to people who love bullshit like that, tho.
 Also, this site uses less than 10kb of css and js.
 Not that I wrote it myself, but surely it feels good to have minimalistic site.
 <small>Psst... I just shamelessly copied it from PureCSS' example.</small>
+
+#### Update for a while
+Just like bonsai, the blog engine changes through time.
+I added something there, removed another thing here, etc.
+Now it's just a stupidly boring site.
+(But there's an RSS feed!)
 
 ### Contents
 

@@ -214,3 +214,4 @@ getArticleTagNamesAndFavCounts username =
              , arrayAgg (tag ^. TagName)
              , count (favd ^. FavoritedId))
 ```
+That's pretty much it.

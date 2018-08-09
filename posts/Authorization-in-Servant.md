@@ -30,7 +30,7 @@ We will have a working REST interface with the following scheme (or something):
 There are a few things that we will use in this article.
 Namely:
 - A running instance of MariaDB or MySQL.
-This choice was based on observation that in Indonesia, MySQL is more preferable than Postgres, though I personally choose Postgres any over db.
+This choice was based on observation that in Indonesia, MySQL is more preferred than Postgres, though I personally choose Postgres any over db.
 - `stack`.
 We will use stack because it prevents cabal hell or something, that's what the internet says about it.
 So we will heed internet's call this time.

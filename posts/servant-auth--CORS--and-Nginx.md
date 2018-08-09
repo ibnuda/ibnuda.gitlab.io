@@ -3,19 +3,20 @@ servant-auth, CORS, and Nginx
 Post
 
 My old man asked to write a POS solution for his community project.
-Something related to public well which provides cheap water for the
-poor or something like that. So I decided to create an unnecessary complex thing for
-him.
-The solution will consist of 3 projects, a backend which is written in Haskell, obviously,
-frontend in Elm (because I couldn't find a midsized Purescript project), and an
-android client for the dudes who checks the water usage.
+Something related to public well which will provide cheap water for the
+poor or something like that.
+So I decided to create an unnecessarily complex thing for him.
+
+The solution will be consisted of 3 projects, a backend which is written in Haskell
+, obviously, frontend in Elm (because I couldn't find a midsized Purescript project)
+, and an android client for the dudes who check and input the water usages.
 The backend part lives on [sumur-dalam](https://gitlab.com/ibnuda/sumur-dalam),
 frontend on [timba](https://gitlab.com/ibnuda/timba), while the android
 client will be written soon (tm).
 
 The writing process for backend was really boring, to be quite honest (apart from
 my usual habit to write anything twice).
-But when I write the frontend using weird js things in Elm, I can't access
+But when I write the frontend using weird js things in Elm, I couldn't access
 the REST part because of CORS , `OPTIONS` verb, and their friends.
 I've tried a few solutions, that's for sure.
 For example, I tried [`servant-options`](https://github.com/sordina/servant-options)
@@ -24,8 +25,8 @@ also tried this [servant's github issue on JWT Instance for `servant-foreign`](h
 and both of them made me realise how out of depth I am.
 
 So, I decided to side step it and use nginx for this CORS issue.
-I found out that, there are a lot people who has problem when it comes to
-CORS and use nginx to overcome it.
+I found out that, there are a lot people who have problems when it come to
+CORS and used nginx to overcome it.
 For example, this [stackoverflow question](https://stackoverflow.com/questions/45986631/how-to-enable-cors-in-nginx-proxy-server)
 talks about CORS and it solved their issues.
 
@@ -61,3 +62,6 @@ server {
   }
 }
 ```
+
+Now, whenever I access the Elm frontend, I can use it just fine.
+Every `OPTIONS` request is being handled by nginx.
